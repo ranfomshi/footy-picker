@@ -7,7 +7,7 @@ yarn-error.log*
 pnpm-debug.log*
 lerna-debug.log*
 
-# node_modules  # Comment this line temporarily
+node_modules
 # dist  <-- Comment out or remove this line
 dist-ssr
 *.local
