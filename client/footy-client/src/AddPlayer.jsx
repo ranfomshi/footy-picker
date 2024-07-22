@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Input, Button } from 'antd';
 import axios from 'axios';
 
-const AddPlayer = ({ fetchPlayers }) => {
+const AddPlayer = ({ fetchPlayers, players }) => {
   const [newPlayerName, setNewPlayerName] = useState('');
 
   const addPlayer = async () => {
@@ -25,6 +25,9 @@ const AddPlayer = ({ fetchPlayers }) => {
       <Button onClick={addPlayer} type="primary" style={{ marginTop: '10px' }}>
         Add Player
       </Button>
+      {players.map(player =>(
+        <li>{player}</li>
+      ))}
     </div>
   );
 };
