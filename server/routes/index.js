@@ -1,6 +1,7 @@
 const express = require('express');
 const { Player, Game, GameResult, Availability, Rating } = require('../models');
 const router = express.Router();
+const sequelize = require('sequelize');
 
 // Create a new player
 router.post('/players', async (req, res) => {
@@ -70,6 +71,41 @@ router.get('/availability', async (req, res) => {
         res.json(availablePlayers);
     } catch (error) {
         console.error("Error fetching availability", error);
+        res.status(500).json({ error: 'Internal Server Error' });
+    }
+});
+
+// Record player ratings
+router.post('/ratings', async (req, res) => {
+    try {
+        const { date, ratings } = req.body; // ratings: [{playerId, rating, raterId}]
+        const ratingRecords = await Promise.all(ratings.map(rating => {
+            return Rating.create({
+                date,
+                playerId: rating.playerId,
+                rating: rating.rating,
+                raterId: rating.raterId,
+            });
+        }));
+        res.json(ratingRecords);
+    } catch (error) {
+        console.error("Error recording ratings", error);
+        res.status(500).json({ error: 'Internal Server Error' });
+    }
+});
+
+// Get average ratings for players on a specific date
+router.get('/ratings', async (req, res) => {
+    try {
+        const { date } = req.query;
+        const ratings = await Rating.findAll({
+            where: { date },
+            attributes: ['playerId', [sequelize.fn('AVG', sequelize.col('rating')), 'avgRating']],
+            group: ['playerId'],
+        });
+        res.json(ratings);
+    } catch (error) {
+        console.error("Error fetching ratings", error);
         res.status(500).json({ error: 'Internal Server Error' });
     }
 });

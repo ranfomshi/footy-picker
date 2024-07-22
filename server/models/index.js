@@ -70,30 +70,24 @@ const Availability = sequelize.define('Availability', {
 });
 
 const Rating = sequelize.define('Rating', {
-    gameId: {
-        type: DataTypes.INTEGER,
-        references: {
-            model: Game,
-            key: 'id'
-        }
-    },
-    raterId: {
+    playerId: {
         type: DataTypes.INTEGER,
         references: {
             model: Player,
             key: 'id'
         }
     },
-    rateeId: {
-        type: DataTypes.INTEGER,
-        references: {
-            model: Player,
-            key: 'id'
-        }
+    date: {
+        type: DataTypes.DATEONLY,
+        allowNull: false
     },
     rating: {
         type: DataTypes.INTEGER,
         allowNull: false
+    },
+    raterId: {
+        type: DataTypes.INTEGER,
+        allowNull: true, // Add if you want to track who rated
     }
 });
 
@@ -101,6 +95,9 @@ Player.belongsToMany(Game, { through: GameResult });
 Game.belongsToMany(Player, { through: GameResult });
 Player.belongsToMany(Game, { through: Availability });
 Game.belongsToMany(Player, { through: Availability });
+
+Player.hasMany(Rating, { foreignKey: 'playerId' });
+Rating.belongsTo(Player, { foreignKey: 'playerId' });
 
 sequelize.sync();
 

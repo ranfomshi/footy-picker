@@ -4,6 +4,7 @@ import axios from 'axios';
 import AddPlayer from './AddPlayer';
 import RecordAvailability from './RecordAvailability';
 import PickTeams from './PickTeams';
+import RatePlayers from './RatePlayers';
 
 const { TabPane } = Tabs;
 const { Header, Content } = Layout;
@@ -51,6 +52,9 @@ const App = () => {
           </TabPane>
           <TabPane tab="Pick Teams" key="3">
             <PickTeams />
+          </TabPane>
+          <TabPane tab="Rate Players" key="4">
+            <RatePlayers players={players} />
           </TabPane>
         </Tabs>
       </Content>
