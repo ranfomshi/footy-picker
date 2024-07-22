@@ -25,9 +25,11 @@ const AddPlayer = ({ fetchPlayers, players }) => {
       <Button onClick={addPlayer} type="primary" style={{ marginTop: '10px' }}>
         Add Player
       </Button>
-      {players.map(player =>(
-        <li>{player}</li>
-      ))}
+      <ul>
+        {players.map(player => (
+          <li key={player.id}>{player.name}</li>
+        ))}
+      </ul>
     </div>
   );
 };

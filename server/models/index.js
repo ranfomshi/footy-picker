@@ -1,27 +1,26 @@
 const { Sequelize, DataTypes } = require('sequelize');
 require('dotenv').config();
 
-const env = process.env.NODE_ENV || 'development';
-let sequelize;
+console.log('NODE_ENV:', process.env.NODE_ENV);
+console.log('DATABASE_URL:', process.env.DATABASE_URL);
+console.log('DATABASE_URL_DEV:', process.env.DATABASE_URL_DEV);
 
-if (env === 'development') {
-    sequelize = new Sequelize(process.env.DATABASE_URL_DEV, {
-        dialect: 'postgres',
-        protocol: 'postgres'
-    });
-} else {
-    sequelize = new Sequelize(process.env.DATABASE_URL, {
-        dialect: 'postgres',
-        protocol: 'postgres',
-        dialectOptions: {
-            ssl: {
-                require: true,
-                rejectUnauthorized: false
-            }
+const databaseUrl = process.env.NODE_ENV === 'development' ? process.env.DATABASE_URL_DEV : process.env.DATABASE_URL;
+
+console.log('Using database URL:', databaseUrl);
+
+const sequelize = new Sequelize(databaseUrl, {
+    dialect: 'postgres',
+    protocol: 'postgres',
+    dialectOptions: {
+        ssl: process.env.NODE_ENV === 'development' ? false : {
+            require: true,
+            rejectUnauthorized: false
         }
-    });
-}
+    }
+});
 
+// Define models
 const Player = sequelize.define('Player', {
     name: {
         type: DataTypes.STRING,
@@ -97,18 +96,35 @@ const Rating = sequelize.define('Rating', {
     },
     raterId: {
         type: DataTypes.INTEGER,
-        allowNull: true, // Add if you want to track who rated
+        allowNull: true // Add if you want to track who rated
     }
 });
 
+// Define associations
 Player.belongsToMany(Game, { through: GameResult });
 Game.belongsToMany(Player, { through: GameResult });
+
 Player.belongsToMany(Game, { through: Availability });
 Game.belongsToMany(Player, { through: Availability });
 
 Player.hasMany(Rating, { foreignKey: 'playerId' });
 Rating.belongsTo(Player, { foreignKey: 'playerId' });
 
-sequelize.sync();
+Game.hasMany(GameResult, { foreignKey: 'gameId' });
+GameResult.belongsTo(Game, { foreignKey: 'gameId' });
+
+Player.hasMany(GameResult, { foreignKey: 'playerId' });
+GameResult.belongsTo(Player, { foreignKey: 'playerId' });
+
+(async () => {
+    try {
+        await sequelize.authenticate();
+        const syncOptions = process.env.NODE_ENV === 'development' ? { force: true } : {};
+        await sequelize.sync(syncOptions);
+        console.log('All models were synchronized successfully.');
+    } catch (error) {
+        console.error('Unable to synchronize the models:', error);
+    }
+})();
 
 module.exports = { Player, Game, GameResult, Availability, Rating, sequelize };

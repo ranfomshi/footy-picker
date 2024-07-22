@@ -5,6 +5,7 @@ const sequelize = require('sequelize');
 
 // Create a new player
 router.post('/players', async (req, res) => {
+    console.log('Received request to create player:', req.body);
     try {
         const { name } = req.body;
         const player = await Player.create({ name });
@@ -14,6 +15,7 @@ router.post('/players', async (req, res) => {
         res.status(500).json({ error: 'Internal Server Error' });
     }
 });
+
 
 // Record game result
 router.post('/games', async (req, res) => {
