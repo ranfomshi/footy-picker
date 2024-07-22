@@ -38,7 +38,7 @@ const App = () => {
       <Content style={{ padding: '0 50px', marginTop: '20px' }}>
         <Tabs defaultActiveKey="1">
           <TabPane tab="Add Player" key="1">
-            <AddPlayer fetchPlayers={fetchPlayers} />
+            <AddPlayer fetchPlayers={fetchPlayers} players={players} />
             <List
               bordered
               dataSource={players}
