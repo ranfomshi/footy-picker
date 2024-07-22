@@ -4,7 +4,7 @@ const { sequelize } = require('./models');
 const routes = require('./routes');
 const app = express();
 
-app.use(express.json());
+app.use(express.json()); // Middleware to parse JSON requests
 app.use(express.static(path.join(__dirname, '../client/footy-client/dist')));
 
 app.use('/api', routes);
