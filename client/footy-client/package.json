@@ -10,7 +10,7 @@
     "preview": "vite preview",
     "start": "node server/server.js",
     "heroku-postbuild": "NPM_CONFIG_PRODUCTION=false npm install --prefix client/footy-client && npm run build --prefix client/footy-client"
-  },
+   },
   "dependencies": {
     "react": "^18.3.1",
     "react-dom": "^18.3.1"
