@@ -7,14 +7,9 @@ yarn-error.log*
 pnpm-debug.log*
 lerna-debug.log*
 
-# Node modules
 node_modules
-
-# Build directories
-dist
+# dist  <-- Comment out or remove this line
 dist-ssr
-
-# Local environment variables
 *.local
 
 # Editor directories and files
