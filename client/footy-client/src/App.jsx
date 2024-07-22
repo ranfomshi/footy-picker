@@ -15,35 +15,64 @@ const App = () => {
     }, []);
 
     const fetchPlayers = async () => {
-        const response = await axios.get('/api/players');
-        setPlayers(response.data);
+        try {
+            const response = await axios.get('/api/players');
+            console.log("Fetched players:", response.data);  // Debugging line
+            if (Array.isArray(response.data)) {
+                setPlayers(response.data);
+            } else {
+                console.error("Expected an array but got:", response.data);
+            }
+        } catch (error) {
+            console.error("Error fetching players", error);
+        }
     };
 
     const addPlayer = async () => {
-        const response = await axios.post('/api/players', { name: newPlayerName });
-        setPlayers([...players, response.data]);
-        setNewPlayerName('');
+        try {
+            const response = await axios.post('/api/players', { name: newPlayerName });
+            setPlayers([...players, response.data]);
+            setNewPlayerName('');
+        } catch (error) {
+            console.error("Error adding player", error);
+        }
     };
 
     const recordAvailability = async () => {
         const playerIds = availablePlayers.map(player => player.id);
-        await axios.post('/api/availability', { date, playerIds });
-        alert('Availability recorded!');
+        try {
+            await axios.post('/api/availability', { date, playerIds });
+            alert('Availability recorded!');
+        } catch (error) {
+            console.error("Error recording availability", error);
+        }
     };
 
     const pickTeams = async () => {
-        const response = await axios.get('/api/pick-teams', { params: { date } });
-        setTeams(response.data);
+        try {
+            const response = await axios.get('/api/pick-teams', { params: { date } });
+            setTeams(response.data);
+        } catch (error) {
+            console.error("Error picking teams", error);
+        }
     };
 
     const recordGameResults = async () => {
-        await axios.post('/api/games', { date, results: gameResults });
-        alert('Game results recorded!');
+        try {
+            await axios.post('/api/games', { date, results: gameResults });
+            alert('Game results recorded!');
+        } catch (error) {
+            console.error("Error recording game results", error);
+        }
     };
 
     const recordRatings = async () => {
-        await axios.post('/api/ratings', { date, ratings });
-        alert('Ratings recorded!');
+        try {
+            await axios.post('/api/ratings', { date, ratings });
+            alert('Ratings recorded!');
+        } catch (error) {
+            console.error("Error recording ratings", error);
+        }
     };
 
     return (
@@ -63,7 +92,7 @@ const App = () => {
                 onChange={(e) => setDate(e.target.value)}
             />
             <div>
-                {players.map(player => (
+                {Array.isArray(players) && players.map(player => (
                     <div key={player.id}>
                         <input
                             type="checkbox"
