@@ -1,16 +1,26 @@
 const { Sequelize, DataTypes } = require('sequelize');
 require('dotenv').config();
 
-const sequelize = new Sequelize(process.env.DATABASE_URL, {
-    dialect: 'postgres',
-    protocol: 'postgres',
-    dialectOptions: {
-        ssl: {
-            require: true,
-            rejectUnauthorized: false
+const env = process.env.NODE_ENV || 'development';
+let sequelize;
+
+if (env === 'development') {
+    sequelize = new Sequelize(process.env.DATABASE_URL_DEV, {
+        dialect: 'postgres',
+        protocol: 'postgres'
+    });
+} else {
+    sequelize = new Sequelize(process.env.DATABASE_URL, {
+        dialect: 'postgres',
+        protocol: 'postgres',
+        dialectOptions: {
+            ssl: {
+                require: true,
+                rejectUnauthorized: false
+            }
         }
-    }
-});
+    });
+}
 
 const Player = sequelize.define('Player', {
     name: {

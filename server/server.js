@@ -10,12 +10,16 @@ app.use(express.static(path.join(__dirname, '../client/footy-client/dist')));
 app.use('/api', routes);
 
 app.get('*', (req, res) => {
-    res.sendFile(path.join(__dirname, '../client/footy-client/dist/index.html'));
+  res.sendFile(path.join(__dirname, '../client/footy-client/dist/index.html'));
 });
 
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, async () => {
+  try {
     await sequelize.authenticate();
-    await sequelize.sync(); // Ensure models are synced with the database
+    await sequelize.sync({ force: false }); // Set force: true to drop and recreate tables every time
     console.log(`Server is running on port ${PORT}`);
+  } catch (error) {
+    console.error('Unable to connect to the database:', error);
+  }
 });
