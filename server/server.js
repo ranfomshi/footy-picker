@@ -3,7 +3,7 @@ const path = require('path');
 const app = express();
 
 // Serve static files from the React app
-app.use(express.static(path.join(__dirname, '../client/dist')));
+app.use(express.static(path.join(__dirname, '../client/footy-client/dist')));
 
 // API route
 app.get('/api/hello', (req, res) => {
@@ -13,7 +13,7 @@ app.get('/api/hello', (req, res) => {
 // The "catchall" handler: for any request that doesn't
 // match one above, send back React's index.html file.
 app.get('*', (req, res) => {
-  res.sendFile(path.join(__dirname, '../client/dist/index.html'));
+  res.sendFile(path.join(__dirname, '../client/footy-client/dist/index.html'));
 });
 
 const PORT = process.env.PORT || 5000;
