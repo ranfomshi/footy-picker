@@ -6,14 +6,14 @@ const AddPlayer = ({ fetchPlayers, players }) => {
   const [newPlayerName, setNewPlayerName] = useState('');
 
   const addPlayer = async () => {
-    try {
-      await axios.post('/api/players', { name: newPlayerName });
-      setNewPlayerName('');
-      fetchPlayers(); // Fetch the updated list of players
-    } catch (error) {
-      console.error("Error adding player", error);
-    }
-  };
+  try {
+    await axios.post('/players', { name: newPlayerName });
+    setNewPlayerName('');
+    fetchPlayers();
+  } catch (error) {
+    console.error("Error adding player", error);
+  }
+};
 
   return (
     <div>

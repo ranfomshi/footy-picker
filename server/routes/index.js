@@ -4,7 +4,7 @@ const router = express.Router();
 const sequelize = require('sequelize');
 
 // Create a new player
-router.post('/players', async (req, res) => {
+router.post('http://localhost:5000/api/players', async (req, res) => {
     console.log('Received request to create player:', req.body);
     try {
         const { name } = req.body;
@@ -52,7 +52,7 @@ router.post('/availability', async (req, res) => {
 });
 
 // Get players
-router.get('/players', async (req, res) => {
+router.get('/api/players', async (req, res) => {
     try {
         const players = await Player.findAll();
         res.json(players);
