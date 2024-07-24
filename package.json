@@ -5,7 +5,7 @@
   "main": "index.js",
   "scripts": {
     "start": "node server/server.js",
-    "heroku-postbuild": "cd client/footy-client && npm install --only=dev && npm install && npm run build",
+    "heroku-postbuild": "cd client/footy-client && npm install --only=dev && npm install && npx vite build",
     "server": "nodemon server/server.js",
     "client": "cd client/footy-client && npm start",
     "dev": "concurrently \"npm run server\" \"npm run client\"",
