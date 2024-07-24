@@ -29,7 +29,7 @@
     "express": "^4.19.2",
     "pg": "^8.12.0",
     "sequelize": "^6.37.3",
-    "vite": "^5.3.4"  // Add this line to include Vite as a dependency
+    "vite": "^5.3.4"  
   },
   "devDependencies": {
     "dotenv": "^16.4.5",
