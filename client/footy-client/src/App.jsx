@@ -1,35 +1,49 @@
-import { useState } from 'react'
-import reactLogo from './assets/react.svg'
-import viteLogo from '/vite.svg'
-import './App.css'
+import React, { useEffect, useState } from 'react';
+import './App.css';
+import AddPlayer from './components/AddPlayer';
+import axios from 'axios';
+import GameweekManager from './components/GameweekManager';
+import BottomNav from './components/BottomNav';
 
 function App() {
-  const [count, setCount] = useState(0)
+    const [players, setPlayers] = useState([]);
+    const [activeKey, setActiveKey] = useState('players');
 
-  return (
-    <>
-      <div>
-        <a href="https://vitejs.dev" target="_blank">
-          <img src={viteLogo} className="logo" alt="Vite logo" />
-        </a>
-        <a href="https://react.dev" target="_blank">
-          <img src={reactLogo} className="logo react" alt="React logo" />
-        </a>
-      </div>
-      <h1>Vite + React</h1>
-      <div className="card">
-        <button onClick={() => setCount((count) => count + 1)}>
-          count is {count}
-        </button>
-        <p>
-          Edit <code>src/App.jsx</code> and save to test HMR
-        </p>
-      </div>
-      <p className="read-the-docs">
-        Click on the Vite and React logos to learn more
-      </p>
-    </>
-  )
+    const fetchPlayers = async () => {
+        try {
+            const response = await axios.get('http://localhost:5000/api/players');
+            setPlayers(response.data);
+        } catch (error) {
+            console.error("Error fetching players", error);
+        }
+    };
+
+    useEffect(() => {
+        fetchPlayers();
+    }, []);
+
+    const renderContent = () => {
+        switch (activeKey) {
+            case 'players':
+                return <AddPlayer fetchPlayers={fetchPlayers} players={players} />;
+            case 'gameweeks':
+                return <GameweekManager />;
+            default:
+                return null;
+        }
+    };
+
+    return (
+        <div className="App">
+            <div className="content">
+                <h1>Fat Football Fellas</h1>
+                {renderContent()}
+            </div>
+            <div className="bottom-nav">
+                <BottomNav activeKey={activeKey} onChange={setActiveKey} />
+            </div>
+        </div>
+    );
 }
 
-export default App
+export default App;
