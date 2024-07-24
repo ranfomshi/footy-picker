@@ -35,6 +35,7 @@ build/Release
 
 # Dependency directories
 node_modules/
+server/node_modules/
 client/footy-client/node_modules/
 
 # Optional npm cache directory
@@ -58,7 +59,7 @@ client/footy-client/node_modules/
 .env.production
 
 # Vite build output
-dist/
+client/footy-client/dist/
 
 # IDE specific files
 .vscode/
