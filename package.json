@@ -4,8 +4,8 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "start": "node server/server.js",  // Heroku will use this script to start the server
-    "heroku-postbuild": "cd client/footy-client && npm install && npm run build", // Heroku will run this script after build
+    "start": "node server/server.js",  
+    "heroku-postbuild": "cd client/footy-client && npm install && npm run build",
     "server": "nodemon server/server.js",
     "client": "cd client/footy-client && npm start",
     "dev": "concurrently \"npm run server\" \"npm run client\"",
