@@ -5,7 +5,7 @@
   "main": "index.js",
   "scripts": {
     "start": "node server/server.js",
-    "heroku-postbuild": "cd client/footy-client && npm install --only=dev && npm install && npx vite build",
+    "heroku-postbuild": "cd client/footy-client && npm install && npm run build",
     "server": "nodemon server/server.js",
     "client": "cd client/footy-client && npm start",
     "dev": "concurrently \"npm run server\" \"npm run client\"",
@@ -28,7 +28,8 @@
     "dotenv": "^16.4.5",
     "express": "^4.19.2",
     "pg": "^8.12.0",
-    "sequelize": "^6.37.3"
+    "sequelize": "^6.37.3",
+    "vite": "^5.3.4"  // Add this line to include Vite as a dependency
   },
   "devDependencies": {
     "dotenv": "^16.4.5",
