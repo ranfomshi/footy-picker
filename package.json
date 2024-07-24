@@ -2,10 +2,10 @@
   "name": "footy-picker",
   "version": "1.0.0",
   "description": "",
-  "main": "server/server.js",
+  "main": "index.js",
   "scripts": {
     "start": "node server/server.js",
-    "heroku-postbuild": "cd client/footy-client && npm install && npm run build",
+    "heroku-postbuild": "cd client/footy-client && npm install --only=dev && npm install && npm run build",
     "server": "nodemon server/server.js",
     "client": "cd client/footy-client && npm start",
     "dev": "concurrently \"npm run server\" \"npm run client\"",
@@ -31,6 +31,7 @@
     "sequelize": "^6.37.3"
   },
   "devDependencies": {
+    "dotenv": "^16.4.5",
     "concurrently": "^7.0.0",
     "nodemon": "^2.0.22"
   },
