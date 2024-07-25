@@ -165,6 +165,4 @@ Availability.belongsTo(Gameweek, { foreignKey: 'gameweekId' });
 Player.hasMany(Availability, { foreignKey: 'playerId' });
 Gameweek.hasMany(Availability, { foreignKey: 'gameweekId' });
 
-sequelize.sync({ force: true });
-
 module.exports = { Player, Gameweek, GameResult, Availability, Rating, TeamAssignment, sequelize };

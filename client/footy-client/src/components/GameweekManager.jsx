@@ -124,15 +124,8 @@ const GameweekManager = () => {
                 ...prevAvailability,
                 [gameweekId]: { ...prevAvailability[gameweekId], [playerId]: status }
             }));
-            // Delete assignment when toggling availability
-            await axios.delete(`http://localhost:5000/api/teamassignments?gameweekId=${gameweekId}&playerId=${playerId}`);
-            setAssignments(prevAssignments => {
-                const newAssignments = { ...prevAssignments[gameweekId] };
-                delete newAssignments[playerId];
-                return { ...prevAssignments, [gameweekId]: newAssignments };
-            });
             // Re-fetch teams to ensure UI is updated
-            fetchTeams(gameweekId);
+            handleTeamAssignment(gameweekId);
         } catch (error) {
             console.error("Error setting availability", error);
         }
@@ -216,7 +209,7 @@ const GameweekManager = () => {
                                             <span>{`Gameweek on ${new Date(gameweek.date).toLocaleDateString('en-GB')}`}</span>
                                             {resultExists && (
                                                 <span style={{display:'flex', alignItems:'baseline'}}>
-                                                    Team A  <div style={{background:'#1677ff', borderRadius:'3', color:'white', margin:'0 5px 0 5px', padding:'0 5px 0 5px'}}><strong>{result.teamA_score}</strong> - <strong>{result.teamB_score}</strong></div>  TeamB
+                                                    Team A  <div style={{background:'#1677ff', borderRadius:'3', color:'white', margin:'0 5px 0 5px', padding:'0 5px 0 5px'}}><strong>{result.teamA_score}</strong> - <strong>{result.teamB_score}</strong></div>  Team B
                                                 </span>
                                             )}
                                         </div>
@@ -236,9 +229,6 @@ const GameweekManager = () => {
                                                 />
                                             </div>
                                         ))}
-                                        <Space style={{ marginTop: 16 }}>
-                                            <Button onClick={() => handleTeamAssignment(gameweek.id)} disabled={resultExists}>Assign Teams</Button>
-                                        </Space>
                                     </div>
                                     {teams[gameweek.id] && (
                                         <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 16 }}>
