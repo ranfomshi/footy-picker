@@ -58,6 +58,8 @@
   padding: 2em;
 }
 
-.read-the-docs {
-  color: #888;
+.ant-switch-checked{
+  background:#3aad44 !important;
 }
+
+
