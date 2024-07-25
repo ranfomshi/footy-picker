@@ -73,13 +73,13 @@ const AddPlayer = ({ fetchPlayers, players }) => {
       <List
         dataSource={players}
         renderItem={player => (
-          <List.Item
+          <List.Item style={{height:65}}
             actions={[
               <Button onClick={() => editPlayer(player)}>Edit</Button>,
               <Button onClick={() => deletePlayer(player.id)} danger>Delete</Button>
             ]}
           >
-            <img height={100} width={100} src='/shirt.svg' alt='Player Shirt'/>
+            <img height={60} width={60} src='/shirt.svg' alt='Player Shirt'/>
             <div>{player.name}</div>
           </List.Item>
         )}
