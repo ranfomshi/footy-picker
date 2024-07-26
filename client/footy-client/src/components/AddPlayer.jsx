@@ -59,8 +59,9 @@ const AddPlayer = ({ fetchPlayers, players }) => {
 
   return (
     <div style={{ maxWidth: '100vw' }}>
-      <Space>
+      <div style={{display:'flex', width:'100%', gap:8, marginBottom:8}}>
         <Input
+        style={{flexGrow:1}}
           value={newPlayerName}
           onChange={(e) => setNewPlayerName(e.target.value)}
           onKeyPress={handleAddPlayerKeyPress}
@@ -69,8 +70,9 @@ const AddPlayer = ({ fetchPlayers, players }) => {
         <Button onClick={addPlayer} type="primary">
           Add Player
         </Button>
-      </Space>
+      </div>
       <List
+      style={{maxHeight:'75vh', overflowY:'scroll'}}
         dataSource={players}
         renderItem={player => (
           <List.Item style={{height:65}}

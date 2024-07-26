@@ -1,7 +1,130 @@
 const express = require('express');
-const { Player, Gameweek, GameResult, Availability, TeamAssignment, Rating } = require('../models');
+const { Player, Gameweek, GameResult, Availability, TeamAssignment, Rating, sequelize } = require('../models');
 const router = express.Router();
 const { Op } = require('sequelize');
+
+const updatePlayerRatings = async (gameweekId) => {
+    try {
+        const gameResult = await GameResult.findOne({
+            where: { gameweekId },
+            include: [Gameweek]
+        });
+
+        if (!gameResult) {
+            console.error(`No game result found for gameweek ${gameweekId}`);
+            return;
+        }
+
+        const teamAssignments = await TeamAssignment.findAll({
+            where: { gameweekId },
+            include: [Player]
+        });
+
+        for (const assignment of teamAssignments) {
+            let points = 0;
+            if ((assignment.team === 'A' && gameResult.teamA_score > gameResult.teamB_score) ||
+                (assignment.team === 'B' && gameResult.teamB_score > gameResult.teamA_score)) {
+                points += 3;
+            } else if (gameResult.teamA_score === gameResult.teamB_score) {
+                points += 1;
+            }
+
+            if (assignment.team === 'A') {
+                points += gameResult.teamA_score * 0.2 - gameResult.teamB_score * 0.1;
+            } else {
+                points += gameResult.teamB_score * 0.2 - gameResult.teamA_score * 0.1;
+            }
+
+            console.log(`Player ${assignment.playerId} earned ${points} points for gameweek ${gameweekId}`);
+
+            // Ensure the rating is created correctly
+            await Rating.create({
+                playerId: assignment.playerId,
+                date: gameResult.Gameweek.date,
+                rating: points,
+                raterId: null
+            });
+
+            const ratings = await Rating.findAll({
+                where: { playerId: assignment.playerId },
+                limit: 5,
+                order: [['createdAt', 'DESC']]
+            });
+
+            console.log(`Ratings for player ${assignment.playerId}:`, ratings);
+
+            if (ratings.length === 0) {
+                console.error(`No ratings found for player ${assignment.playerId}`);
+                continue;
+            }
+
+            const totalPoints = ratings.reduce((acc, rating) => acc + (rating.rating || 0), 0);
+            const player = await Player.findByPk(assignment.playerId);
+
+            if (!player) {
+                console.error(`Player not found: ${assignment.playerId}`);
+                continue;
+            }
+
+            player.rating = totalPoints / ratings.length;
+
+            console.log(`Total points: ${totalPoints}, Ratings length: ${ratings.length}, Calculated rating: ${player.rating}`);
+
+            if (isNaN(player.rating)) {
+                console.error(`Calculated NaN rating for player ${player.id} (${player.name}). Total points: ${totalPoints}, Ratings length: ${ratings.length}`);
+                continue;
+            }
+
+            console.log(`Updating rating for player ${player.id} (${player.name}): ${player.rating}`);
+
+            await player.save();
+        }
+    } catch (error) {
+        console.error('Error updating player ratings:', error);
+    }
+};
+
+
+
+// Pick teams based on availability and past performance
+router.get('/pick-teams', async (req, res) => {
+    const { gameweekId } = req.query;
+
+    try {
+        const players = await Player.findAll({
+            include: [
+                {
+                    model: Availability,
+                    where: { gameweekId, status: true }
+                }
+            ],
+            order: [['rating', 'DESC'], ['name', 'ASC']]
+        });
+
+        const teamA = [];
+        const teamB = [];
+
+        players.forEach((player, index) => {
+            if (index % 2 === 0) {
+                teamA.push(player.id);
+            } else {
+                teamB.push(player.id);
+            }
+        });
+
+        await TeamAssignment.destroy({ where: { gameweekId } });
+
+        await TeamAssignment.bulkCreate([
+            ...teamA.map(playerId => ({ playerId, gameweekId, team: 'A' })),
+            ...teamB.map(playerId => ({ playerId, gameweekId, team: 'B' })),
+        ]);
+
+        res.json({ message: 'Teams assigned successfully' });
+    } catch (error) {
+        console.error('Error picking teams:', error);
+        res.status(500).json({ error: 'Error picking teams' });
+    }
+});
 
 // Create a new player
 router.post('/players', async (req, res) => {
@@ -46,7 +169,31 @@ router.put('/players/:id', async (req, res) => {
     }
 });
 
-// Fetch all game results
+router.post('/gameresults', async (req, res) => {
+    try {
+        const { gameweekId, teamA_score, teamB_score } = req.body;
+
+        // Upsert game result to avoid duplicates for the same gameweek
+        const [gameResult, created] = await GameResult.upsert({
+            gameweekId, teamA_score, teamB_score
+        }, {
+            returning: true
+        });
+
+        if (created) {
+            console.log(`Game result recorded for gameweek ${gameweekId}: Team A ${teamA_score} - ${teamB_score} Team B`);
+        } else {
+            console.log(`Game result updated for gameweek ${gameweekId}: Team A ${teamA_score} - ${teamB_score} Team B`);
+        }
+
+        await updatePlayerRatings(gameweekId);
+        res.json(gameResult);
+    } catch (error) {
+        console.error('Error recording game result:', error);
+        res.status(500).json({ error: 'Error recording game result' });
+    }
+});
+
 router.get('/gameresults', async (req, res) => {
     try {
         const gameResults = await GameResult.findAll();
@@ -56,36 +203,6 @@ router.get('/gameresults', async (req, res) => {
         res.status(500).json({ error: 'Internal Server Error' });
     }
 });
-
-
-// Record game result
-router.post('/gameresults', async (req, res) => {
-    try {
-        const { gameweekId, teamA_score, teamB_score } = req.body;
-
-        // Check if a game result already exists for the given gameweek
-        const existingResult = await GameResult.findOne({ where: { gameweekId } });
-
-        if (existingResult) {
-            return res.status(400).json({ error: 'Game result for this gameweek already exists' });
-        }
-
-        // Calculate winner
-        let winner = 'Draw';
-        if (teamA_score > teamB_score) {
-            winner = 'Team A';
-        } else if (teamB_score > teamA_score) {
-            winner = 'Team B';
-        }
-
-        const gameResult = await GameResult.create({ gameweekId, teamA_score, teamB_score, winner });
-        res.json(gameResult);
-    } catch (error) {
-        console.error("Error recording game result", error);
-        res.status(500).json({ error: 'Internal Server Error' });
-    }
-});
-
 
 // Record availability
 router.post('/availability', async (req, res) => {
@@ -131,14 +248,82 @@ router.post('/teamassignments', async (req, res) => {
     }
 });
 
-// Get players
 router.get('/players', async (req, res) => {
     try {
-        const players = await Player.findAll();
-        res.json(players);
+        const players = await Player.findAll({
+            include: [
+                {
+                    model: TeamAssignment,
+                    include: [
+                        {
+                            model: Gameweek,
+                            include: [
+                                {
+                                    model: GameResult
+                                }
+                            ]
+                        }
+                    ]
+                }
+            ]
+        });
+
+        const playerStats = await Promise.all(players.map(async (player) => {
+            const teamAssignments = await TeamAssignment.findAll({
+                where: {
+                    playerId: player.id
+                },
+                include: [
+                    {
+                        model: Gameweek,
+                        include: [
+                            {
+                                model: GameResult
+                            }
+                        ]
+                    }
+                ]
+            });
+
+            let wins = 0;
+            let draws = 0;
+            let losses = 0;
+            let goalsFor = 0;
+            let goalsAgainst = 0;
+
+            teamAssignments.forEach(assignment => {
+                const gameResult = assignment.Gameweek.GameResult;
+                if (gameResult) {
+                    const team = assignment.team;
+                    const teamScore = team === 'A' ? gameResult.teamA_score : gameResult.teamB_score;
+                    const opponentScore = team === 'A' ? gameResult.teamB_score : gameResult.teamA_score;
+
+                    goalsFor += teamScore;
+                    goalsAgainst += opponentScore;
+
+                    if (teamScore > opponentScore) {
+                        wins += 1;
+                    } else if (teamScore < opponentScore) {
+                        losses += 1;
+                    } else {
+                        draws += 1;
+                    }
+                }
+            });
+
+            player.dataValues.wins = wins;
+            player.dataValues.draws = draws;
+            player.dataValues.losses = losses;
+            player.dataValues.goalsFor = goalsFor;
+            player.dataValues.goalsAgainst = goalsAgainst;
+
+            return player;
+        }));
+
+        res.json(playerStats);
     } catch (error) {
-        console.error("Error fetching players", error);
-        res.status(500).json({ error: 'Internal Server Error' });
+        console.error('Error fetching players:', error);
+        res.status(500).json({ error: 'Error fetching players' });
     }
 });
 
@@ -188,52 +373,6 @@ router.get('/ratings', async (req, res) => {
         res.json(ratings);
     } catch (error) {
         console.error("Error fetching ratings", error);
-        res.status(500).json({ error: 'Internal Server Error' });
-    }
-});
-
-// Pick teams based on availability and past performance
-router.get('/pick-teams', async (req, res) => {
-    try {
-        const { gameweekId } = req.query;
-
-        // Fetch available players
-        const availablePlayers = await Availability.findAll({
-            where: { gameweekId, status: true },
-            include: [{ model: Player }]
-        });
-        const playerIds = availablePlayers.map(a => a.playerId);
-
-        // Remove existing team assignments for players not available
-        await TeamAssignment.destroy({
-            where: {
-                gameweekId,
-                playerId: { [Op.notIn]: playerIds }
-            }
-        });
-
-        // Simple team picking logic: sort by rating and alternate
-        availablePlayers.sort((a, b) => b.Player.rating - a.Player.rating);
-        const teamA = [];
-        const teamB = [];
-        availablePlayers.forEach((availability, index) => {
-            const player = availability.Player;
-            if (index % 2 === 0) {
-                teamA.push(player);
-            } else {
-                teamB.push(player);
-            }
-        });
-
-        // Assign players to teams
-        await Promise.all([
-            ...teamA.map(player => TeamAssignment.upsert({ gameweekId, playerId: player.id, team: 'A' })),
-            ...teamB.map(player => TeamAssignment.upsert({ gameweekId, playerId: player.id, team: 'B' }))
-        ]);
-
-        res.json({ teamA, teamB });
-    } catch (error) {
-        console.error("Error picking teams", error);
         res.status(500).json({ error: 'Internal Server Error' });
     }
 });

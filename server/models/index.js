@@ -4,11 +4,6 @@ require('dotenv').config();
 const isProduction = process.env.NODE_ENV === 'production';
 const databaseUrl = isProduction ? process.env.DATABASE_URL : process.env.DATABASE_URL_DEV;
 
-console.log('NODE_ENV:', process.env.NODE_ENV);
-console.log('DATABASE_URL:', process.env.DATABASE_URL);
-console.log('DATABASE_URL_DEV:', process.env.DATABASE_URL_DEV);
-console.log('Using database URL:', databaseUrl);
-
 const sequelize = new Sequelize(databaseUrl, {
     dialect: 'postgres',
     protocol: 'postgres',
@@ -26,7 +21,7 @@ const Player = sequelize.define('Player', {
         allowNull: false
     },
     rating: {
-        type: DataTypes.INTEGER,
+        type: DataTypes.DECIMAL,
         defaultValue: 0
     }
 });
@@ -106,7 +101,7 @@ const Rating = sequelize.define('Rating', {
         allowNull: false
     },
     rating: {
-        type: DataTypes.INTEGER,
+        type: DataTypes.DECIMAL,
         allowNull: false
     },
     raterId: {
@@ -164,5 +159,13 @@ Availability.belongsTo(Player, { foreignKey: 'playerId' });
 Availability.belongsTo(Gameweek, { foreignKey: 'gameweekId' });
 Player.hasMany(Availability, { foreignKey: 'playerId' });
 Gameweek.hasMany(Availability, { foreignKey: 'gameweekId' });
+
+TeamAssignment.belongsTo(Player, { foreignKey: 'playerId' });
+TeamAssignment.belongsTo(Gameweek, { foreignKey: 'gameweekId' });
+Player.hasMany(TeamAssignment, { foreignKey: 'playerId' });
+Gameweek.hasMany(TeamAssignment, { foreignKey: 'gameweekId' });
+
+GameResult.belongsTo(Gameweek, { foreignKey: 'gameweekId' });
+Gameweek.hasOne(GameResult, { foreignKey: 'gameweekId' });
 
 module.exports = { Player, Gameweek, GameResult, Availability, Rating, TeamAssignment, sequelize };

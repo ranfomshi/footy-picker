@@ -168,6 +168,7 @@ const GameweekManager = () => {
 
     const showResultModal = (gameweekId) => {
         setResultGameweekId(gameweekId);
+        form.setFieldsValue({ gameweekId }); // Set the form field value dynamically
         setIsResultModalVisible(true);
     };
 
@@ -185,9 +186,9 @@ const GameweekManager = () => {
 
     return (
         <div>
-            <h2>Manage Gameweeks</h2>
             <Button type="primary" onClick={showAddGameweekModal}>Add Gameweek</Button>
             <List
+            style={{maxHeight:'75vh', overflowY:'scroll'}}
                 itemLayout="horizontal"
                 dataSource={Object.values(gameweeks)}
                 renderItem={gameweek => {
@@ -292,7 +293,7 @@ const GameweekManager = () => {
                 <Form
                     form={form}
                     onFinish={handleGameResult}
-                    initialValues={{ gameweekId: resultGameweekId }}
+                    initialValues={{ gameweekId: resultGameweekId }} // Remove this line
                 >
                     <Form.Item name="gameweekId" hidden>
                         <Input />
