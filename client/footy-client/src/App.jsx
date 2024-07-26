@@ -39,7 +39,7 @@ function App() {
     return (
         <div className="App">
             <div className="content">
-                <h1 style={{marginTop:0}}>Fat Football Fellas</h1>
+                <h1 style={{marginTop:0}}>Football Picker</h1>
                 {renderContent()}
             </div>
             <div className="bottom-nav">
