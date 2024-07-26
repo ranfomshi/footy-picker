@@ -36,30 +36,35 @@ const PlayerStats = () => {
             key: 'wins',
             sorter: (a, b) => a.wins - b.wins,
             defaultSortOrder: 'descend', // Set default sort order to descending for wins column
+            width:40
         },
         {
             title: 'Ls',
             dataIndex: 'losses',
             key: 'losses',
             sorter: (a, b) => a.losses - b.losses,
+            width:40
         },
         {
             title: 'Ds',
             dataIndex: 'draws',
             key: 'draws',
             sorter: (a, b) => a.draws - b.draws,
+            width:40
         },
         {
             title: 'G+',
             dataIndex: 'goalsFor',
             key: 'goalsFor',
             sorter: (a, b) => a.goalsFor - b.goalsFor,
+            width:40
         },
         {
             title: 'G-',
             dataIndex: 'goalsAgainst',
             key: 'goalsAgainst',
             sorter: (a, b) => a.goalsAgainst - b.goalsAgainst,
+            width:40
         },
     ];
     
