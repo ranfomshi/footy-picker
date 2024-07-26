@@ -28,34 +28,41 @@ const PlayerStats = () => {
             title: 'Name',
             dataIndex: 'name',
             key: 'name',
+            sorter: (a, b) => a.name.localeCompare(b.name),
         },
         {
             title: 'Ws',
             dataIndex: 'wins',
             key: 'wins',
+            sorter: (a, b) => a.wins - b.wins,
+            defaultSortOrder: 'descend', // Set default sort order to descending for wins column
         },
         {
             title: 'Ls',
             dataIndex: 'losses',
             key: 'losses',
+            sorter: (a, b) => a.losses - b.losses,
         },
         {
             title: 'Ds',
             dataIndex: 'draws',
             key: 'draws',
+            sorter: (a, b) => a.draws - b.draws,
         },
         {
             title: 'G+',
             dataIndex: 'goalsFor',
             key: 'goalsFor',
+            sorter: (a, b) => a.goalsFor - b.goalsFor,
         },
         {
             title: 'G-',
             dataIndex: 'goalsAgainst',
             key: 'goalsAgainst',
+            sorter: (a, b) => a.goalsAgainst - b.goalsAgainst,
         },
     ];
-
+    
     return (
         <div>
             <h2>Player Stats</h2>
