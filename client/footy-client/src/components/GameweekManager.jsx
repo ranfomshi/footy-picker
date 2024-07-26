@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import axios from 'axios';
 import { List, Switch, Button, DatePicker, message, Popconfirm, Collapse, Input, Form, Modal } from 'antd';
-import { DeleteOutline } from 'antd-mobile-icons';
+import { DeleteOutlined, CloseOutlined } from '@ant-design/icons';
 
 const { Panel } = Collapse;
 
@@ -17,6 +17,7 @@ const GameweekManager = () => {
     const [isResultModalVisible, setIsResultModalVisible] = useState(false);
     const [resultGameweekId, setResultGameweekId] = useState(null);
     const [recordedResults, setRecordedResults] = useState({});
+    const [searchTerm, setSearchTerm] = useState('');
 
     const API_BASE_URL = process.env.NODE_ENV === 'production' ? 'https://footy-picker-58753c2f9639.herokuapp.com/api' : 'http://localhost:5000/api';
 
@@ -132,6 +133,19 @@ const GameweekManager = () => {
         }
     };
 
+    const removePlayerAvailability = async (playerId, gameweekId) => {
+        try {
+            await axios.post(`${API_BASE_URL}/availability`, { gameweekId, playerIds: [playerId], status: false });
+            setAvailability(prevAvailability => ({
+                ...prevAvailability,
+                [gameweekId]: { ...prevAvailability[gameweekId], [playerId]: false }
+            }));
+            handleTeamAssignment(gameweekId);
+        } catch (error) {
+            console.error("Error removing availability", error);
+        }
+    };
+
     const deleteGameweek = async (id) => {
         try {
             await axios.delete(`${API_BASE_URL}/gameweeks/${id}`);
@@ -179,6 +193,11 @@ const GameweekManager = () => {
         form.resetFields();
     };
 
+    const filteredPlayers = players.filter(player => 
+        (!availability[resultGameweekId] || !availability[resultGameweekId][player.id]) && 
+        player.name.toLowerCase().includes(searchTerm.toLowerCase())
+    );
+
     useEffect(() => {
         fetchGameweeks();
         fetchPlayers();
@@ -220,18 +239,26 @@ const GameweekManager = () => {
                                 >
                                     {!resultExists && (
                                         <div>
-                                            {players.map(player => (
-                                                <div key={player.id} style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}>
-                                                    <span>{player.name}</span>
-                                                    <Switch
-                                                        checkedChildren="In"
-                                                        unCheckedChildren="Out"
-                                                        checked={availability[gameweek.id] && availability[gameweek.id][player.id]}
-                                                        onChange={(checked) => setPlayerAvailability(player.id, gameweek.id, checked)}
-                                                        disabled={resultExists}
-                                                    />
-                                                </div>
-                                            ))}
+                                            <Input.Search 
+                                                placeholder="Search players" 
+                                                value={searchTerm}
+                                                onChange={(e) => setSearchTerm(e.target.value)}
+                                                style={{ marginBottom: 8 }}
+                                            />
+                                            <div className='scroll-list' style={{ maxHeight: '200px', overflowY: 'scroll' }}>
+                                                {filteredPlayers.map(player => (
+                                                    <div key={player.id} style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}>
+                                                        <span>{player.name}</span>
+                                                        <Switch
+                                                            checkedChildren="In"
+                                                            unCheckedChildren="Out"
+                                                            checked={availability[gameweek.id] && availability[gameweek.id][player.id]}
+                                                            onChange={(checked) => setPlayerAvailability(player.id, gameweek.id, checked)}
+                                                            disabled={resultExists}
+                                                        />
+                                                    </div>
+                                                ))}
+                                            </div>
                                         </div>
                                     )}
                                     {resultExists && (
@@ -253,7 +280,10 @@ const GameweekManager = () => {
                                                 <h3>Team A</h3>
                                                 <ul style={{ margin: 0, padding: 0 }}>
                                                     {teams[gameweek.id].teamA.map(player => (
-                                                        <li style={{ listStyle: 'none' }} key={player.id}>{player.name}</li>
+                                                        <li style={{ listStyle: 'none', display: 'flex', justifyContent: 'space-between' }} key={player.id}>
+                                                            {player.name}
+                                                            {!resultExists && <CloseOutlined onClick={() => removePlayerAvailability(player.id, gameweek.id)} style={{ marginLeft: 8, color: 'red' }} />}
+                                                        </li>
                                                     ))}
                                                 </ul>
                                             </div>
@@ -261,7 +291,10 @@ const GameweekManager = () => {
                                                 <h3>Team B</h3>
                                                 <ul style={{ margin: 0, padding: 0 }}>
                                                     {teams[gameweek.id].teamB.map(player => (
-                                                        <li style={{ listStyle: 'none' }} key={player.id}>{player.name}</li>
+                                                        <li style={{ listStyle: 'none', display: 'flex', justifyContent: 'space-between' }} key={player.id}>
+                                                            {player.name}
+                                                           {!resultExists && <CloseOutlined onClick={() => removePlayerAvailability(player.id, gameweek.id)} style={{ marginLeft: 8, color: 'red' }} />}
+                                                        </li>
                                                     ))}
                                                 </ul>
                                             </div>
@@ -275,7 +308,7 @@ const GameweekManager = () => {
                                             cancelText="No"
                                             disabled={resultExists}
                                         >
-                                            <Button size='small' type="primary" danger disabled={resultExists}><DeleteOutline /></Button>
+                                            <Button size='small' type="primary" danger disabled={resultExists}><DeleteOutlined /></Button>
                                         </Popconfirm>
                                         <Button size='small' type="primary" onClick={() => showResultModal(gameweek.id)} disabled={resultExists}>
                                             {resultExists ? 'Result Recorded' : 'Record Game Result'}
