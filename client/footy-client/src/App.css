@@ -33,7 +33,8 @@
 .bottom-nav {
   position: fixed;
   bottom: 0;
-  width: 500px;
+  width: 100VW;
+  max-width: 500px;
   background: #fff;
   box-shadow: 0 -2px 8px rgba(0, 0, 0, 0.1);
 }

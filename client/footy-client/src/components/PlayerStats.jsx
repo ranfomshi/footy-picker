@@ -28,27 +28,27 @@ const PlayerStats = () => {
             key: 'name',
         },
         {
-            title: 'Wins',
+            title: 'Ws',
             dataIndex: 'wins',
             key: 'wins',
         },
         {
-            title: 'Losses',
+            title: 'Ls',
             dataIndex: 'losses',
             key: 'losses',
         },
         {
-            title: 'Draws',
+            title: 'Ds',
             dataIndex: 'draws',
             key: 'draws',
         },
         {
-            title: 'Goals For',
+            title: 'G+',
             dataIndex: 'goalsFor',
             key: 'goalsFor',
         },
         {
-            title: 'Goals Against',
+            title: 'G-',
             dataIndex: 'goalsAgainst',
             key: 'goalsAgainst',
         },
