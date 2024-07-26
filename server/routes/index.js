@@ -35,7 +35,7 @@ const updatePlayerRatings = async (gameweekId) => {
                 points += gameResult.teamB_score * 0.2 - gameResult.teamA_score * 0.1;
             }
 
-            console.log(`Player ${assignment.playerId} earned ${points} points for gameweek ${gameweekId}`);
+            console.log(`Player ${assignment.playerId} earned ${points.toFixed(2)} points for gameweek ${gameweekId}`);
 
             // Ensure the rating is created correctly
             await Rating.create({
@@ -58,7 +58,7 @@ const updatePlayerRatings = async (gameweekId) => {
                 continue;
             }
 
-            const totalPoints = ratings.reduce((acc, rating) => acc + (rating.rating || 0), 0);
+            const totalPoints = ratings.reduce((acc, rating) => acc + parseFloat(rating.rating || 0), 0);
             const player = await Player.findByPk(assignment.playerId);
 
             if (!player) {
@@ -68,14 +68,14 @@ const updatePlayerRatings = async (gameweekId) => {
 
             player.rating = totalPoints / ratings.length;
 
-            console.log(`Total points: ${totalPoints}, Ratings length: ${ratings.length}, Calculated rating: ${player.rating}`);
+            console.log(`Total points: ${totalPoints.toFixed(2)}, Ratings length: ${ratings.length}, Calculated rating: ${player.rating.toFixed(2)}`);
 
             if (isNaN(player.rating)) {
-                console.error(`Calculated NaN rating for player ${player.id} (${player.name}). Total points: ${totalPoints}, Ratings length: ${ratings.length}`);
+                console.error(`Calculated NaN rating for player ${player.id} (${player.name}). Total points: ${totalPoints.toFixed(2)}, Ratings length: ${ratings.length}`);
                 continue;
             }
 
-            console.log(`Updating rating for player ${player.id} (${player.name}): ${player.rating}`);
+            console.log(`Updating rating for player ${player.id} (${player.name}): ${player.rating.toFixed(2)}`);
 
             await player.save();
         }
@@ -83,7 +83,6 @@ const updatePlayerRatings = async (gameweekId) => {
         console.error('Error updating player ratings:', error);
     }
 };
-
 
 
 // Pick teams based on availability and past performance
