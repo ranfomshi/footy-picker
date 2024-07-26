@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import axios from 'axios';
-import { List, Switch, Button, DatePicker, Space, message, Popconfirm, Collapse, Input, Form, Modal } from 'antd';
+import { List, Switch, Button, DatePicker, message, Popconfirm, Collapse, Input, Form, Modal } from 'antd';
 import { DeleteOutline } from 'antd-mobile-icons';
 
 const { Panel } = Collapse;
@@ -126,7 +126,6 @@ const GameweekManager = () => {
                 ...prevAvailability,
                 [gameweekId]: { ...prevAvailability[gameweekId], [playerId]: status }
             }));
-            // Re-fetch teams to ensure UI is updated
             handleTeamAssignment(gameweekId);
         } catch (error) {
             console.error("Error setting availability", error);
@@ -161,7 +160,7 @@ const GameweekManager = () => {
             setIsResultModalVisible(false);
             form.resetFields();
             fetchGameweeks();
-            fetchRecordedResults(); // Re-fetch results to update the state
+            fetchRecordedResults();
         } catch (error) {
             console.error("Error recording game result", error);
             message.error(error.response?.data?.error || 'Error recording game result');
@@ -170,7 +169,7 @@ const GameweekManager = () => {
 
     const showResultModal = (gameweekId) => {
         setResultGameweekId(gameweekId);
-        form.setFieldsValue({ gameweekId }); // Set the form field value dynamically
+        form.setFieldsValue({ gameweekId });
         setIsResultModalVisible(true);
     };
 
@@ -190,7 +189,7 @@ const GameweekManager = () => {
         <div>
             <Button size='small' type="primary" onClick={showAddGameweekModal}>Add Gameweek</Button>
             <List
-            className='scroll-list'
+                className='scroll-list'
                 itemLayout="horizontal"
                 dataSource={Object.values(gameweeks)}
                 renderItem={gameweek => {
@@ -199,12 +198,11 @@ const GameweekManager = () => {
                     return (
                         <List.Item style={{ width: '100%' }}>
                             <Collapse
-                                size='small'
                                 style={{ width: '100%' }}
                                 onChange={() => {
                                     fetchAvailability(gameweek.id);
                                     fetchAssignments(gameweek.id);
-                                    fetchTeams(gameweek.id); // Fetch teams on collapse open
+                                    fetchTeams(gameweek.id);
                                 }}
                             >
                                 <Panel 
@@ -220,20 +218,35 @@ const GameweekManager = () => {
                                     } 
                                     key={gameweek.id}
                                 >
-                                    <div>
-                                        {players.map(player => (
-                                            <div key={player.id} style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}>
-                                                <span>{player.name}</span>
-                                                <Switch
-                                                    checkedChildren="In"
-                                                    unCheckedChildren="Out"
-                                                    checked={availability[gameweek.id] && availability[gameweek.id][player.id]}
-                                                    onChange={(checked) => setPlayerAvailability(player.id, gameweek.id, checked)}
-                                                    disabled={resultExists}
-                                                />
-                                            </div>
-                                        ))}
-                                    </div>
+                                    {!resultExists && (
+                                        <div>
+                                            {players.map(player => (
+                                                <div key={player.id} style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}>
+                                                    <span>{player.name}</span>
+                                                    <Switch
+                                                        checkedChildren="In"
+                                                        unCheckedChildren="Out"
+                                                        checked={availability[gameweek.id] && availability[gameweek.id][player.id]}
+                                                        onChange={(checked) => setPlayerAvailability(player.id, gameweek.id, checked)}
+                                                        disabled={resultExists}
+                                                    />
+                                                </div>
+                                            ))}
+                                        </div>
+                                    )}
+                                    {resultExists && (
+                                        <Collapse size='small' style={{margin:0, border:'none', padding:0, fontSize:'smaller'}}>
+                                            <Panel header="Show players who did not play this match" key="1">
+                                                <div>
+                                                    {players.filter(player => !availability[gameweek.id] || !availability[gameweek.id][player.id]).map(player => (
+                                                        <div key={player.id} style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}>
+                                                            <span>{player.name}</span>
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            </Panel>
+                                        </Collapse>
+                                    )}
                                     {teams[gameweek.id] && (
                                         <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 16 }}>
                                             <div style={{ flex: 1, marginRight: 16 }}>
@@ -296,7 +309,6 @@ const GameweekManager = () => {
                 <Form
                     form={form}
                     onFinish={handleGameResult}
-                    initialValues={{ gameweekId: resultGameweekId }} // Remove this line
                 >
                     <Form.Item name="gameweekId" hidden>
                         <Input />
