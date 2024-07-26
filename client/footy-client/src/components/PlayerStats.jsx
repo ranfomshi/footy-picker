@@ -6,9 +6,11 @@ const PlayerStats = () => {
     const [players, setPlayers] = useState([]);
     const [loading, setLoading] = useState(true);
 
+    const API_BASE_URL = process.env.NODE_ENV === 'production' ? 'https://footy-picker-58753c2f9639.herokuapp.com/api' : 'http://localhost:5000/api';
+
     const fetchPlayerStats = async () => {
         try {
-            const response = await axios.get('http://localhost:5000/api/players');
+            const response = await axios.get(`${API_BASE_URL}/players`);
             setPlayers(response.data);
             setLoading(false);
         } catch (error) {

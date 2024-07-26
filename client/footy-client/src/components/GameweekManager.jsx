@@ -18,9 +18,11 @@ const GameweekManager = () => {
     const [resultGameweekId, setResultGameweekId] = useState(null);
     const [recordedResults, setRecordedResults] = useState({});
 
+    const API_BASE_URL = process.env.NODE_ENV === 'production' ? 'https://footy-picker-58753c2f9639.herokuapp.com/api' : 'http://localhost:5000/api';
+
     const fetchGameweeks = async () => {
         try {
-            const response = await axios.get('http://localhost:5000/api/gameweeks');
+            const response = await axios.get(`${API_BASE_URL}/gameweeks`);
             const gameweeksData = response.data.reduce((acc, gameweek) => {
                 acc[gameweek.id] = gameweek;
                 return acc;
@@ -33,7 +35,7 @@ const GameweekManager = () => {
 
     const fetchPlayers = async () => {
         try {
-            const response = await axios.get('http://localhost:5000/api/players');
+            const response = await axios.get(`${API_BASE_URL}/players`);
             setPlayers(response.data);
         } catch (error) {
             console.error("Error fetching players", error);
@@ -42,7 +44,7 @@ const GameweekManager = () => {
 
     const fetchTeams = async (gameweekId) => {
         try {
-            const response = await axios.get(`http://localhost:5000/api/teamassignments?gameweekId=${gameweekId}`);
+            const response = await axios.get(`${API_BASE_URL}/teamassignments?gameweekId=${gameweekId}`);
             const teamA = [];
             const teamB = [];
             response.data.forEach(assignment => {
@@ -60,7 +62,7 @@ const GameweekManager = () => {
 
     const fetchAssignments = async (gameweekId) => {
         try {
-            const response = await axios.get(`http://localhost:5000/api/teamassignments?gameweekId=${gameweekId}`);
+            const response = await axios.get(`${API_BASE_URL}/teamassignments?gameweekId=${gameweekId}`);
             const assignmentData = response.data.reduce((acc, assignment) => {
                 acc[assignment.playerId] = assignment.team;
                 return acc;
@@ -73,7 +75,7 @@ const GameweekManager = () => {
 
     const fetchAvailability = async (gameweekId) => {
         try {
-            const response = await axios.get(`http://localhost:5000/api/availability?gameweekId=${gameweekId}`);
+            const response = await axios.get(`${API_BASE_URL}/availability?gameweekId=${gameweekId}`);
             const availabilityData = response.data.reduce((acc, availability) => {
                 acc[availability.playerId] = availability.status;
                 return acc;
@@ -86,7 +88,7 @@ const GameweekManager = () => {
 
     const fetchRecordedResults = async () => {
         try {
-            const response = await axios.get('http://localhost:5000/api/gameresults');
+            const response = await axios.get(`${API_BASE_URL}/gameresults`);
             const resultData = response.data.reduce((acc, result) => {
                 acc[result.gameweekId] = result;
                 return acc;
@@ -108,7 +110,7 @@ const GameweekManager = () => {
         }
 
         try {
-            await axios.post('http://localhost:5000/api/gameweeks', { date: selectedDate });
+            await axios.post(`${API_BASE_URL}/gameweeks`, { date: selectedDate });
             fetchGameweeks();
             setSelectedDate(null);
             setIsAddGameweekModalVisible(false);
@@ -119,7 +121,7 @@ const GameweekManager = () => {
 
     const setPlayerAvailability = async (playerId, gameweekId, status) => {
         try {
-            await axios.post('http://localhost:5000/api/availability', { gameweekId, playerIds: [playerId], status });
+            await axios.post(`${API_BASE_URL}/availability`, { gameweekId, playerIds: [playerId], status });
             setAvailability(prevAvailability => ({
                 ...prevAvailability,
                 [gameweekId]: { ...prevAvailability[gameweekId], [playerId]: status }
@@ -133,7 +135,7 @@ const GameweekManager = () => {
 
     const deleteGameweek = async (id) => {
         try {
-            await axios.delete(`http://localhost:5000/api/gameweeks/${id}`);
+            await axios.delete(`${API_BASE_URL}/gameweeks/${id}`);
             fetchGameweeks();
         } catch (error) {
             console.error("Error deleting gameweek", error);
@@ -142,7 +144,7 @@ const GameweekManager = () => {
 
     const handleTeamAssignment = async (gameweekId) => {
         try {
-            await axios.get(`http://localhost:5000/api/pick-teams?gameweekId=${gameweekId}`);
+            await axios.get(`${API_BASE_URL}/pick-teams?gameweekId=${gameweekId}`);
             message.success('Teams assigned successfully');
             fetchTeams(gameweekId);
             fetchAssignments(gameweekId);
@@ -154,7 +156,7 @@ const GameweekManager = () => {
 
     const handleGameResult = async (values) => {
         try {
-            await axios.post('http://localhost:5000/api/gameresults', values);
+            await axios.post(`${API_BASE_URL}/gameresults`, values);
             message.success('Game result recorded successfully');
             setIsResultModalVisible(false);
             form.resetFields();

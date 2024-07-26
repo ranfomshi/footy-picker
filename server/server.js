@@ -1,8 +1,8 @@
 const express = require('express');
 const cors = require('cors');
 const path = require('path');
-const { sequelize } = require('./models');
-require('dotenv').config();
+const { Sequelize } = require('sequelize');
+require('dotenv').config(); // Make sure this loads environment variables from .env file
 
 const app = express();
 
@@ -27,12 +27,21 @@ console.log('DATABASE_URL_DEV:', process.env.DATABASE_URL_DEV);
 
 const PORT = process.env.PORT || 5000;
 
+// Select the correct database URL based on the environment
+const dbURL = process.env.NODE_ENV === 'production' ? process.env.DATABASE_URL : process.env.DATABASE_URL_DEV;
+
+// Initialize Sequelize with the selected database URL
+const sequelize = new Sequelize(dbURL, {
+    dialect: 'postgres', // Adjust the dialect as per your database
+    logging: false, // Disable logging if you want
+});
+
 app.listen(PORT, async () => {
     console.log(`Server is running on port ${PORT}`);
     try {
         await sequelize.authenticate();
         console.log('Connection has been established successfully.');
-        await sequelize.sync({ alter: true }); 
+        await sequelize.sync({ alter: true });
         console.log('Database synchronized.');
     } catch (error) {
         console.error('Unable to connect to the database:', error);
