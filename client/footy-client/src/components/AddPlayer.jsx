@@ -10,7 +10,6 @@ const AddPlayer = ({ fetchPlayers, players }) => {
 
   const API_BASE_URL = process.env.NODE_ENV === 'production' ? 'https://footy-picker-58753c2f9639.herokuapp.com/api' : 'http://localhost:5000/api';
 
-
   const addPlayer = async () => {
     try {
       await axios.post(`${API_BASE_URL}/players`, { name: newPlayerName });
