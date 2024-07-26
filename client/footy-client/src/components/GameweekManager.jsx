@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import axios from 'axios';
-import { List, Switch, Button, DatePicker, Space, message, Popconfirm, Collapse, Input, Form, Modal } from 'antd';
+import { List, Switch, Button, DatePicker, Space, message, Popconfirm, Collapse, Input, Form, Modal, Spin } from 'antd';
 import { DeleteOutline } from 'antd-mobile-icons';
 
 const { Panel } = Collapse;
@@ -17,10 +17,15 @@ const GameweekManager = () => {
     const [isResultModalVisible, setIsResultModalVisible] = useState(false);
     const [resultGameweekId, setResultGameweekId] = useState(null);
     const [recordedResults, setRecordedResults] = useState({});
+    const [activePanel, setActivePanel] = useState(null);
+    const [loadingGameweeks, setLoadingGameweeks] = useState(false);
+    const [loadingPlayers, setLoadingPlayers] = useState(false);
+    const [loadingTeams, setLoadingTeams] = useState({});
 
     const API_BASE_URL = process.env.NODE_ENV === 'production' ? 'https://footy-picker-58753c2f9639.herokuapp.com/api' : 'http://localhost:5000/api';
 
     const fetchGameweeks = async () => {
+        setLoadingGameweeks(true);
         try {
             const response = await axios.get(`${API_BASE_URL}/gameweeks`);
             const gameweeksData = response.data.reduce((acc, gameweek) => {
@@ -30,19 +35,25 @@ const GameweekManager = () => {
             setGameweeks(gameweeksData);
         } catch (error) {
             console.error("Error fetching gameweeks", error);
+        } finally {
+            setLoadingGameweeks(false);
         }
     };
 
     const fetchPlayers = async () => {
+        setLoadingPlayers(true);
         try {
             const response = await axios.get(`${API_BASE_URL}/players`);
             setPlayers(response.data);
         } catch (error) {
             console.error("Error fetching players", error);
+        } finally {
+            setLoadingPlayers(false);
         }
     };
 
     const fetchTeams = async (gameweekId) => {
+        setLoadingTeams(prevLoading => ({ ...prevLoading, [gameweekId]: true }));
         try {
             const response = await axios.get(`${API_BASE_URL}/teamassignments?gameweekId=${gameweekId}`);
             const teamA = [];
@@ -57,6 +68,8 @@ const GameweekManager = () => {
             setTeams(prevTeams => ({ ...prevTeams, [gameweekId]: { teamA, teamB } }));
         } catch (error) {
             console.error("Error fetching teams", error);
+        } finally {
+            setLoadingTeams(prevLoading => ({ ...prevLoading, [gameweekId]: false }));
         }
     };
 
@@ -126,7 +139,6 @@ const GameweekManager = () => {
                 ...prevAvailability,
                 [gameweekId]: { ...prevAvailability[gameweekId], [playerId]: status }
             }));
-            // Re-fetch teams to ensure UI is updated
             handleTeamAssignment(gameweekId);
         } catch (error) {
             console.error("Error setting availability", error);
@@ -161,7 +173,7 @@ const GameweekManager = () => {
             setIsResultModalVisible(false);
             form.resetFields();
             fetchGameweeks();
-            fetchRecordedResults(); // Re-fetch results to update the state
+            fetchRecordedResults();
         } catch (error) {
             console.error("Error recording game result", error);
             message.error(error.response?.data?.error || 'Error recording game result');
@@ -170,7 +182,7 @@ const GameweekManager = () => {
 
     const showResultModal = (gameweekId) => {
         setResultGameweekId(gameweekId);
-        form.setFieldsValue({ gameweekId }); // Set the form field value dynamically
+        form.setFieldsValue({ gameweekId });
         setIsResultModalVisible(true);
     };
 
@@ -189,90 +201,98 @@ const GameweekManager = () => {
     return (
         <div>
             <Button type="primary" onClick={showAddGameweekModal}>Add Gameweek</Button>
-            <List
-            className='scroll-list'
-                itemLayout="horizontal"
-                dataSource={Object.values(gameweeks)}
-                renderItem={gameweek => {
-                    const resultExists = !!recordedResults[gameweek.id];
-                    const result = recordedResults[gameweek.id];
-                    return (
-                        <List.Item style={{ width: '100%' }}>
-                            <Collapse
-                                style={{ width: '100%' }}
-                                onChange={() => {
-                                    fetchAvailability(gameweek.id);
-                                    fetchAssignments(gameweek.id);
-                                    fetchTeams(gameweek.id); // Fetch teams on collapse open
-                                }}
-                            >
-                                <Panel 
-                                    header={
-                                        <div style={{ display: 'flex', justifyContent: 'space-between', width: '100%' }}>
-                                            <span>{`Gameweek on ${new Date(gameweek.date).toLocaleDateString('en-GB')}`}</span>
-                                            {resultExists && (
-                                                <span style={{display:'flex', alignItems:'baseline'}}>
-                                                    Team A  <div style={{background:'#1677ff', borderRadius:'3', color:'white', margin:'0 5px 0 5px', padding:'0 5px 0 5px'}}><strong>{result.teamA_score}</strong> - <strong>{result.teamB_score}</strong></div>  Team B
-                                                </span>
-                                            )}
-                                        </div>
-                                    } 
-                                    key={gameweek.id}
+            <Spin spinning={loadingGameweeks || loadingPlayers}>
+                <List
+                    className='scroll-list'
+                    itemLayout="horizontal"
+                    dataSource={Object.values(gameweeks).sort((a, b) => new Date(b.date) - new Date(a.date))}
+                    renderItem={gameweek => {
+                        const resultExists = !!recordedResults[gameweek.id];
+                        const result = recordedResults[gameweek.id];
+                        return (
+                            <List.Item style={{ width: '100%' }}>
+                                <Collapse
+                                    activeKey={activePanel}
+                                    onChange={(key) => {
+                                        setActivePanel(key.length > 0 ? key[0] : null);
+                                        if (key.length > 0) {
+                                            fetchAvailability(gameweek.id);
+                                            fetchAssignments(gameweek.id);
+                                            fetchTeams(gameweek.id);
+                                        }
+                                    }}
+                                    style={{ width: '100%' }}
                                 >
-                                    <div>
-                                        {players.map(player => (
-                                            <div key={player.id} style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}>
-                                                <span>{player.name}</span>
-                                                <Switch
-                                                    checkedChildren="In"
-                                                    unCheckedChildren="Out"
-                                                    checked={availability[gameweek.id] && availability[gameweek.id][player.id]}
-                                                    onChange={(checked) => setPlayerAvailability(player.id, gameweek.id, checked)}
+                                    <Panel 
+                                        header={
+                                            <div style={{ display: 'flex', justifyContent: 'space-between', width: '100%' }}>
+                                                <span>{`Gameweek on ${new Date(gameweek.date).toLocaleDateString('en-GB')}`}</span>
+                                                {resultExists && (
+                                                    <span style={{display:'flex', alignItems:'baseline'}}>
+                                                        Team A  <div style={{background:'#1677ff', borderRadius:'3', color:'white', margin:'0 5px 0 5px', padding:'0 5px 0 5px'}}><strong>{result.teamA_score}</strong> - <strong>{result.teamB_score}</strong></div>  Team B
+                                                    </span>
+                                                )}
+                                            </div>
+                                        } 
+                                        key={gameweek.id}
+                                    >
+                                        <Spin spinning={loadingTeams[gameweek.id]}>
+                                            <div>
+                                                {players.map(player => (
+                                                    <div key={player.id} style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}>
+                                                        <span>{player.name}</span>
+                                                        <Switch
+                                                            checkedChildren="In"
+                                                            unCheckedChildren="Out"
+                                                            checked={availability[gameweek.id] && availability[gameweek.id][player.id]}
+                                                            onChange={(checked) => setPlayerAvailability(player.id, gameweek.id, checked)}
+                                                            disabled={resultExists}
+                                                        />
+                                                    </div>
+                                                ))}
+                                            </div>
+                                            {teams[gameweek.id] && (
+                                                <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 16 }}>
+                                                    <div style={{ flex: 1, marginRight: 16 }}>
+                                                        <h3>Team A</h3>
+                                                        <ul style={{ margin: 0, padding: 0 }}>
+                                                            {teams[gameweek.id].teamA.map(player => (
+                                                                <li style={{ listStyle: 'none' }} key={player.id}>{player.name}</li>
+                                                            ))}
+                                                        </ul>
+                                                    </div>
+                                                    <div style={{ flex: 1 }}>
+                                                        <h3>Team B</h3>
+                                                        <ul style={{ margin: 0, padding: 0 }}>
+                                                            {teams[gameweek.id].teamB.map(player => (
+                                                                <li style={{ listStyle: 'none' }} key={player.id}>{player.name}</li>
+                                                            ))}
+                                                        </ul>
+                                                    </div>
+                                                </div>
+                                            )}
+                                            <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 16 }}>
+                                                <Popconfirm
+                                                    title="Are you sure you want to delete this gameweek?"
+                                                    onConfirm={() => deleteGameweek(gameweek.id)}
+                                                    okText="Yes"
+                                                    cancelText="No"
                                                     disabled={resultExists}
-                                                />
+                                                >
+                                                    <Button type="primary" danger disabled={resultExists}><DeleteOutline /></Button>
+                                                </Popconfirm>
+                                                <Button type="primary" onClick={() => showResultModal(gameweek.id)} disabled={resultExists}>
+                                                    {resultExists ? 'Result Recorded' : 'Record Game Result'}
+                                                </Button>
                                             </div>
-                                        ))}
-                                    </div>
-                                    {teams[gameweek.id] && (
-                                        <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 16 }}>
-                                            <div style={{ flex: 1, marginRight: 16 }}>
-                                                <h3>Team A</h3>
-                                                <ul style={{ margin: 0, padding: 0 }}>
-                                                    {teams[gameweek.id].teamA.map(player => (
-                                                        <li style={{ listStyle: 'none' }} key={player.id}>{player.name}</li>
-                                                    ))}
-                                                </ul>
-                                            </div>
-                                            <div style={{ flex: 1 }}>
-                                                <h3>Team B</h3>
-                                                <ul style={{ margin: 0, padding: 0 }}>
-                                                    {teams[gameweek.id].teamB.map(player => (
-                                                        <li style={{ listStyle: 'none' }} key={player.id}>{player.name}</li>
-                                                    ))}
-                                                </ul>
-                                            </div>
-                                        </div>
-                                    )}
-                                    <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 16 }}>
-                                        <Popconfirm
-                                            title="Are you sure you want to delete this gameweek?"
-                                            onConfirm={() => deleteGameweek(gameweek.id)}
-                                            okText="Yes"
-                                            cancelText="No"
-                                            disabled={resultExists}
-                                        >
-                                            <Button type="primary" danger disabled={resultExists}><DeleteOutline /></Button>
-                                        </Popconfirm>
-                                        <Button type="primary" onClick={() => showResultModal(gameweek.id)} disabled={resultExists}>
-                                            {resultExists ? 'Result Recorded' : 'Record Game Result'}
-                                        </Button>
-                                    </div>
-                                </Panel>
-                            </Collapse>
-                        </List.Item>
-                    );
-                }}
-            />
+                                        </Spin>
+                                    </Panel>
+                                </Collapse>
+                            </List.Item>
+                        );
+                    }}
+                />
+            </Spin>
             <Modal
                 title="Add Gameweek"
                 visible={isAddGameweekModalVisible}
@@ -295,7 +315,6 @@ const GameweekManager = () => {
                 <Form
                     form={form}
                     onFinish={handleGameResult}
-                    initialValues={{ gameweekId: resultGameweekId }} // Remove this line
                 >
                     <Form.Item name="gameweekId" hidden>
                         <Input />
