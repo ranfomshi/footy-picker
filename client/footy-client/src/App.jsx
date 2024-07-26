@@ -14,7 +14,7 @@ function App() {
 
     const fetchPlayers = async () => {
       try {
-          const response = await axios.get(`${API_BASE_URL}/api/players`);
+          const response = await axios.get(`${API_BASE_URL}/players`);
           setPlayers(response.data);
       } catch (error) {
           console.error("Error fetching players", error);
