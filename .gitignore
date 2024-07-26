@@ -70,3 +70,6 @@ client/footy-client/dist/
 
 # Windows
 Thumbs.db
+
+# env vars
+.env

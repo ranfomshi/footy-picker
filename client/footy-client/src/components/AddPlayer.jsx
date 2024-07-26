@@ -8,9 +8,12 @@ const AddPlayer = ({ fetchPlayers, players }) => {
   const [editingPlayerName, setEditingPlayerName] = useState('');
   const [isModalVisible, setIsModalVisible] = useState(false);
 
+  const API_BASE_URL = process.env.NODE_ENV === 'production' ? 'https://footy-picker-58753c2f9639.herokuapp.com/api' : 'http://localhost:5000/api';
+
+
   const addPlayer = async () => {
     try {
-      await axios.post('http://localhost:5000/api/players', { name: newPlayerName });
+      await axios.post(`${API_BASE_URL}/players`, { name: newPlayerName });
       setNewPlayerName('');
       fetchPlayers();
     } catch (error) {
@@ -20,7 +23,7 @@ const AddPlayer = ({ fetchPlayers, players }) => {
 
   const deletePlayer = async (id) => {
     try {
-      await axios.delete(`http://localhost:5000/api/players/${id}`);
+      await axios.delete(`${API_BASE_URL}/players/${id}`);
       fetchPlayers();
     } catch (error) {
       console.error("Error deleting player", error);
@@ -35,7 +38,7 @@ const AddPlayer = ({ fetchPlayers, players }) => {
 
   const updatePlayer = async () => {
     try {
-      await axios.put(`http://localhost:5000/api/players/${editingPlayer.id}`, { name: editingPlayerName });
+      await axios.put(`${API_BASE_URL}/players/${editingPlayer.id}`, { name: editingPlayerName });
       setIsModalVisible(false);
       setEditingPlayer(null);
       setEditingPlayerName('');
