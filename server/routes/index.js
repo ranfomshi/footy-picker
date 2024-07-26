@@ -45,10 +45,11 @@ const updatePlayerRatings = async (gameweekId) => {
                 raterId: null
             });
 
+            // Retrieve the last 5 ratings for the player
             const ratings = await Rating.findAll({
                 where: { playerId: assignment.playerId },
                 limit: 5,
-                order: [['createdAt', 'DESC']]
+                order: [['date', 'DESC']]
             });
 
             console.log(`Ratings for player ${assignment.playerId}:`, ratings);
@@ -58,6 +59,7 @@ const updatePlayerRatings = async (gameweekId) => {
                 continue;
             }
 
+            // Sum the total points from the last 5 ratings
             const totalPoints = ratings.reduce((acc, rating) => acc + parseFloat(rating.rating || 0), 0);
             const player = await Player.findByPk(assignment.playerId);
 
@@ -66,16 +68,10 @@ const updatePlayerRatings = async (gameweekId) => {
                 continue;
             }
 
-            player.rating = totalPoints / ratings.length;
+            // Update the player's rating with the total points
+            player.rating = totalPoints;
 
-            console.log(`Total points: ${totalPoints.toFixed(2)}, Ratings length: ${ratings.length}, Calculated rating: ${player.rating.toFixed(2)}`);
-
-            if (isNaN(player.rating)) {
-                console.error(`Calculated NaN rating for player ${player.id} (${player.name}). Total points: ${totalPoints.toFixed(2)}, Ratings length: ${ratings.length}`);
-                continue;
-            }
-
-            console.log(`Updating rating for player ${player.id} (${player.name}): ${player.rating.toFixed(2)}`);
+            console.log(`Total points: ${totalPoints.toFixed(2)}, Updated rating: ${player.rating.toFixed(2)}`);
 
             await player.save();
         }
@@ -85,7 +81,6 @@ const updatePlayerRatings = async (gameweekId) => {
 };
 
 
-// Pick teams based on availability and past performance
 router.get('/pick-teams', async (req, res) => {
     const { gameweekId } = req.query;
 
@@ -125,11 +120,16 @@ router.get('/pick-teams', async (req, res) => {
     }
 });
 
-// Create a new player
 router.post('/players', async (req, res) => {
     try {
         const { name } = req.body;
-        const player = await Player.create({ name });
+        
+        const players = await Player.findAll();
+        const totalRating = players.reduce((acc, player) => acc + player.rating, 0);
+        const averageRating = players.length ? totalRating / players.length : 0;
+        
+        const player = await Player.create({ name, rating: averageRating });
+
         res.json(player);
     } catch (error) {
         console.error("Error creating player", error);
@@ -137,7 +137,6 @@ router.post('/players', async (req, res) => {
     }
 });
 
-// Delete a player
 router.delete('/players/:id', async (req, res) => {
     try {
         const { id } = req.params;
@@ -149,7 +148,6 @@ router.delete('/players/:id', async (req, res) => {
     }
 });
 
-// Update a player
 router.put('/players/:id', async (req, res) => {
     try {
         const { id } = req.params;
@@ -172,7 +170,6 @@ router.post('/gameresults', async (req, res) => {
     try {
         const { gameweekId, teamA_score, teamB_score } = req.body;
 
-        // Upsert game result to avoid duplicates for the same gameweek
         const [gameResult, created] = await GameResult.upsert({
             gameweekId, teamA_score, teamB_score
         }, {
@@ -203,12 +200,10 @@ router.get('/gameresults', async (req, res) => {
     }
 });
 
-// Record availability
 router.post('/availability', async (req, res) => {
     try {
         const { gameweekId, playerIds, status } = req.body;
 
-        // Validate received data
         if (!gameweekId || !playerIds || playerIds.length === 0) {
             res.status(400).json({ error: 'gameweekId and playerIds are required' });
             return;
@@ -225,12 +220,10 @@ router.post('/availability', async (req, res) => {
     }
 });
 
-// Record team assignment
 router.post('/teamassignments', async (req, res) => {
     try {
         const { gameweekId, playerIds, team } = req.body;
 
-        // Validate received data
         if (!gameweekId || !playerIds || playerIds.length === 0 || !team) {
             res.status(400).json({ error: 'gameweekId, playerIds and team are required' });
             return;
@@ -326,7 +319,6 @@ router.get('/players', async (req, res) => {
     }
 });
 
-// Get available players
 router.get('/availability', async (req, res) => {
     try {
         const { gameweekId } = req.query;
@@ -341,7 +333,6 @@ router.get('/availability', async (req, res) => {
     }
 });
 
-// Record player ratings
 router.post('/ratings', async (req, res) => {
     try {
         const { date, ratings } = req.body; // ratings: [{playerId, rating, raterId}]
@@ -360,7 +351,6 @@ router.post('/ratings', async (req, res) => {
     }
 });
 
-// Get average ratings for players on a specific date
 router.get('/ratings', async (req, res) => {
     try {
         const { date } = req.query;
@@ -376,7 +366,6 @@ router.get('/ratings', async (req, res) => {
     }
 });
 
-// Create a new gameweek
 router.post('/gameweeks', async (req, res) => {
     try {
         const { date } = req.body;
@@ -388,7 +377,6 @@ router.post('/gameweeks', async (req, res) => {
     }
 });
 
-// Get all gameweeks
 router.get('/gameweeks', async (req, res) => {
     try {
         const gameweeks = await Gameweek.findAll();
@@ -399,7 +387,6 @@ router.get('/gameweeks', async (req, res) => {
     }
 });
 
-// Delete a gameweek
 router.delete('/gameweeks/:id', async (req, res) => {
     try {
         const { id } = req.params;
@@ -411,7 +398,6 @@ router.delete('/gameweeks/:id', async (req, res) => {
     }
 });
 
-// Get team assignments
 router.get('/teamassignments', async (req, res) => {
     try {
         const { gameweekId } = req.query;

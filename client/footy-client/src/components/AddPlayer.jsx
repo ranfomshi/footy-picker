@@ -72,7 +72,7 @@ const AddPlayer = ({ fetchPlayers, players }) => {
         </Button>
       </div>
       <List
-      style={{maxHeight:'75vh', overflowY:'scroll'}}
+      className='scroll-list'
         dataSource={players}
         renderItem={player => (
           <List.Item style={{height:65}}

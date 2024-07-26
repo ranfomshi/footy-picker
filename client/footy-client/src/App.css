@@ -19,6 +19,15 @@
   filter: drop-shadow(0 0 2em #61dafbaa);
 }
 
+.scroll-list{
+  height: 75vh;
+  overflow-y: scroll;
+}
+
+.scroll-list::-webkit-scrollbar {
+  display: none;
+}
+
 .App {
   display: flex;
   flex-direction: column;

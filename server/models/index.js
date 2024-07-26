@@ -106,7 +106,7 @@ const Rating = sequelize.define('Rating', {
     },
     raterId: {
         type: DataTypes.INTEGER,
-        allowNull: true // Add if you want to track who rated
+        allowNull: true
     }
 }, {
     tableName: 'Ratings',
@@ -145,7 +145,7 @@ const TeamAssignment = sequelize.define('TeamAssignment', {
     ]
 });
 
-// Correct associations
+// Associations
 Player.belongsToMany(Gameweek, { through: Availability, foreignKey: 'playerId', otherKey: 'gameweekId' });
 Gameweek.belongsToMany(Player, { through: Availability, foreignKey: 'gameweekId', otherKey: 'playerId' });
 

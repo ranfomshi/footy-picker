@@ -188,7 +188,7 @@ const GameweekManager = () => {
         <div>
             <Button type="primary" onClick={showAddGameweekModal}>Add Gameweek</Button>
             <List
-            style={{maxHeight:'75vh', overflowY:'scroll'}}
+            className='scroll-list'
                 itemLayout="horizontal"
                 dataSource={Object.values(gameweeks)}
                 renderItem={gameweek => {
