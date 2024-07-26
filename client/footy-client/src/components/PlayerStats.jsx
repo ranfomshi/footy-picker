@@ -69,7 +69,7 @@ const PlayerStats = () => {
             {loading ? (
                 <Spin size="large" />
             ) : (
-                <Table dataSource={players} columns={columns} rowKey="id" />
+                <Table size='small' dataSource={players} columns={columns} rowKey="id" />
             )}
         </div>
     );
