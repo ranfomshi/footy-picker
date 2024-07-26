@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { Input, Button, List, Modal, Space, Spin } from "antd";
+import { Input, Button, List, Modal, Space, Spin, message } from "antd";
 import axios from "axios";
 
 const AddPlayer = () => {
@@ -29,11 +29,25 @@ const AddPlayer = () => {
   };
 
   const addPlayer = async () => {
+    if (!newPlayerName.trim()) {
+      message.error("Player name cannot be empty");
+      return;
+    }
+
+    const duplicatePlayer = players.find(
+      (player) => player.name.toLowerCase() === newPlayerName.toLowerCase()
+    );
+    if (duplicatePlayer) {
+      message.error("Player name already exists");
+      return;
+    }
+
     setLoading(true);
     try {
       await axios.post(`${API_BASE_URL}/players`, { name: newPlayerName });
       setNewPlayerName("");
       fetchPlayers();
+      message.success("Player added successfully");
     } catch (error) {
       console.error("Error adding player", error);
     } finally {
@@ -46,6 +60,7 @@ const AddPlayer = () => {
     try {
       await axios.delete(`${API_BASE_URL}/players/${id}`);
       fetchPlayers();
+      message.success("Player deleted successfully");
     } catch (error) {
       console.error("Error deleting player", error);
     } finally {
@@ -60,6 +75,21 @@ const AddPlayer = () => {
   };
 
   const updatePlayer = async () => {
+    if (!editingPlayerName.trim()) {
+      message.error("Player name cannot be empty");
+      return;
+    }
+
+    const duplicatePlayer = players.find(
+      (player) =>
+        player.name.toLowerCase() === editingPlayerName.toLowerCase() &&
+        player.id !== editingPlayer.id
+    );
+    if (duplicatePlayer) {
+      message.error("Player name already exists");
+      return;
+    }
+
     setLoading(true);
     try {
       await axios.put(`${API_BASE_URL}/players/${editingPlayer.id}`, {
@@ -69,6 +99,7 @@ const AddPlayer = () => {
       setEditingPlayer(null);
       setEditingPlayerName("");
       fetchPlayers();
+      message.success("Player updated successfully");
     } catch (error) {
       console.error("Error updating player", error);
     } finally {
