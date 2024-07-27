@@ -227,7 +227,7 @@ const GameweekManager = () => {
                                 <Panel 
                                     header={
                                         <div style={{ display: 'flex', justifyContent: 'space-between', width: '100%' }}>
-                                            <span>{`Gameweek on ${new Date(gameweek.date).toLocaleDateString('en-GB')}`}</span>
+                                            <span>{`${new Date(gameweek.date).toLocaleDateString('en-GB')}`}</span>
                                             {resultExists && (
                                                 <span style={{display:'flex', alignItems:'baseline'}}>
                                                     Team A  <div style={{background:'#1677ff', borderRadius:'3', color:'white', margin:'0 5px 0 5px', padding:'0 5px 0 5px', width:50}}><strong>{result.teamA_score}</strong> - <strong>{result.teamB_score}</strong></div>  Team B
