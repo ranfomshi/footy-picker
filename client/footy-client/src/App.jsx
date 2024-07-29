@@ -5,6 +5,7 @@ import axios from 'axios';
 import GameweekManager from './components/GameweekManager';
 import BottomNav from './components/BottomNav';
 import PlayerStats from './components/PlayerStats';
+import { ConfigProvider } from 'antd';
 
 function App() {
     const [players, setPlayers] = useState([]);
@@ -38,8 +39,15 @@ function App() {
         }
     };
 
-    return (
+    return ( <ConfigProvider
+      theme={{
+        token: {
+          fontFamily: "Trebuchet MS"
+        }
+      }}
+    >
         <div className="App">
+              
             <div className="content">
                 <div style={{borderBottom:'1px solid black', marginBottom:8, width:'100%'}}>  <h4 style={{marginTop:0}}>Footy Picker</h4></div>
               
@@ -48,7 +56,7 @@ function App() {
             <div className="bottom-nav">
                 <BottomNav activeKey={activeKey} onChange={setActiveKey} />
             </div>
-        </div>
+        </div></ConfigProvider>
     );
 }
 
