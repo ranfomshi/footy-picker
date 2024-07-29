@@ -192,6 +192,7 @@ const AddPlayer = () => {
                     }
                   >
                     <Button
+                    style={{marginRight:8}}
                       icon={<MoreOutlined />}
                       size="small"
                       type="ghost"
