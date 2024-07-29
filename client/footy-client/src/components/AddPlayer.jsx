@@ -124,7 +124,8 @@ const AddPlayer = () => {
     }
   };
 
-  const viewPlayerDetails = (player) => {
+  const viewPlayerDetails = (playerId) => {
+    const player = players.find(p => p.id === playerId);
     setSelectedPlayer(player);
   };
 
@@ -134,7 +135,7 @@ const AddPlayer = () => {
 
   useEffect(() => {
     fetchPlayers();
-  }, [selectedPlayer]);
+  }, []);
 
   return (
     <Spin spinning={loading}>
@@ -144,18 +145,18 @@ const AddPlayer = () => {
             className="scroll-list"
             dataSource={players}
             renderItem={(player) => (
-              <List.Item style={{ height: 45, textAlign:'left' }}>
+              <List.Item style={{ height: 45 }}>
                 <img
                   height={40}
                   width={40}
                   src="/shirt.svg"
                   alt="Player Shirt"
-                  onClick={() => viewPlayerDetails(player)}
+                  onClick={() => viewPlayerDetails(player.id)}
                   style={{ cursor: "pointer" }}
                 />
                 <div
                   style={{ flexGrow: 1, cursor: "pointer" }}
-                  onClick={() => viewPlayerDetails(player)}
+                  onClick={() => viewPlayerDetails(player.id)}
                 >
                   {player.name}
                 </div>
