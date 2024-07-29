@@ -41,12 +41,24 @@ function App() {
 
     return ( <ConfigProvider
         componentSize='small'
-      theme={{
-        token: {
-          fontFamily: "Trebuchet MS",
-          colorPrimary: '#00b96b',
-        }
-      }}
+        
+        theme={{
+            token: {
+                fontFamily: "Trebuchet MS, sans-serif",
+                colorPrimary: '#00b96b',
+                colorPrimaryHover: '#00a363',
+                colorPrimaryActive: '#008a53',
+                colorPrimaryText: '#ffffff',
+                colorPrimaryTextHover: '#ffffff',
+                colorPrimaryTextActive: '#ffffff',
+                colorPrimaryBg: '#00b96b',
+                colorPrimaryBgHover: '#00a363',
+                colorPrimaryBgActive: '#008a53',
+                colorError: '#850101'
+          
+            }
+        }}
+      
     >
         <div className="App">
               

@@ -11,6 +11,8 @@ const AddPlayer = () => {
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [isAddModalVisible, setIsAddModalVisible] = useState(false);
   const [isDetailsModalVisible, setIsDetailsModalVisible] = useState(false);
+  const [isDeleteModalVisible, setIsDeleteModalVisible] = useState(false);
+  const [playerToDelete, setPlayerToDelete] = useState(null);
   const [players, setPlayers] = useState([]);
   const [filteredPlayers, setFilteredPlayers] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -64,11 +66,18 @@ const AddPlayer = () => {
     }
   };
 
-  const deletePlayer = async (id) => {
+  const showDeleteModal = (player) => {
+    setPlayerToDelete(player);
+    setIsDeleteModalVisible(true);
+  };
+
+  const handleDelete = async () => {
+    if (!playerToDelete) return;
     setLoading(true);
     try {
-      await axios.delete(`${API_BASE_URL}/players/${id}`);
+      await axios.delete(`${API_BASE_URL}/players/${playerToDelete.id}`);
       fetchPlayers();
+      setIsDeleteModalVisible(false);
       message.success("Player deleted successfully");
     } catch (error) {
       console.error("Error deleting player", error);
@@ -187,12 +196,12 @@ const AddPlayer = () => {
                     overlay={
                       <Menu>
                         <Menu.Item onClick={() => editPlayer(player)}>Edit</Menu.Item>
-                        <Menu.Item onClick={() => deletePlayer(player.id)}>Delete</Menu.Item>
+                        <Menu.Item onClick={() => showDeleteModal(player)}>Delete</Menu.Item>
                       </Menu>
                     }
                   >
                     <Button
-                    style={{marginRight:8}}
+                      style={{ marginRight: 8 }}
                       icon={<MoreOutlined />}
                       size="small"
                       type="ghost"
@@ -211,7 +220,7 @@ const AddPlayer = () => {
           size="large"
           style={{
             position: "static",
-            transform:'translateY(-60px)',
+            transform: 'translateY(-60px)',
             zIndex: 1000,
           }}
           onClick={() => setIsAddModalVisible(true)}
@@ -244,7 +253,7 @@ const AddPlayer = () => {
         </Modal>
         {selectedPlayer && (
           <Modal
-            title={<div style={{display:'flex', alignItems:'baseline', justifyContent:'space-between', width:'100%'}}>{selectedPlayer.name} <div style={{color:"gray", fontSize:'smaller', marginRight:32}}>(id:{selectedPlayer.id})</div></div>}
+            title={<div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', width: '100%' }}>{selectedPlayer.name} <div style={{ color: "gray", fontSize: 'smaller', marginRight: 32 }}>(id:{selectedPlayer.id})</div></div>}
             visible={isDetailsModalVisible}
             footer={null}
             onCancel={closePlayerDetails}
@@ -252,6 +261,16 @@ const AddPlayer = () => {
             <PlayerDetails player={selectedPlayer} />
           </Modal>
         )}
+        <Modal
+          title="Confirm Delete"
+          visible={isDeleteModalVisible}
+          onOk={handleDelete}
+          onCancel={() => setIsDeleteModalVisible(false)}
+          okButtonProps={{ danger: true }}
+          okText="Delete"
+        >
+          <p>Are you sure you want to delete this player? This action cannot be undone.</p>
+        </Modal>
       </div>
     </Spin>
   );
