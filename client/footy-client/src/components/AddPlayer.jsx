@@ -1,15 +1,19 @@
 import React, { useState, useEffect } from "react";
-import { Input, Button, List, Modal, Space, Spin, message } from "antd";
+import { Input, Button, List, Modal, Spin, message, Dropdown, Menu } from "antd";
+import { MoreOutlined, PlusOutlined } from "@ant-design/icons";
 import axios from "axios";
+import PlayerDetails from "./PlayerDetails";
 
 const AddPlayer = () => {
   const [newPlayerName, setNewPlayerName] = useState("");
   const [editingPlayer, setEditingPlayer] = useState(null);
   const [editingPlayerName, setEditingPlayerName] = useState("");
   const [isModalVisible, setIsModalVisible] = useState(false);
+  const [isAddModalVisible, setIsAddModalVisible] = useState(false);
   const [players, setPlayers] = useState([]);
   const [loading, setLoading] = useState(false);
   const [loadingPlayers, setLoadingPlayers] = useState(false);
+  const [selectedPlayer, setSelectedPlayer] = useState(null);
 
   const API_BASE_URL =
     process.env.NODE_ENV === "production"
@@ -47,6 +51,7 @@ const AddPlayer = () => {
       await axios.post(`${API_BASE_URL}/players`, { name: newPlayerName });
       setNewPlayerName("");
       fetchPlayers();
+      setIsAddModalVisible(false);
       message.success("Player added successfully");
     } catch (error) {
       console.error("Error adding player", error);
@@ -119,59 +124,86 @@ const AddPlayer = () => {
     }
   };
 
+  const viewPlayerDetails = (player) => {
+    setSelectedPlayer(player);
+  };
+
+  const closePlayerDetails = () => {
+    setSelectedPlayer(null);
+  };
+
   useEffect(() => {
     fetchPlayers();
-  }, []);
+  }, [selectedPlayer]);
 
   return (
     <Spin spinning={loading}>
-      <div style={{ maxWidth: "100vw" }}>
-        <div
-          style={{ display: "flex", width: "100%", gap: 8, marginBottom: 8 }}
-        >
-          <Input
-            size="small"
-            style={{ flexGrow: 1 }}
-            value={newPlayerName}
-            onChange={(e) => setNewPlayerName(e.target.value)}
-            onKeyPress={handleAddPlayerKeyPress}
-            placeholder="Enter player name"
-          />
-          <Button onClick={addPlayer} type="primary" size="small">
-            Add Player
-          </Button>
-        </div>
+      <div style={{ maxWidth: "100vw", position: "relative", padding: "1em" }}>
         <Spin spinning={loadingPlayers}>
           <List
             className="scroll-list"
             dataSource={players}
             renderItem={(player) => (
-              <List.Item
-                style={{ height: 45 }}
-                actions={[
-                  <Button onClick={() => editPlayer(player)} size="small">
-                    Edit
-                  </Button>,
-                  <Button
-                    onClick={() => deletePlayer(player.id)}
-                    danger
-                    size="small"
-                  >
-                    Delete
-                  </Button>,
-                ]}
-              >
+              <List.Item style={{ height: 45 }}>
                 <img
                   height={40}
                   width={40}
                   src="/shirt.svg"
                   alt="Player Shirt"
+                  onClick={() => viewPlayerDetails(player)}
+                  style={{ cursor: "pointer" }}
                 />
-                <div>{player.name}</div>
+                <div
+                  style={{ flexGrow: 1, cursor: "pointer" }}
+                  onClick={() => viewPlayerDetails(player)}
+                >
+                  {player.name}
+                </div>
+                <Dropdown
+                  overlay={
+                    <Menu>
+                      <Menu.Item onClick={() => editPlayer(player)}>Edit</Menu.Item>
+                      <Menu.Item onClick={() => deletePlayer(player.id)}>Delete</Menu.Item>
+                    </Menu>
+                  }
+                >
+                  <Button
+                    icon={<MoreOutlined />}
+                    size="small"
+                    type="ghost"
+                    onClick={(e) => e.stopPropagation()}
+                  />
+                </Dropdown>
               </List.Item>
             )}
           />
         </Spin>
+        <Button
+          type="primary"
+          shape="circle"
+          icon={<PlusOutlined />}
+          size="large"
+          style={{
+            position: "fixed",
+            bottom: "2em",
+            right: "2em",
+            zIndex: 1000,
+          }}
+          onClick={() => setIsAddModalVisible(true)}
+        />
+        <Modal
+          title="Add Player"
+          visible={isAddModalVisible}
+          onOk={addPlayer}
+          onCancel={() => setIsAddModalVisible(false)}
+        >
+          <Input
+            value={newPlayerName}
+            onChange={(e) => setNewPlayerName(e.target.value)}
+            onKeyPress={handleAddPlayerKeyPress}
+            placeholder="Enter player name"
+          />
+        </Modal>
         <Modal
           title="Edit Player"
           visible={isModalVisible}
@@ -185,6 +217,17 @@ const AddPlayer = () => {
             placeholder="Enter new player name"
           />
         </Modal>
+        {selectedPlayer && (
+          <div style={{
+            position: 'absolute',
+            inset: 0,
+            background: 'white',
+            padding: '2em',
+            zIndex: 1001,
+          }}>
+            <PlayerDetails player={selectedPlayer} onClose={closePlayerDetails} />
+          </div>
+        )}
       </div>
     </Spin>
   );

@@ -41,7 +41,8 @@ function App() {
     return (
         <div className="App">
             <div className="content">
-                <h1 style={{marginTop:0}}>Footy Picker</h1>
+                <div style={{borderBottom:'1px solid black', marginBottom:8, width:'100%'}}>  <h4 style={{marginTop:0}}>Footy Picker</h4></div>
+              
                 {renderContent()}
             </div>
             <div className="bottom-nav">
