@@ -73,7 +73,7 @@ const PlayerStats = () => {
         <div>
             <h2>Player Stats</h2>
             {loading ? (
-                <Spin size="large" />
+                <Spin size="small" />
             ) : (
                 <Table
                     size="small"

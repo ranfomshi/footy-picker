@@ -144,7 +144,7 @@ const AddPlayer = () => {
             className="scroll-list"
             dataSource={players}
             renderItem={(player) => (
-              <List.Item style={{ height: 45 }}>
+              <List.Item style={{ height: 45, textAlign:'left' }}>
                 <img
                   height={40}
                   width={40}
