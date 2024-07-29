@@ -164,6 +164,18 @@ const AddPlayer = () => {
 
   return (
     <Spin spinning={loading}>
+         <div style={{width:50, position:'fixed', bottom:20, right:30, height:80, textAlign:"right", zIndex:2000}}>  <Button
+          type="primary"
+          shape="circle"
+          icon={<PlusOutlined />}
+          size="large"
+          style={{
+        
+            zIndex: 1000,
+          }}
+          onClick={() => setIsAddModalVisible(true)}
+        /></div>
+      
       <div style={{ maxWidth: "100vw", position: "relative", padding: "1em" }}>
         <Space direction="vertical" style={{ width: "100%" }}>
           <Input
@@ -213,18 +225,7 @@ const AddPlayer = () => {
             />
           </Spin>
         </Space>
-        <Button
-          type="primary"
-          shape="circle"
-          icon={<PlusOutlined />}
-          size="large"
-          style={{
-            position: "absolute",
-            right:0, bottom:16,
-            zIndex: 1000,
-          }}
-          onClick={() => setIsAddModalVisible(true)}
-        />
+       
         <Modal
           title="Add Player"
           visible={isAddModalVisible}
