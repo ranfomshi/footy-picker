@@ -219,8 +219,8 @@ const AddPlayer = () => {
           icon={<PlusOutlined />}
           size="large"
           style={{
-            position: "static",
-            transform: 'translateY(-60px)',
+            position: "absolute",
+            right:0, bottom:16,
             zIndex: 1000,
           }}
           onClick={() => setIsAddModalVisible(true)}
