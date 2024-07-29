@@ -5,7 +5,7 @@ import axios from 'axios';
 import GameweekManager from './components/GameweekManager';
 import BottomNav from './components/BottomNav';
 import PlayerStats from './components/PlayerStats';
-import { ConfigProvider } from 'antd';
+import { ConfigProvider, theme } from 'antd';
 
 function App() {
     const [players, setPlayers] = useState([]);
@@ -40,9 +40,11 @@ function App() {
     };
 
     return ( <ConfigProvider
+        componentSize='small'
       theme={{
         token: {
-          fontFamily: "Trebuchet MS"
+          fontFamily: "Trebuchet MS",
+          colorPrimary: '#00b96b',
         }
       }}
     >

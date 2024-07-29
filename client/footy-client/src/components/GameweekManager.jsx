@@ -237,7 +237,7 @@ const GameweekManager = () => {
                                             <span>{`${new Date(gameweek.date).toLocaleDateString('en-GB')}`}</span>
                                             {resultExists && (
                                                 <span style={{display:'flex', alignItems:'baseline'}}>
-                                                    Team A  <div style={{background:'#1677ff', borderRadius:'3', color:'white', margin:'0 5px 0 5px', padding:'0 5px 0 5px', width:50}}><strong>{result.teamA_score}</strong> - <strong>{result.teamB_score}</strong></div>  Team B
+                                                    Team A  <div style={{background:'#00b96b', borderRadius:'3', color:'white', margin:'0 5px 0 5px', padding:'0 5px 0 5px', width:50}}><strong>{result.teamA_score}</strong> - <strong>{result.teamB_score}</strong></div>  Team B
                                                 </span>
                                             )}
                                         </div>
