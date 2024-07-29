@@ -11,7 +11,6 @@ const PlayerDetails = ({ player, onClose }) => {
       <Descriptions bordered column={1}>
         <Descriptions.Item label="ID">{player.id}</Descriptions.Item>
         <Descriptions.Item label="Name">{player.name}</Descriptions.Item>
-        <Descriptions.Item label="Rating">{player.rating}</Descriptions.Item>
         <Descriptions.Item label="Wins">{player.wins}</Descriptions.Item>
         <Descriptions.Item label="Draws">{player.draws}</Descriptions.Item>
         <Descriptions.Item label="Losses">{player.losses}</Descriptions.Item>
