@@ -37,6 +37,7 @@
 .content {
   flex: 1;
   padding: 20px;
+  background: linear-gradient(180deg, rgba(242,242,242,1) 0%, rgba(242,242,242,1) 62%, rgba(52,176,119,0.711922268907563) 100%);
 }
 
 .bottom-nav {
