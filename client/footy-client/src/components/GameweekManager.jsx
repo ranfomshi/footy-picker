@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import axios from 'axios';
-import { List, Switch, Button, DatePicker, message, Popconfirm, Collapse, Input, Form, Modal } from 'antd';
-import { DeleteOutlined, CloseOutlined } from '@ant-design/icons';
+import { List, Button, DatePicker, message, Popconfirm, Collapse, Input, Form, Modal } from 'antd';
+import { DeleteOutlined, CloseOutlined, PlusOutlined } from '@ant-design/icons';
 
 const { Panel } = Collapse;
 
@@ -193,8 +193,8 @@ const GameweekManager = () => {
         form.resetFields();
     };
 
-    const filteredPlayers = players.filter(player => 
-        (!availability[resultGameweekId] || !availability[resultGameweekId][player.id]) && 
+    const filteredPlayers = (gameweekId) => players.filter(player => 
+        !availability[gameweekId]?.[player.id] && 
         player.name.toLowerCase().includes(searchTerm.toLowerCase())
     );
 
@@ -203,6 +203,12 @@ const GameweekManager = () => {
         fetchPlayers();
         fetchRecordedResults();
     }, []);
+
+    useEffect(() => {
+        if (resultGameweekId) {
+            fetchAvailability(resultGameweekId);
+        }
+    }, [resultGameweekId, availability]);
 
     return (
         <div>
@@ -214,6 +220,7 @@ const GameweekManager = () => {
                 renderItem={gameweek => {
                     const resultExists = !!recordedResults[gameweek.id];
                     const result = recordedResults[gameweek.id];
+                    const playersWhoDidNotPlay = players.filter(player => !availability[gameweek.id]?.[player.id]);
                     return (
                         <List.Item style={{ width: '100%' }}>
                             <Collapse
@@ -245,27 +252,31 @@ const GameweekManager = () => {
                                                 onChange={(e) => setSearchTerm(e.target.value)}
                                                 style={{ marginBottom: 8 }}
                                             />
-                                            <div className='scroll-list' style={{ maxHeight: '200px', overflowY: 'scroll' }}>
-                                                {filteredPlayers.map(player => (
+                                            <div  style={{ maxHeight: '200px', overflowY: 'scroll' }}>
+                                                {filteredPlayers(gameweek.id).map(player => (
                                                     <div key={player.id} style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}>
                                                         <span>{player.name}</span>
-                                                        <Switch
-                                                            checkedChildren="In"
-                                                            unCheckedChildren="Out"
-                                                            checked={availability[gameweek.id] && availability[gameweek.id][player.id]}
-                                                            onChange={(checked) => setPlayerAvailability(player.id, gameweek.id, checked)}
-                                                            disabled={resultExists}
-                                                        />
+                                                        <Button type='default' size='small' icon={ <PlusOutlined
+                                                            onClick={() => {
+                                                                setPlayerAvailability(player.id, gameweek.id, true);
+                                                                setAvailability(prevAvailability => ({
+                                                                    ...prevAvailability,
+                                                                    [gameweek.id]: { ...prevAvailability[gameweek.id], [player.id]: true }
+                                                                }));
+                                                            }}
+                                                            style={{ color: 'green', cursor: 'pointer'}}
+                                                        />}/>
+                                                       
                                                     </div>
                                                 ))}
                                             </div>
                                         </div>
                                     )}
-                                    {resultExists && (
+                                    {resultExists && playersWhoDidNotPlay.length > 0 && (
                                         <Collapse size='small' style={{margin:0, border:'none', padding:0, fontSize:'smaller'}}>
                                             <Panel header="Show players who did not play this match" key="1">
                                                 <div>
-                                                    {players.filter(player => !availability[gameweek.id] || !availability[gameweek.id][player.id]).map(player => (
+                                                    {playersWhoDidNotPlay.map(player => (
                                                         <div key={player.id} style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}>
                                                             <span>{player.name}</span>
                                                         </div>
@@ -282,7 +293,13 @@ const GameweekManager = () => {
                                                     {teams[gameweek.id].teamA.map(player => (
                                                         <li style={{ listStyle: 'none', display: 'flex', justifyContent: 'space-between' }} key={player.id}>
                                                             {player.name}
-                                                            {!resultExists && <CloseOutlined onClick={() => removePlayerAvailability(player.id, gameweek.id)} style={{ marginLeft: 8, color: 'red' }} />}
+                                                            {!resultExists && <Button size='small' icon={<CloseOutlined onClick={() => {
+                                                                removePlayerAvailability(player.id, gameweek.id);
+                                                                setAvailability(prevAvailability => ({
+                                                                    ...prevAvailability,
+                                                                    [gameweek.id]: { ...prevAvailability[gameweek.id], [player.id]: false }
+                                                                }));
+                                                            }} style={{color: 'red', cursor: 'pointer' }} />}/>}
                                                         </li>
                                                     ))}
                                                 </ul>
@@ -293,7 +310,13 @@ const GameweekManager = () => {
                                                     {teams[gameweek.id].teamB.map(player => (
                                                         <li style={{ listStyle: 'none', display: 'flex', justifyContent: 'space-between' }} key={player.id}>
                                                             {player.name}
-                                                           {!resultExists && <CloseOutlined onClick={() => removePlayerAvailability(player.id, gameweek.id)} style={{ marginLeft: 8, color: 'red' }} />}
+                                                            {!resultExists && <Button size='small' icon={<CloseOutlined onClick={() => {
+                                                                removePlayerAvailability(player.id, gameweek.id);
+                                                                setAvailability(prevAvailability => ({
+                                                                    ...prevAvailability,
+                                                                    [gameweek.id]: { ...prevAvailability[gameweek.id], [player.id]: false }
+                                                                }));
+                                                            }} style={{color: 'red', cursor: 'pointer' }} />}/>}
                                                         </li>
                                                     ))}
                                                 </ul>
