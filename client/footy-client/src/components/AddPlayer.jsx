@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { Input, Button, List, Modal, Spin, message, Dropdown, Menu } from "antd";
+import { Input, Button, List, Modal, Spin, message, Dropdown, Menu, Space } from "antd";
 import { MoreOutlined, PlusOutlined } from "@ant-design/icons";
 import axios from "axios";
 import PlayerDetails from "./PlayerDetails";
@@ -10,6 +10,7 @@ const AddPlayer = () => {
   const [editingPlayerName, setEditingPlayerName] = useState("");
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [isAddModalVisible, setIsAddModalVisible] = useState(false);
+  const [isDetailsModalVisible, setIsDetailsModalVisible] = useState(false);
   const [players, setPlayers] = useState([]);
   const [filteredPlayers, setFilteredPlayers] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -130,10 +131,12 @@ const AddPlayer = () => {
   const viewPlayerDetails = (playerId) => {
     const player = players.find((p) => p.id === playerId);
     setSelectedPlayer(player);
+    setIsDetailsModalVisible(true);
   };
 
   const closePlayerDetails = () => {
     setSelectedPlayer(null);
+    setIsDetailsModalVisible(false);
   };
 
   const handleSearch = (e) => {
@@ -153,51 +156,53 @@ const AddPlayer = () => {
   return (
     <Spin spinning={loading}>
       <div style={{ maxWidth: "100vw", position: "relative", padding: "1em" }}>
-        <Input
-          placeholder="Search players"
-          value={searchTerm}
-          onChange={handleSearch}
-          style={{ marginBottom: "1em" }}
-        />
-        <Spin spinning={loadingPlayers}>
-          <List
-            className="scroll-list"
-            dataSource={filteredPlayers}
-            renderItem={(player) => (
-              <List.Item style={{ height: 45 }}>
-                <img
-                  height={40}
-                  width={40}
-                  src="/shirt.svg"
-                  alt="Player Shirt"
-                  onClick={() => viewPlayerDetails(player.id)}
-                  style={{ cursor: "pointer" }}
-                />
-                <div
-                  style={{ flexGrow: 1, cursor: "pointer" }}
-                  onClick={() => viewPlayerDetails(player.id)}
-                >
-                  {player.name}
-                </div>
-                <Dropdown
-                  overlay={
-                    <Menu>
-                      <Menu.Item onClick={() => editPlayer(player)}>Edit</Menu.Item>
-                      <Menu.Item onClick={() => deletePlayer(player.id)}>Delete</Menu.Item>
-                    </Menu>
-                  }
-                >
-                  <Button
-                    icon={<MoreOutlined />}
-                    size="small"
-                    type="ghost"
-                    onClick={(e) => e.stopPropagation()}
-                  />
-                </Dropdown>
-              </List.Item>
-            )}
+        <Space direction="vertical" style={{ width: "100%" }}>
+          <Input
+            placeholder="Search players"
+            value={searchTerm}
+            onChange={handleSearch}
+            style={{ marginBottom: "1em" }}
           />
-        </Spin>
+          <Spin spinning={loadingPlayers}>
+            <List
+              className="scroll-list"
+              dataSource={filteredPlayers}
+              renderItem={(player) => (
+                <List.Item style={{ height: 45 }}>
+                  <img
+                    height={40}
+                    width={40}
+                    src="/shirt.svg"
+                    alt="Player Shirt"
+                    onClick={() => viewPlayerDetails(player.id)}
+                    style={{ cursor: "pointer" }}
+                  />
+                  <div
+                    style={{ flexGrow: 1, cursor: "pointer" }}
+                    onClick={() => viewPlayerDetails(player.id)}
+                  >
+                    {player.name}
+                  </div>
+                  <Dropdown
+                    overlay={
+                      <Menu>
+                        <Menu.Item onClick={() => editPlayer(player)}>Edit</Menu.Item>
+                        <Menu.Item onClick={() => deletePlayer(player.id)}>Delete</Menu.Item>
+                      </Menu>
+                    }
+                  >
+                    <Button
+                      icon={<MoreOutlined />}
+                      size="small"
+                      type="ghost"
+                      onClick={(e) => e.stopPropagation()}
+                    />
+                  </Dropdown>
+                </List.Item>
+              )}
+            />
+          </Spin>
+        </Space>
         <Button
           type="primary"
           shape="circle"
@@ -205,7 +210,8 @@ const AddPlayer = () => {
           size="large"
           style={{
             position: "fixed",
-            bottom:58, right:16,
+            bottom: "2em",
+            right: "2em",
             zIndex: 1000,
           }}
           onClick={() => setIsAddModalVisible(true)}
@@ -237,15 +243,14 @@ const AddPlayer = () => {
           />
         </Modal>
         {selectedPlayer && (
-          <div style={{
-            position: 'absolute',
-            inset: 0,
-            background: 'white',
-            padding: '2em',
-            zIndex: 1001,
-          }}>
-            <PlayerDetails player={selectedPlayer} onClose={closePlayerDetails} />
-          </div>
+          <Modal
+            title={<div style={{display:'flex', alignItems:'baseline', justifyContent:'space-between', width:'100%'}}>{selectedPlayer.name} <div style={{color:"gray", fontSize:'smaller', marginRight:32}}>(id:{selectedPlayer.id})</div></div>}
+            visible={isDetailsModalVisible}
+            footer={null}
+            onCancel={closePlayerDetails}
+          >
+            <PlayerDetails player={selectedPlayer} />
+          </Modal>
         )}
       </div>
     </Spin>

@@ -1,27 +1,50 @@
 import React from "react";
-import { Card, Button, Descriptions } from "antd";
+import { Card, Button, Row, Col, Typography, Divider } from "antd";
+
+const { Title, Text } = Typography;
 
 const PlayerDetails = ({ player, onClose }) => {
   return (
-    <Card
-      title={`Player Details - ${player.name}`}
-     
-      style={{ width: "100%", maxWidth: "600px", margin: "0 auto" }}
-    >
-      <Descriptions bordered column={1}>
-        <Descriptions.Item label="ID">{player.id}</Descriptions.Item>
-        <Descriptions.Item label="Name">{player.name}</Descriptions.Item>
-        <Descriptions.Item label="Wins">{player.wins}</Descriptions.Item>
-        <Descriptions.Item label="Draws">{player.draws}</Descriptions.Item>
-        <Descriptions.Item label="Losses">{player.losses}</Descriptions.Item>
-        <Descriptions.Item label="Goals For">{player.goalsFor}</Descriptions.Item>
-        <Descriptions.Item label="Goals Against">{player.goalsAgainst}</Descriptions.Item>
-        <Descriptions.Item label="Created At">
-          {new Date(player.createdAt).toLocaleDateString()}
-        </Descriptions.Item>
-      </Descriptions>
-      <Button onClick={onClose} style={{marginTop:'8px'}}>Close</Button>
-    </Card>
+    <div>
+      <Row gutter={[16, 16]}>
+        <Col span={8}>
+          <Card bordered={false} style={{ textAlign: 'center' }}>
+            <Text style={{whiteSpace:'nowrap'}}>Wins:</Text>
+            <div><Text strong>{player.wins}</Text></div>
+          </Card>
+        </Col>
+        <Col span={8}>
+          <Card bordered={false} style={{ textAlign: 'center' }}>
+            <Text style={{whiteSpace:'nowrap'}}>Draws:</Text>
+            <div><Text strong>{player.draws}</Text></div>
+          </Card>
+        </Col>
+        <Col span={8}>
+          <Card bordered={false} style={{ textAlign: 'center' }}>
+            <Text style={{whiteSpace:'nowrap'}}>Losses:</Text>
+            <div><Text size="3rem" strong>{player.losses}</Text></div>
+          </Card>
+        </Col>
+        <Col span={12}>
+          <Card bordered={false} style={{ textAlign: 'center' }}>
+            <Text style={{whiteSpace:'nowrap'}}>Team Goals For:</Text>
+            <div><Text strong>{player.goalsFor}</Text></div>
+          </Card>
+        </Col>
+        <Col span={12}>
+          <Card bordered={false} style={{ textAlign: 'center' }}>
+            <Text style={{whiteSpace:'nowrap'}}>Team Goals Against:</Text>
+            <div><Text strong>{player.goalsAgainst}</Text></div>
+          </Card>
+        </Col>
+        <Col span={24}>
+          <Card bordered={false} style={{ textAlign: 'center' }}>
+            <Text style={{whiteSpace:'nowrap'}}>Joined:</Text>
+            <div><Text strong>{new Date(player.createdAt).toLocaleDateString()}</Text></div>
+          </Card>
+        </Col>
+      </Row>
+    </div>
   );
 };
 
