@@ -11,9 +11,11 @@ const AddPlayer = () => {
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [isAddModalVisible, setIsAddModalVisible] = useState(false);
   const [players, setPlayers] = useState([]);
+  const [filteredPlayers, setFilteredPlayers] = useState([]);
   const [loading, setLoading] = useState(false);
   const [loadingPlayers, setLoadingPlayers] = useState(false);
   const [selectedPlayer, setSelectedPlayer] = useState(null);
+  const [searchTerm, setSearchTerm] = useState("");
 
   const API_BASE_URL =
     process.env.NODE_ENV === "production"
@@ -25,6 +27,7 @@ const AddPlayer = () => {
     try {
       const response = await axios.get(`${API_BASE_URL}/players`);
       setPlayers(response.data.sort((a, b) => a.id - b.id));
+      setFilteredPlayers(response.data.sort((a, b) => a.id - b.id));
     } catch (error) {
       console.error("Error fetching players", error);
     } finally {
@@ -125,12 +128,22 @@ const AddPlayer = () => {
   };
 
   const viewPlayerDetails = (playerId) => {
-    const player = players.find(p => p.id === playerId);
+    const player = players.find((p) => p.id === playerId);
     setSelectedPlayer(player);
   };
 
   const closePlayerDetails = () => {
     setSelectedPlayer(null);
+  };
+
+  const handleSearch = (e) => {
+    const term = e.target.value.toLowerCase();
+    setSearchTerm(term);
+    setFilteredPlayers(
+      players.filter((player) =>
+        player.name.toLowerCase().includes(term)
+      )
+    );
   };
 
   useEffect(() => {
@@ -140,10 +153,16 @@ const AddPlayer = () => {
   return (
     <Spin spinning={loading}>
       <div style={{ maxWidth: "100vw", position: "relative", padding: "1em" }}>
+        <Input
+          placeholder="Search players"
+          value={searchTerm}
+          onChange={handleSearch}
+          style={{ marginBottom: "1em" }}
+        />
         <Spin spinning={loadingPlayers}>
           <List
             className="scroll-list"
-            dataSource={players}
+            dataSource={filteredPlayers}
             renderItem={(player) => (
               <List.Item style={{ height: 45 }}>
                 <img
