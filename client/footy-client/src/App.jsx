@@ -112,7 +112,7 @@ function App() {
               Log in
             </Button>
           )}
-          {isAuthenticated && (
+          {/* {isAuthenticated && (
             <Button
               type="primary"
               style={{
@@ -124,7 +124,7 @@ function App() {
             >
               Log out
             </Button>
-          )}
+          )} */}
         </div>
         <div className="content">
           <div
