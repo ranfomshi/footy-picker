@@ -1,8 +1,10 @@
 import React, { useEffect, useState } from 'react';
 import axios from 'axios';
 import { Table, Spin } from 'antd';
+import { useAuth0 } from '@auth0/auth0-react';
 
 const PlayerStats = () => {
+    const { getAccessTokenSilently } = useAuth0();
     const [players, setPlayers] = useState([]);
     const [loading, setLoading] = useState(true);
 
@@ -10,7 +12,12 @@ const PlayerStats = () => {
 
     const fetchPlayerStats = async () => {
         try {
-            const response = await axios.get(`${API_BASE_URL}/players`);
+            const token = await getAccessTokenSilently();
+            const response = await axios.get(`${API_BASE_URL}/players`, {
+                headers: {
+                    Authorization: `Bearer ${token}`
+                }
+            });
             setPlayers(response.data);
             setLoading(false);
         } catch (error) {
