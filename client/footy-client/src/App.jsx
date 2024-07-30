@@ -33,7 +33,7 @@ const Auth0ProviderWithHistory = ({ children }) => {
 };
 
 function App() {
-  const { loginWithRedirect, logout, isAuthenticated, user } = useAuth0();
+  const { loginWithRedirect, logout, isAuthenticated, getAccessTokenSilently } = useAuth0();
   const [players, setPlayers] = useState([]);
   const [activeKey, setActiveKey] = useState("players");
 
@@ -44,7 +44,12 @@ function App() {
 
   const fetchPlayers = async () => {
     try {
-      const response = await axios.get(`${API_BASE_URL}/players`);
+      const token = await getAccessTokenSilently();
+      const response = await axios.get(`${API_BASE_URL}/players`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
       setPlayers(response.data);
     } catch (error) {
       console.error("Error fetching players", error);
@@ -52,8 +57,10 @@ function App() {
   };
 
   useEffect(() => {
-    fetchPlayers();
-  }, []);
+    if (isAuthenticated) {
+      fetchPlayers();
+    }
+  }, [isAuthenticated]);
 
   const renderContent = () => {
     switch (activeKey) {
@@ -103,6 +110,19 @@ function App() {
               onClick={() => loginWithRedirect()}
             >
               Log in
+            </Button>
+          )}
+          {isAuthenticated && (
+            <Button
+              type="primary"
+              style={{
+                position: "absolute",
+                top: "10px",
+                right: "10px",
+              }}
+              onClick={() => logout({ returnTo: window.location.origin })}
+            >
+              Log out
             </Button>
           )}
         </div>

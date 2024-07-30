@@ -1,7 +1,7 @@
 const express = require('express');
 const cors = require('cors');
 const path = require('path');
-require('dotenv').config(); // Make sure this loads environment variables from .env file
+require('dotenv').config(); // Load environment variables from .env file
 
 const { sequelize } = require('./models'); // Import the initialized sequelize instance
 

@@ -2,10 +2,12 @@ import React, { useEffect, useState } from 'react';
 import axios from 'axios';
 import { List, Button, DatePicker, message, Popconfirm, Collapse, Input, Form, Modal } from 'antd';
 import { DeleteOutlined, CloseOutlined, PlusOutlined } from '@ant-design/icons';
+import { useAuth0 } from '@auth0/auth0-react';
 
 const { Panel } = Collapse;
 
 const GameweekManager = () => {
+    const { getAccessTokenSilently } = useAuth0();
     const [gameweeks, setGameweeks] = useState([]);
     const [selectedDate, setSelectedDate] = useState(null);
     const [players, setPlayers] = useState([]);
@@ -23,7 +25,12 @@ const GameweekManager = () => {
 
     const fetchGameweeks = async () => {
         try {
-            const response = await axios.get(`${API_BASE_URL}/gameweeks`);
+            const token = await getAccessTokenSilently();
+            const response = await axios.get(`${API_BASE_URL}/gameweeks`, {
+                headers: {
+                    Authorization: `Bearer ${token}`,
+                },
+            });
             const gameweeksData = response.data.reduce((acc, gameweek) => {
                 acc[gameweek.id] = gameweek;
                 return acc;
@@ -36,7 +43,12 @@ const GameweekManager = () => {
 
     const fetchPlayers = async () => {
         try {
-            const response = await axios.get(`${API_BASE_URL}/players`);
+            const token = await getAccessTokenSilently();
+            const response = await axios.get(`${API_BASE_URL}/players`, {
+                headers: {
+                    Authorization: `Bearer ${token}`,
+                },
+            });
             setPlayers(response.data);
         } catch (error) {
             console.error("Error fetching players", error);
@@ -45,7 +57,12 @@ const GameweekManager = () => {
 
     const fetchTeams = async (gameweekId) => {
         try {
-            const response = await axios.get(`${API_BASE_URL}/teamassignments?gameweekId=${gameweekId}`);
+            const token = await getAccessTokenSilently();
+            const response = await axios.get(`${API_BASE_URL}/teamassignments?gameweekId=${gameweekId}`, {
+                headers: {
+                    Authorization: `Bearer ${token}`,
+                },
+            });
             const teamA = [];
             const teamB = [];
             response.data.forEach(assignment => {
@@ -63,7 +80,12 @@ const GameweekManager = () => {
 
     const fetchAssignments = async (gameweekId) => {
         try {
-            const response = await axios.get(`${API_BASE_URL}/teamassignments?gameweekId=${gameweekId}`);
+            const token = await getAccessTokenSilently();
+            const response = await axios.get(`${API_BASE_URL}/teamassignments?gameweekId=${gameweekId}`, {
+                headers: {
+                    Authorization: `Bearer ${token}`,
+                },
+            });
             const assignmentData = response.data.reduce((acc, assignment) => {
                 acc[assignment.playerId] = assignment.team;
                 return acc;
@@ -76,7 +98,12 @@ const GameweekManager = () => {
 
     const fetchAvailability = async (gameweekId) => {
         try {
-            const response = await axios.get(`${API_BASE_URL}/availability?gameweekId=${gameweekId}`);
+            const token = await getAccessTokenSilently();
+            const response = await axios.get(`${API_BASE_URL}/availability?gameweekId=${gameweekId}`, {
+                headers: {
+                    Authorization: `Bearer ${token}`,
+                },
+            });
             const availabilityData = response.data.reduce((acc, availability) => {
                 acc[availability.playerId] = availability.status;
                 return acc;
@@ -89,7 +116,12 @@ const GameweekManager = () => {
 
     const fetchRecordedResults = async () => {
         try {
-            const response = await axios.get(`${API_BASE_URL}/gameresults`);
+            const token = await getAccessTokenSilently();
+            const response = await axios.get(`${API_BASE_URL}/gameresults`, {
+                headers: {
+                    Authorization: `Bearer ${token}`,
+                },
+            });
             const resultData = response.data.reduce((acc, result) => {
                 acc[result.gameweekId] = result;
                 return acc;
@@ -111,7 +143,12 @@ const GameweekManager = () => {
         }
 
         try {
-            await axios.post(`${API_BASE_URL}/gameweeks`, { date: selectedDate });
+            const token = await getAccessTokenSilently();
+            await axios.post(`${API_BASE_URL}/gameweeks`, { date: selectedDate }, {
+                headers: {
+                    Authorization: `Bearer ${token}`,
+                },
+            });
             fetchGameweeks();
             setSelectedDate(null);
             setIsAddGameweekModalVisible(false);
@@ -122,7 +159,12 @@ const GameweekManager = () => {
 
     const setPlayerAvailability = async (playerId, gameweekId, status) => {
         try {
-            await axios.post(`${API_BASE_URL}/availability`, { gameweekId, playerIds: [playerId], status });
+            const token = await getAccessTokenSilently();
+            await axios.post(`${API_BASE_URL}/availability`, { gameweekId, playerIds: [playerId], status }, {
+                headers: {
+                    Authorization: `Bearer ${token}`,
+                },
+            });
             setAvailability(prevAvailability => ({
                 ...prevAvailability,
                 [gameweekId]: { ...prevAvailability[gameweekId], [playerId]: status }
@@ -135,7 +177,12 @@ const GameweekManager = () => {
 
     const removePlayerAvailability = async (playerId, gameweekId) => {
         try {
-            await axios.post(`${API_BASE_URL}/availability`, { gameweekId, playerIds: [playerId], status: false });
+            const token = await getAccessTokenSilently();
+            await axios.post(`${API_BASE_URL}/availability`, { gameweekId, playerIds: [playerId], status: false }, {
+                headers: {
+                    Authorization: `Bearer ${token}`,
+                },
+            });
             setAvailability(prevAvailability => ({
                 ...prevAvailability,
                 [gameweekId]: { ...prevAvailability[gameweekId], [playerId]: false }
@@ -148,7 +195,12 @@ const GameweekManager = () => {
 
     const deleteGameweek = async (id) => {
         try {
-            await axios.delete(`${API_BASE_URL}/gameweeks/${id}`);
+            const token = await getAccessTokenSilently();
+            await axios.delete(`${API_BASE_URL}/gameweeks/${id}`, {
+                headers: {
+                    Authorization: `Bearer ${token}`,
+                },
+            });
             fetchGameweeks();
         } catch (error) {
             console.error("Error deleting gameweek", error);
@@ -157,7 +209,12 @@ const GameweekManager = () => {
 
     const handleTeamAssignment = async (gameweekId) => {
         try {
-            await axios.get(`${API_BASE_URL}/pick-teams?gameweekId=${gameweekId}`);
+            const token = await getAccessTokenSilently();
+            await axios.get(`${API_BASE_URL}/pick-teams?gameweekId=${gameweekId}`, {
+                headers: {
+                    Authorization: `Bearer ${token}`,
+                },
+            });
             message.success('Teams assigned successfully');
             fetchTeams(gameweekId);
             fetchAssignments(gameweekId);
@@ -169,7 +226,12 @@ const GameweekManager = () => {
 
     const handleGameResult = async (values) => {
         try {
-            await axios.post(`${API_BASE_URL}/gameresults`, values);
+            const token = await getAccessTokenSilently();
+            await axios.post(`${API_BASE_URL}/gameresults`, values, {
+                headers: {
+                    Authorization: `Bearer ${token}`,
+                },
+            });
             message.success('Game result recorded successfully');
             setIsResultModalVisible(false);
             form.resetFields();

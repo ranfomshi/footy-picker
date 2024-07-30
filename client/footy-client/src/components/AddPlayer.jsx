@@ -3,8 +3,10 @@ import { Input, Button, List, Modal, Spin, message, Dropdown, Menu, Space } from
 import { MoreOutlined, PlusOutlined } from "@ant-design/icons";
 import axios from "axios";
 import PlayerDetails from "./PlayerDetails";
+import { useAuth0 } from "@auth0/auth0-react";
 
 const AddPlayer = () => {
+  const { getAccessTokenSilently } = useAuth0();
   const [newPlayerName, setNewPlayerName] = useState("");
   const [editingPlayer, setEditingPlayer] = useState(null);
   const [editingPlayerName, setEditingPlayerName] = useState("");
@@ -28,7 +30,12 @@ const AddPlayer = () => {
   const fetchPlayers = async () => {
     setLoadingPlayers(true);
     try {
-      const response = await axios.get(`${API_BASE_URL}/players`);
+      const token = await getAccessTokenSilently();
+      const response = await axios.get(`${API_BASE_URL}/players`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
       setPlayers(response.data.sort((a, b) => a.id - b.id));
       setFilteredPlayers(response.data.sort((a, b) => a.id - b.id));
     } catch (error) {
@@ -54,7 +61,16 @@ const AddPlayer = () => {
 
     setLoading(true);
     try {
-      await axios.post(`${API_BASE_URL}/players`, { name: newPlayerName });
+      const token = await getAccessTokenSilently();
+      await axios.post(
+        `${API_BASE_URL}/players`,
+        { name: newPlayerName },
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
       setNewPlayerName("");
       fetchPlayers();
       setIsAddModalVisible(false);
@@ -75,7 +91,12 @@ const AddPlayer = () => {
     if (!playerToDelete) return;
     setLoading(true);
     try {
-      await axios.delete(`${API_BASE_URL}/players/${playerToDelete.id}`);
+      const token = await getAccessTokenSilently();
+      await axios.delete(`${API_BASE_URL}/players/${playerToDelete.id}`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
       fetchPlayers();
       setIsDeleteModalVisible(false);
       message.success("Player deleted successfully");
@@ -110,9 +131,16 @@ const AddPlayer = () => {
 
     setLoading(true);
     try {
-      await axios.put(`${API_BASE_URL}/players/${editingPlayer.id}`, {
-        name: editingPlayerName,
-      });
+      const token = await getAccessTokenSilently();
+      await axios.put(
+        `${API_BASE_URL}/players/${editingPlayer.id}`,
+        { name: editingPlayerName },
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
       setIsModalVisible(false);
       setEditingPlayer(null);
       setEditingPlayerName("");

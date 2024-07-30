@@ -2,26 +2,51 @@ const express = require('express');
 const { Player, Gameweek, GameResult, Availability, TeamAssignment, Rating, sequelize } = require('../models');
 const router = express.Router();
 const { Op } = require('sequelize');
+const jwt = require('jsonwebtoken'); // Import jsonwebtoken
+const jwksRsa = require('jwks-rsa'); // Import jwks-rsa
+
+// Load environment variables
+require('dotenv').config();
 
 // Environment variables
 const auth0Domain = process.env.AUTH0_DOMAIN;
 const auth0Audience = process.env.AUTH0_AUDIENCE;
+const auth0ClientId = process.env.AUTH0_CLIENT_ID;
+const auth0ClientSecret = process.env.AUTH0_CLIENT_SECRET;
 
-// JWT middleware
-const checkJwt = jwt({
-  secret: jwksRsa.expressJwtSecret({
-    cache: true,
-    rateLimit: true,
-    jwksRequestsPerMinute: 5,
-    jwksUri: `https://${auth0Domain}/.well-known/jwks.json`
-  }),
-  audience: auth0Audience,
-  issuer: `https://${auth0Domain}/`,
-  algorithms: ['RS256']
+// JWKS client
+const client = jwksRsa({
+  jwksUri: `https://${auth0Domain}/.well-known/jwks.json`
 });
 
 // Middleware to protect routes
-const protect = checkJwt;
+const protect = async (req, res, next) => {
+  const token = req.headers.authorization?.split(' ')[1];
+  if (!token) {
+    return res.status(401).json({ error: 'No token provided' });
+  }
+
+  try {
+    const decoded = jwt.decode(token, { complete: true });
+    const kid = decoded.header.kid;
+    const key = await client.getSigningKey(kid);
+    const signingKey = key.getPublicKey();
+
+    jwt.verify(token, signingKey, {
+      audience: auth0Audience,
+      issuer: `https://${auth0Domain}/`,
+      algorithms: ['RS256']
+    }, (err, decodedToken) => {
+      if (err) {
+        return res.status(401).json({ error: 'Token verification failed' });
+      }
+      req.user = decodedToken;
+      next();
+    });
+  } catch (error) {
+    return res.status(401).json({ error: 'Token verification failed' });
+  }
+};
 
 const updatePlayerRatings = async (gameweekId) => {
     try {
@@ -99,7 +124,6 @@ const updatePlayerRatings = async (gameweekId) => {
         console.error('Error updating player ratings:', error);
     }
 };
-
 
 router.get('/pick-teams', protect, async (req, res) => {
     const { gameweekId } = req.query;
