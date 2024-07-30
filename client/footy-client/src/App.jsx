@@ -37,10 +37,7 @@ function App() {
   const [players, setPlayers] = useState([]);
   const [activeKey, setActiveKey] = useState("players");
 
-  const API_BASE_URL =
-    import.meta.env.NODE_ENV === "production"
-      ? "https://footy-picker-58753c2f9639.herokuapp.com/api"
-      : "http://localhost:5000/api";
+  const API_BASE_URL = process.env.NODE_ENV === 'production' ? 'https://footy-picker-58753c2f9639.herokuapp.com/api' : 'http://localhost:5000/api';
 
   const fetchPlayers = async () => {
     try {
