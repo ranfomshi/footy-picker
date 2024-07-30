@@ -3,6 +3,26 @@ const { Player, Gameweek, GameResult, Availability, TeamAssignment, Rating, sequ
 const router = express.Router();
 const { Op } = require('sequelize');
 
+// Environment variables
+const auth0Domain = process.env.AUTH0_DOMAIN;
+const auth0Audience = process.env.AUTH0_AUDIENCE;
+
+// JWT middleware
+const checkJwt = jwt({
+  secret: jwksRsa.expressJwtSecret({
+    cache: true,
+    rateLimit: true,
+    jwksRequestsPerMinute: 5,
+    jwksUri: `https://${auth0Domain}/.well-known/jwks.json`
+  }),
+  audience: auth0Audience,
+  issuer: `https://${auth0Domain}/`,
+  algorithms: ['RS256']
+});
+
+// Middleware to protect routes
+const protect = checkJwt;
+
 const updatePlayerRatings = async (gameweekId) => {
     try {
         const gameResult = await GameResult.findOne({
@@ -81,7 +101,7 @@ const updatePlayerRatings = async (gameweekId) => {
 };
 
 
-router.get('/pick-teams', async (req, res) => {
+router.get('/pick-teams', protect, async (req, res) => {
     const { gameweekId } = req.query;
 
     try {
@@ -120,7 +140,7 @@ router.get('/pick-teams', async (req, res) => {
     }
 });
 
-router.post('/players', async (req, res) => {
+router.post('/players', protect, async (req, res) => {
     try {
         const { name } = req.body;
         
@@ -137,7 +157,7 @@ router.post('/players', async (req, res) => {
     }
 });
 
-router.delete('/players/:id', async (req, res) => {
+router.delete('/players/:id', protect, async (req, res) => {
     try {
         const { id } = req.params;
         await Player.destroy({ where: { id } });
@@ -148,7 +168,7 @@ router.delete('/players/:id', async (req, res) => {
     }
 });
 
-router.put('/players/:id', async (req, res) => {
+router.put('/players/:id', protect, async (req, res) => {
     try {
         const { id } = req.params;
         const { name } = req.body;
@@ -166,7 +186,7 @@ router.put('/players/:id', async (req, res) => {
     }
 });
 
-router.post('/gameresults', async (req, res) => {
+router.post('/gameresults', protect, async (req, res) => {
     try {
         const { gameweekId, teamA_score, teamB_score } = req.body;
 
@@ -190,7 +210,7 @@ router.post('/gameresults', async (req, res) => {
     }
 });
 
-router.get('/gameresults', async (req, res) => {
+router.get('/gameresults', protect, async (req, res) => {
     try {
         const gameResults = await GameResult.findAll();
         res.json(gameResults);
@@ -200,7 +220,7 @@ router.get('/gameresults', async (req, res) => {
     }
 });
 
-router.post('/availability', async (req, res) => {
+router.post('/availability', protect, async (req, res) => {
     try {
         const { gameweekId, playerIds, status } = req.body;
 
@@ -220,7 +240,7 @@ router.post('/availability', async (req, res) => {
     }
 });
 
-router.post('/teamassignments', async (req, res) => {
+router.post('/teamassignments', protect, async (req, res) => {
     try {
         const { gameweekId, playerIds, team } = req.body;
 
@@ -240,7 +260,7 @@ router.post('/teamassignments', async (req, res) => {
     }
 });
 
-router.get('/players', async (req, res) => {
+router.get('/players', protect, async (req, res) => {
     try {
         const players = await Player.findAll({
             include: [
@@ -319,7 +339,7 @@ router.get('/players', async (req, res) => {
     }
 });
 
-router.get('/availability', async (req, res) => {
+router.get('/availability', protect, async (req, res) => {
     try {
         const { gameweekId } = req.query;
         const availability = await Availability.findAll({
@@ -333,7 +353,7 @@ router.get('/availability', async (req, res) => {
     }
 });
 
-router.post('/ratings', async (req, res) => {
+router.post('/ratings', protect, async (req, res) => {
     try {
         const { date, ratings } = req.body; // ratings: [{playerId, rating, raterId}]
         const ratingRecords = await Promise.all(ratings.map(rating => {
@@ -351,7 +371,7 @@ router.post('/ratings', async (req, res) => {
     }
 });
 
-router.get('/ratings', async (req, res) => {
+router.get('/ratings', protect, async (req, res) => {
     try {
         const { date } = req.query;
         const ratings = await Rating.findAll({
@@ -366,7 +386,7 @@ router.get('/ratings', async (req, res) => {
     }
 });
 
-router.post('/gameweeks', async (req, res) => {
+router.post('/gameweeks', protect, async (req, res) => {
     try {
         const { date } = req.body;
         const gameweek = await Gameweek.create({ date });
@@ -377,7 +397,7 @@ router.post('/gameweeks', async (req, res) => {
     }
 });
 
-router.get('/gameweeks', async (req, res) => {
+router.get('/gameweeks', protect, async (req, res) => {
     try {
         const gameweeks = await Gameweek.findAll();
         res.json(gameweeks);
@@ -387,7 +407,7 @@ router.get('/gameweeks', async (req, res) => {
     }
 });
 
-router.delete('/gameweeks/:id', async (req, res) => {
+router.delete('/gameweeks/:id', protect, async (req, res) => {
     try {
         const { id } = req.params;
         await Gameweek.destroy({ where: { id } });
@@ -398,7 +418,7 @@ router.delete('/gameweeks/:id', async (req, res) => {
     }
 });
 
-router.get('/teamassignments', async (req, res) => {
+router.get('/teamassignments', protect, async (req, res) => {
     try {
         const { gameweekId } = req.query;
         const assignments = await TeamAssignment.findAll({ where: { gameweekId } });

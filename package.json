@@ -23,14 +23,16 @@
   },
   "homepage": "https://github.com/ranfomshi/footy-picker#readme",
   "dependencies": {
+    "@vitejs/plugin-react": "^4.3.1",
     "axios": "^1.7.2",
     "cors": "^2.8.5",
     "dotenv": "^16.4.5",
     "express": "^4.19.2",
+    "express-jwt": "^8.4.1",
+    "jwks-rsa": "^3.1.0",
     "pg": "^8.12.0",
     "sequelize": "^6.37.3",
-    "vite": "^5.3.4",
-    "@vitejs/plugin-react": "^4.3.1"
+    "vite": "^5.3.4"
   },
   "devDependencies": {
     "concurrently": "^7.0.0",
