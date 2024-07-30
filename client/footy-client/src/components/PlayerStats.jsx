@@ -71,7 +71,6 @@ const PlayerStats = () => {
 
     return (
         <div>
-            <h2>Player Stats</h2>
             {loading ? (
                 <Spin size="small" />
             ) : (

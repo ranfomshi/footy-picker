@@ -164,7 +164,7 @@ const AddPlayer = () => {
 
   return (
     <Spin spinning={loading}>
-         <div style={{width:50, position:'fixed', bottom:20, right:30, height:80, textAlign:"right", zIndex:2000}}>  <Button
+         <div style={{width:50, position:'fixed', bottom:80, right:10, height:80, textAlign:"right", zIndex:2000}}>  <Button
           type="primary"
           shape="circle"
           icon={<PlusOutlined />}
