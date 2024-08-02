@@ -222,7 +222,7 @@ const AddPlayer = () => {
                     style={{ flexGrow: 1, cursor: "pointer" }}
                     onClick={() => viewPlayerDetails(player.id)}
                   >
-                    {player.name}{" "}<Tooltip title="Player linked to user"><CheckCircleOutlined style={{color:"green", transform:'translateY(1px)'}} /></Tooltip>
+                    {player.name}{" "}{player.auth0Id != null &&<Tooltip title="Player linked to user"><CheckCircleOutlined style={{color:"green", transform:'translateY(1px)'}} /></Tooltip>}
                   </div>
                   <Dropdown
                     overlay={

@@ -53,10 +53,16 @@ const protect = async (req, res, next) => {
   }
 };
 
-// Helper function to generate a 4-digit room code
+// Helper function to generate a 5-character alphanumeric room code
 const generateRoomCode = () => {
-  return Math.floor(1000 + Math.random() * 9000).toString();
-};
+    const characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+    let roomCode = '';
+    for (let i = 0; i < 5; i++) {
+      roomCode += characters.charAt(Math.floor(Math.random() * characters.length));
+    }
+    return roomCode;
+  };
+  
 
 // Endpoint for creating a room
 router.post('/create-room', protect, async (req, res) => {
