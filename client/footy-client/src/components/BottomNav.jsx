@@ -2,15 +2,18 @@ import React from 'react';
 import { TabBar } from 'antd-mobile';
 import { UserOutline, CalendarOutline, PieOutline, SetOutline } from 'antd-mobile-icons'; // Import the new icon
 import { useAuth0 } from '@auth0/auth0-react';
+import useStore from '../useStore';
+import { Button } from 'antd';
 
 const BottomNav = ({ activeKey, onChange }) => {
-    const { loginWithRedirect, logout, isAuthenticated, user } = useAuth0();
+    const {logout, isAuthenticated, user } = useAuth0();
+    const { hasJoinedRoom } = useStore();
     // Define styles for the active tab
     const activeTabStyle = {
         color: '#00b96b', // Your custom color for the selected tab
     };
 
-    return (isAuthenticated &&
+    return (isAuthenticated && hasJoinedRoom ?
         <TabBar activeKey={activeKey} onChange={onChange}>
             <TabBar.Item 
                 key="players" 
@@ -36,7 +39,12 @@ const BottomNav = ({ activeKey, onChange }) => {
                 title="Account" 
                 style={activeKey === 'account' ? activeTabStyle : {}}
             />
-        </TabBar>
+        </TabBar> : 
+                
+              isAuthenticated && <Button  onClick={() => logout({ returnTo: window.location.origin })} block>Log Out</Button> 
+              
+              
+           
     );
 };
 

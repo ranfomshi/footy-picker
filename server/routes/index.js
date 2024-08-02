@@ -168,7 +168,7 @@ router.post('/join-room', protect, async (req, res) => {
 });
 
 
-  router.post('/finalize-join-room', protect, async (req, res) => {
+router.post('/finalize-join-room', protect, async (req, res) => {
     const { roomCode, playerId, newPlayerName } = req.body;
     const auth0Id = req.user.sub;
 
@@ -203,6 +203,7 @@ router.post('/join-room', protect, async (req, res) => {
         res.status(500).json({ error: 'Internal Server Error' });
     }
 });
+
 
   
 
