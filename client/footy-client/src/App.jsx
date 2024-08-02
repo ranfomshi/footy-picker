@@ -61,7 +61,7 @@ function App() {
       : "http://localhost:5000/api";
 
   const checkRoomMembership = async () => {
-    alert(process.env.NODE_ENV)
+    
     try {
       const token = await getAccessTokenSilently();
       const response = await axios.get(`${API_BASE_URL}/check-room-membership`, {
@@ -76,7 +76,7 @@ function App() {
   };
 
   const checkPlayerLinked = async () => {
-    alert(process.env.NODE_ENV)
+    
     try {
       const token = await getAccessTokenSilently();
       const response = await axios.get(`${API_BASE_URL}/players`, {
@@ -124,7 +124,7 @@ function App() {
   };
 
   const fetchPlayers = async () => {
-    alert(process.env.NODE_ENV)
+    
     try {
       const token = await getAccessTokenSilently();
       const response = await axios.get(`${API_BASE_URL}/players`, {
