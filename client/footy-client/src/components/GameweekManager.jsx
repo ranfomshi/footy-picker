@@ -21,7 +21,7 @@ const GameweekManager = () => {
     const [recordedResults, setRecordedResults] = useState({});
     const [searchTerm, setSearchTerm] = useState('');
 
-    const API_BASE_URL = process.env.NODE_ENV === 'production' ? 'https://footy-picker-58753c2f9639.herokuapp.com/api' : 'http://localhost:5000/api';
+    const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
 
     const fetchGameweeks = async () => {
         try {
@@ -42,7 +42,6 @@ const GameweekManager = () => {
     };
 
     const fetchPlayers = async () => {
-        console.log('players called from gameweekmanager.jsx')
         try {
             const token = await getAccessTokenSilently();
             const response = await axios.get(`${API_BASE_URL}/players`, {

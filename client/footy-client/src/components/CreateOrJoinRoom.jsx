@@ -16,7 +16,7 @@ const CreateOrJoinRoom = ({ onRoomJoined }) => {
     const [joiningRoomLoading, setJoiningRoomLoading] = useState(false);
     const { setRoomCode: setGlobalRoomCode } = useStore();
 
-    const API_BASE_URL = process.env.NODE_ENV === 'production' ? 'https://footy-picker-58753c2f9639.herokuapp.com/api' : 'http://localhost:5000/api';
+    const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
 
     const createRoom = async () => {
         if (!roomName.trim()) {
