@@ -80,6 +80,9 @@ const Gameweek = sequelize.define('Gameweek', {
         },
         allowNull: false
     }
+}, {
+    tableName: 'Gameweeks', // Explicitly specify the table name to match your database
+    timestamps: true
 });
 
 const GameResult = sequelize.define('GameResult', {
