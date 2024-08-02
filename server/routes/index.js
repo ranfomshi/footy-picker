@@ -242,24 +242,18 @@ router.get('/check-room-membership', protect, async (req, res) => {
 
   router.get('/players', protect, async (req, res) => {
     try {
-      const { roomCode } = req.query;
+      // The roomId is set in the protect middleware
+      const { roomId } = req.user;
   
-      if (!roomCode) {
-        return res.status(400).json({ error: 'Room code is required' });
-      }
-  
-      // Fetch the room by code
-      const room = await Room.findOne({ where: { code: roomCode } });
-  
-      if (!room) {
-        return res.status(404).json({ error: 'Room not found' });
+      if (!roomId) {
+        return res.status(400).json({ error: 'User is not associated with any room' });
       }
   
       const players = await Player.findAll({
         include: [
           {
             model: RoomMembership,
-            where: { roomId: room.id }
+            where: { roomId }
           },
           {
             model: TeamAssignment,
@@ -321,6 +315,7 @@ router.get('/check-room-membership', protect, async (req, res) => {
       res.status(500).json({ error: 'Internal Server Error' });
     }
   });
+  
   
 
 router.put('/players/:id/link', protect, async (req, res) => {
