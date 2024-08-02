@@ -76,7 +76,7 @@ function App() {
   };
 
   const checkPlayerLinked = async () => {
-    
+    console.log('players called from app.jsx')
     try {
       const token = await getAccessTokenSilently();
       const response = await axios.get(`${API_BASE_URL}/players`, {
@@ -124,7 +124,7 @@ function App() {
   };
 
   const fetchPlayers = async () => {
-    
+    console.log('players called from app.jsx')
     try {
       const token = await getAccessTokenSilently();
       const response = await axios.get(`${API_BASE_URL}/players`, {

@@ -42,7 +42,7 @@ const GameweekManager = () => {
     };
 
     const fetchPlayers = async () => {
-        
+        console.log('players called from gameweekmanager.jsx')
         try {
             const token = await getAccessTokenSilently();
             const response = await axios.get(`${API_BASE_URL}/players`, {

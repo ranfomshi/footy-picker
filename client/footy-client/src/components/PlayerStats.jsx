@@ -11,6 +11,7 @@ const PlayerStats = () => {
     const API_BASE_URL = process.env.NODE_ENV === 'production' ? 'https://footy-picker-58753c2f9639.herokuapp.com/api' : 'http://localhost:5000/api';
 
     const fetchPlayerStats = async () => {
+        console.log('players called from playerstats.jsx')
         try {
             const token = await getAccessTokenSilently();
             const response = await axios.get(`${API_BASE_URL}/players`, {

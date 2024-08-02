@@ -45,7 +45,7 @@ const LinkPlayer = ({ onPlayerLinked }) => {
     useEffect(() => {
         if (room) {
             const fetchPlayers = async () => {
-                
+                console.log('players called from linkplayer.jsx')
                 setLoading(true);
                 try {
                     const token = await getAccessTokenSilently();
