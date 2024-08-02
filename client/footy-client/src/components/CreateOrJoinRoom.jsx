@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useAuth0 } from '@auth0/auth0-react';
-import { Button, Input, Space, Typography, message, Form, Divider } from 'antd';
+import { Button, Input, Space, Typography, message, Form, Divider, Modal, Radio } from 'antd';
 import axios from 'axios';
 import useStore from '../useStore';
 
@@ -13,6 +13,10 @@ const CreateOrJoinRoom = ({ onRoomJoined }) => {
     const [creatingRoom, setCreatingRoom] = useState(false);
     const [creatingRoomLoading, setCreatingRoomLoading] = useState(false);
     const [joiningRoomLoading, setJoiningRoomLoading] = useState(false);
+    const [unlinkedPlayers, setUnlinkedPlayers] = useState([]);
+    const [selectedUnlinkedPlayer, setSelectedUnlinkedPlayer] = useState(null);
+    const [newPlayerName, setNewPlayerName] = useState('');
+    const [isSelectPlayerModalVisible, setIsSelectPlayerModalVisible] = useState(false);
     const { setRoomCode: setGlobalRoomCode } = useStore();
 
     const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
@@ -51,19 +55,56 @@ const CreateOrJoinRoom = ({ onRoomJoined }) => {
         setJoiningRoomLoading(true);
         try {
             const token = await getAccessTokenSilently();
-            await axios.post(`${API_BASE_URL}/join-room`, { code: roomCode }, {
+            const response = await axios.post(`${API_BASE_URL}/join-room`, { code: roomCode }, {
                 headers: {
                     Authorization: `Bearer ${token}`
                 }
             });
-            message.success('Joined room successfully');
-            setGlobalRoomCode(roomCode);
-            onRoomJoined();
+
+            if (response.data.unlinkedPlayers) {
+                setUnlinkedPlayers(response.data.unlinkedPlayers);
+                setIsSelectPlayerModalVisible(true);
+            } else {
+                message.success('Joined room successfully');
+                setGlobalRoomCode(roomCode);
+                onRoomJoined();
+            }
         } catch (error) {
             console.error('Error joining room:', error);
             message.error("Error joining room");
         } finally {
             setJoiningRoomLoading(false);
+        }
+    };
+
+    const finalizeJoinRoom = async () => {
+        if (!selectedUnlinkedPlayer && !newPlayerName.trim()) {
+            message.error("You must select an existing player or create a new one");
+            return;
+        }
+
+        setJoiningRoomLoading(true);
+        try {
+            const token = await getAccessTokenSilently();
+            await axios.post(`${API_BASE_URL}/finalize-join-room`, {
+                roomCode,
+                playerId: selectedUnlinkedPlayer,
+                newPlayerName: selectedUnlinkedPlayer ? null : newPlayerName
+            }, {
+                headers: {
+                    Authorization: `Bearer ${token}`
+                }
+            });
+
+            message.success('Joined room successfully');
+            setGlobalRoomCode(roomCode);
+            onRoomJoined();
+        } catch (error) {
+            console.error('Error finalizing room join:', error);
+            message.error("Error finalizing room join");
+        } finally {
+            setJoiningRoomLoading(false);
+            setIsSelectPlayerModalVisible(false);
         }
     };
 
@@ -118,6 +159,31 @@ const CreateOrJoinRoom = ({ onRoomJoined }) => {
             <Paragraph style={{ textAlign: 'center' }}>
                 Join an existing room or create a new one to get started.
             </Paragraph>
+            <Modal
+                title="Select or Create Player"
+                visible={isSelectPlayerModalVisible}
+                onOk={finalizeJoinRoom}
+                onCancel={() => setIsSelectPlayerModalVisible(false)}
+                confirmLoading={joiningRoomLoading}
+            >
+                <Radio.Group
+                    onChange={(e) => setSelectedUnlinkedPlayer(e.target.value)}
+                    value={selectedUnlinkedPlayer}
+                    style={{ display: 'block', marginBottom: '1em' }}
+                >
+                    {unlinkedPlayers.map((player) => (
+                        <Radio key={player.id} value={player.id} style={{ display: 'block' }}>
+                            {player.name}
+                        </Radio>
+                    ))}
+                </Radio.Group>
+                <Input
+                    placeholder="Enter new player name"
+                    value={newPlayerName}
+                    onChange={(e) => setNewPlayerName(e.target.value)}
+                    disabled={joiningRoomLoading}
+                />
+            </Modal>
         </div>
     );
 };

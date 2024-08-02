@@ -127,46 +127,86 @@ router.post('/create-room', protect, async (req, res) => {
   }
 });
 
-// Endpoint for joining a room
 router.post('/join-room', protect, async (req, res) => {
-  const { code } = req.body;
-  const auth0Id = req.user.sub;
-
-  try {
-    const room = await Room.findOne({ where: { code } });
-    if (!room) {
-      return res.status(404).json({ message: 'Room not found' });
-    }
-
-    // Check if a player exists for the auth0Id
-    let player = await Player.findOne({ where: { auth0Id } });
-
-    // If no player exists, create a new player using the Auth0 username
-    if (!player) {
-      const accessToken = req.headers.authorization.split(' ')[1];
-      const userInfoResponse = await axios.get(`https://${auth0Domain}/userinfo`, {
-        headers: {
-          Authorization: `Bearer ${accessToken}`
-        }
+    const { code } = req.body;
+    const auth0Id = req.user.sub;
+  
+    try {
+      const room = await Room.findOne({ where: { code } });
+      if (!room) {
+        return res.status(404).json({ message: 'Room not found' });
+      }
+  
+      // Check if the user is already a member of the room
+      const existingMembership = await RoomMembership.findOne({ where: { auth0Id, roomId: room.id } });
+      if (existingMembership) {
+        return res.status(400).json({ message: 'Already a member of this room' });
+      }
+  
+      // Fetch unlinked players in the room
+      const unlinkedPlayers = await Player.findAll({
+        include: [
+          {
+            model: RoomMembership,
+            where: {
+              roomId: room.id,
+              auth0Id: null
+            }
+          }
+        ]
       });
-      const username = userInfoResponse.data.name;
-      player = await Player.create({ auth0Id, name: username });
+  
+      // Return unlinked players if any
+      if (unlinkedPlayers.length > 0) {
+        return res.status(200).json({ unlinkedPlayers });
+      }
+  
+      // If no unlinked players, prompt to create a new player
+      res.status(200).json({ message: 'No unlinked players found, create a new player' });
+    } catch (error) {
+      console.error('Error joining room:', error);
+      res.status(500).json({ error: 'Internal Server Error' });
     }
+  });
 
-    // Check if the player is already a member of the room
-    const existingMembership = await RoomMembership.findOne({ where: { auth0Id, roomId: room.id } });
-    if (existingMembership) {
-      return res.status(400).json({ message: 'Already a member of this room' });
+  router.post('/finalize-join-room', protect, async (req, res) => {
+    const { roomCode, playerId, newPlayerName } = req.body;
+    const auth0Id = req.user.sub;
+  
+    try {
+      const room = await Room.findOne({ where: { code: roomCode } });
+      if (!room) {
+        return res.status(404).json({ message: 'Room not found' });
+      }
+  
+      let player;
+  
+      if (playerId) {
+        // Link existing unlinked player
+        player = await Player.findByPk(playerId);
+        if (!player || player.auth0Id) {
+          return res.status(400).json({ error: 'Invalid player selection' });
+        }
+        player.auth0Id = auth0Id;
+        await player.save();
+      } else if (newPlayerName) {
+        // Create a new player
+        player = await Player.create({ auth0Id, name: newPlayerName });
+      } else {
+        return res.status(400).json({ error: 'Player selection or new player name is required' });
+      }
+  
+      // Create the room membership
+      await RoomMembership.create({ playerId: player.id, auth0Id, roomId: room.id });
+  
+      res.status(200).json({ message: 'Joined room successfully' });
+    } catch (error) {
+      console.error('Error finalizing room join:', error);
+      res.status(500).json({ error: 'Internal Server Error' });
     }
-
-    // Create the room membership
-    await RoomMembership.create({ playerId: player.id, auth0Id, roomId: room.id });
-    res.status(200).json({ message: 'Joined room successfully' });
-  } catch (error) {
-    console.error('Error joining room:', error);
-    res.status(500).json({ error: 'Internal Server Error' });
-  }
-});
+  });
+  
+  
 
 router.get('/pick-teams', protect, async (req, res) => {
     const { gameweekId } = req.query;
