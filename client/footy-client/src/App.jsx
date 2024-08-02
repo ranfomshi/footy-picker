@@ -8,7 +8,7 @@ import PlayerStats from "./components/PlayerStats";
 import AccountManager from "./components/AccountManager";
 import LinkPlayer from "./components/LinkPlayer";
 import CreateOrJoinRoom from "./components/CreateOrJoinRoom";
-import { Button, ConfigProvider, Typography, Spin } from "antd";
+import { Button, ConfigProvider, Typography, Spin, message } from "antd";
 import { Auth0Provider, useAuth0 } from "@auth0/auth0-react";
 import useStore from "./useStore"; // Import the Zustand store
 
@@ -37,10 +37,9 @@ const Auth0ProviderWithHistory = ({ children }) => {
       clientId={clientId}
       redirectUri={redirectUri}
       onRedirectCallback={onRedirectCallback}
-      scope="openid profile email offline_access"
+      scope="openid profile email"
       useRefreshTokens={true}
       cacheLocation="localstorage"
-      audience="https://footy-picker.uk.auth0.com/api/v2/"
     >
       {children}
     </Auth0Provider>
@@ -58,7 +57,6 @@ function App() {
   const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
 
   const checkRoomMembership = async () => {
-    
     try {
       const token = await getAccessTokenSilently();
       const response = await axios.get(`${API_BASE_URL}/check-room-membership`, {
@@ -200,16 +198,14 @@ function App() {
             {hasJoinedRoom && <Paragraph>Room Code: <Text code strong>{roomCode}</Text></Paragraph>}
           </div>
           {isAuthenticated ? (
-            loading ? (
-              <Spin size="large" />
-            ) : hasJoinedRoom ? (
+            hasJoinedRoom ? (
               playerLinked ? (
                 renderContent()
               ) : (
                 <LinkPlayer onPlayerLinked={handlePlayerLinked} />
               )
             ) : (
-              !playerLinked && !roomCode&&<CreateOrJoinRoom onRoomJoined={handleRoomJoined} />
+              <CreateOrJoinRoom onRoomJoined={handleRoomJoined} />
             )
           ) : (
             <Paragraph>Please log in</Paragraph>

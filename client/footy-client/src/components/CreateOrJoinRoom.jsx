@@ -10,7 +10,6 @@ const CreateOrJoinRoom = ({ onRoomJoined }) => {
     const { getAccessTokenSilently } = useAuth0();
     const [roomName, setRoomName] = useState('');
     const [roomCode, setRoomCode] = useState('');
-    const [loading, setLoading] = useState(false);
     const [creatingRoom, setCreatingRoom] = useState(false);
     const [creatingRoomLoading, setCreatingRoomLoading] = useState(false);
     const [joiningRoomLoading, setJoiningRoomLoading] = useState(false);
