@@ -73,7 +73,7 @@ function App() {
   const checkPlayerLinked = async () => {
     try {
       const token = await getAccessTokenSilently();
-      const response = await axios.get(`${API_BASE_URL}/players?roomCode=${roomCode}`, {
+      const response = await axios.get(`${API_BASE_URL}/players`, {
         headers: {
           Authorization: `Bearer ${token}`,
         },
@@ -120,7 +120,7 @@ function App() {
   const fetchPlayers = async () => {
     try {
       const token = await getAccessTokenSilently();
-      const response = await axios.get(`${API_BASE_URL}/players?roomCode=${roomCode}`, {
+      const response = await axios.get(`${API_BASE_URL}/players`, {
         headers: {
           Authorization: `Bearer ${token}`,
         },

@@ -23,7 +23,7 @@ const LinkPlayer = ({ onPlayerLinked, roomCode }) => {
                 setLoading(true);
                 try {
                     const token = await getAccessTokenSilently();
-                    const response = await axios.get(`${API_BASE_URL}/players?roomCode=${roomCode}`, {
+                    const response = await axios.get(`${API_BASE_URL}/players`, {
                         headers: {
                             Authorization: `Bearer ${token}`
                         }
