@@ -6,55 +6,29 @@ import axios from 'axios';
 const { Title, Text } = Typography;
 const { Option } = Select;
 
-const LinkPlayer = ({ onPlayerLinked }) => {
+const LinkPlayer = ({ onPlayerLinked, roomCode }) => {
     const { user, getAccessTokenSilently } = useAuth0();
     const [players, setPlayers] = useState([]);
     const [selectedPlayerId, setSelectedPlayerId] = useState('');
     const [loading, setLoading] = useState(true); // Initial loading state
     const [creatingPlayer, setCreatingPlayer] = useState(false);
     const [newPlayerName, setNewPlayerName] = useState('');
-    const [room, setRoom] = useState(null);
-    const [hasUnlinkedPlayers, setHasUnlinkedPlayers] = useState(false);
     const [linkingLoading, setLinkingLoading] = useState(false);
 
     const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
 
     useEffect(() => {
-        const fetchRoomMembership = async () => {
-            setLoading(true);
-            try {
-                const token = await getAccessTokenSilently();
-                const response = await axios.get(`${API_BASE_URL}/check-room-membership`, {
-                    headers: {
-                        Authorization: `Bearer ${token}`
-                    }
-                });
-                if (response.data.hasJoinedRoom) {
-                    setRoom(true);
-                }
-            } catch (error) {
-                console.error("Error fetching room membership", error);
-            } finally {
-                setLoading(false);
-            }
-        };
-
-        fetchRoomMembership();
-    }, [getAccessTokenSilently]);
-
-    useEffect(() => {
-        if (room) {
+        if (roomCode) {
             const fetchPlayers = async () => {
                 setLoading(true);
                 try {
                     const token = await getAccessTokenSilently();
-                    const response = await axios.get(`${API_BASE_URL}/players`, {
+                    const response = await axios.get(`${API_BASE_URL}/players?roomCode=${roomCode}`, {
                         headers: {
                             Authorization: `Bearer ${token}`
                         }
                     });
                     setPlayers(response.data);
-                    setHasUnlinkedPlayers(response.data.length > 0);
                 } catch (error) {
                     console.error("Error fetching players", error);
                 } finally {
@@ -64,7 +38,7 @@ const LinkPlayer = ({ onPlayerLinked }) => {
 
             fetchPlayers();
         }
-    }, [getAccessTokenSilently, room]);
+    }, [getAccessTokenSilently, roomCode]);
 
     const linkPlayer = async () => {
         if (!selectedPlayerId) {
@@ -75,7 +49,7 @@ const LinkPlayer = ({ onPlayerLinked }) => {
         setLinkingLoading(true);
         try {
             const token = await getAccessTokenSilently();
-            await axios.put(`${API_BASE_URL}/players/${selectedPlayerId}/link`, { auth0Id: user.sub }, {
+            await axios.put(`/api/players/${selectedPlayerId}/link`, { auth0Id: user.sub }, {
                 headers: {
                     Authorization: `Bearer ${token}`
                 }
@@ -99,12 +73,12 @@ const LinkPlayer = ({ onPlayerLinked }) => {
         setLinkingLoading(true);
         try {
             const token = await getAccessTokenSilently();
-            const response = await axios.post(`${API_BASE_URL}/players`, { name: newPlayerName }, {
+            const response = await axios.post('/api/players', { name: newPlayerName }, {
                 headers: {
                     Authorization: `Bearer ${token}`
                 }
             });
-            await axios.post(`${API_BASE_URL}/link-player`, { playerId: response.data.id }, {
+            await axios.post('/api/link-player', { playerId: response.data.id }, {
                 headers: {
                     Authorization: `Bearer ${token}`
                 }
@@ -126,7 +100,7 @@ const LinkPlayer = ({ onPlayerLinked }) => {
     return (
         <div>
             <Title level={2}>Link Your Account to a Player</Title>
-            {creatingPlayer || !hasUnlinkedPlayers ? (
+            {creatingPlayer || !players.length ? (
                 <Space direction="vertical">
                     <Input
                         placeholder="Enter new player name"
@@ -137,7 +111,7 @@ const LinkPlayer = ({ onPlayerLinked }) => {
                     <Button type="primary" onClick={createAndLinkPlayer} loading={linkingLoading}>
                         Create and Link Player
                     </Button>
-                    {hasUnlinkedPlayers && (
+                    {players.length > 0 && (
                         <Button onClick={() => setCreatingPlayer(false)} disabled={linkingLoading}>
                             Cancel
                         </Button>

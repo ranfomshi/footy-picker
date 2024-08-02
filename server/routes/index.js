@@ -217,84 +217,86 @@ router.get('/check-room-membership', protect, async (req, res) => {
 
   router.get('/players', protect, async (req, res) => {
     try {
-        const auth0Id = req.user.sub;
-
-        // Fetch the logged-in user's room membership
-        const currentUserMembership = await RoomMembership.findOne({ where: { auth0Id } });
-
-        if (!currentUserMembership) {
-            return res.status(400).json({ error: 'User is not part of any room' });
-        }
-
-        const roomId = currentUserMembership.roomId;
-
-        // Fetch players who belong to the same room
-        const players = await Player.findAll({
+      const { roomCode } = req.query;
+  
+      if (!roomCode) {
+        return res.status(400).json({ error: 'Room code is required' });
+      }
+  
+      // Fetch the room by code
+      const room = await Room.findOne({ where: { code: roomCode } });
+  
+      if (!room) {
+        return res.status(404).json({ error: 'Room not found' });
+      }
+  
+      const players = await Player.findAll({
+        include: [
+          {
+            model: RoomMembership,
+            where: { roomId: room.id }
+          },
+          {
+            model: TeamAssignment,
             include: [
-                {
-                    model: RoomMembership,
-                    where: { roomId }
-                },
-                {
-                    model: TeamAssignment,
-                    include: [
-                        {
-                            model: Gameweek,
-                            include: [
-                                {
-                                    model: GameResult
-                                }
-                            ]
-                        }
-                    ]
-                }
+              {
+                model: Gameweek,
+                include: [
+                  {
+                    model: GameResult
+                  }
+                ]
+              }
             ]
+          }
+        ]
+      });
+  
+      const playerStats = await Promise.all(players.map(async (player) => {
+        const teamAssignments = player.TeamAssignments;
+  
+        let wins = 0;
+        let draws = 0;
+        let losses = 0;
+        let goalsFor = 0;
+        let goalsAgainst = 0;
+  
+        teamAssignments.forEach(assignment => {
+          const gameResult = assignment.Gameweek.GameResult;
+          if (gameResult) {
+            const team = assignment.team;
+            const teamScore = team === 'A' ? gameResult.teamA_score : gameResult.teamB_score;
+            const opponentScore = team === 'A' ? gameResult.teamB_score : gameResult.teamA_score;
+  
+            goalsFor += teamScore;
+            goalsAgainst += opponentScore;
+  
+            if (teamScore > opponentScore) {
+              wins += 1;
+            } else if (teamScore < opponentScore) {
+              losses += 1;
+            } else {
+              draws += 1;
+            }
+          }
         });
-
-        const playerStats = await Promise.all(players.map(async (player) => {
-            const teamAssignments = player.TeamAssignments;
-
-            let wins = 0;
-            let draws = 0;
-            let losses = 0;
-            let goalsFor = 0;
-            let goalsAgainst = 0;
-
-            teamAssignments.forEach(assignment => {
-                const gameResult = assignment.Gameweek.GameResult;
-                if (gameResult) {
-                    const team = assignment.team;
-                    const teamScore = team === 'A' ? gameResult.teamA_score : gameResult.teamB_score;
-                    const opponentScore = team === 'A' ? gameResult.teamB_score : gameResult.teamA_score;
-
-                    goalsFor += teamScore;
-                    goalsAgainst += opponentScore;
-
-                    if (teamScore > opponentScore) {
-                        wins += 1;
-                    } else if (teamScore < opponentScore) {
-                        losses += 1;
-                    } else {
-                        draws += 1;
-                    }
-                }
-            });
-
-            player.dataValues.wins = wins;
-            player.dataValues.draws = draws;
-            player.dataValues.losses = losses;
-            player.dataValues.goalsFor = goalsFor;
-            player.dataValues.goalsAgainst = goalsAgainst;
-
-            return player;
-        }));
-
-        res.json(playerStats);
+  
+        player.dataValues.wins = wins;
+        player.dataValues.draws = draws;
+        player.dataValues.losses = losses;
+        player.dataValues.goalsFor = goalsFor;
+        player.dataValues.goalsAgainst = goalsAgainst;
+  
+        return player;
+      }));
+  
+      res.json(playerStats);
     } catch (error) {
-        console.error('Error fetching players:', error);
-        res.status(500).json({ error: 'Internal Server Error' });
+      console.error('Error fetching players:', error);
+      res.status(500).json({ error: 'Internal Server Error' });
     }
-});
+  });
+  
 
 router.put('/players/:id/link', protect, async (req, res) => {
     const { id } = req.params;
