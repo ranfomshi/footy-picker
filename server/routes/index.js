@@ -20,38 +20,44 @@ const client = jwksRsa({
 
 // Middleware to protect routes and set roomId
 const protect = async (req, res, next) => {
-  const token = req.headers.authorization?.split(' ')[1];
-  if (!token) {
-    return res.status(401).json({ error: 'No token provided' });
-  }
-
-  try {
-    const decoded = jwt.decode(token, { complete: true });
-    const kid = decoded.header.kid;
-    const key = await client.getSigningKey(kid);
-    const signingKey = key.getPublicKey();
-
-    jwt.verify(token, signingKey, {
-      audience: auth0Audience,
-      issuer: `https://${auth0Domain}/`,
-      algorithms: ['RS256']
-    }, async (err, decodedToken) => {
-      if (err) {
-        return res.status(401).json({ error: 'Token verification failed' });
-      }
-      req.user = decodedToken;
-
-      // Set the roomId based on the user's room membership
-      const membership = await RoomMembership.findOne({ where: { auth0Id: req.user.sub } });
-      if (membership) {
-        req.user.roomId = membership.roomId;
-      }
-      next();
-    });
-  } catch (error) {
-    return res.status(401).json({ error: 'Token verification failed' });
-  }
-};
+    const token = req.headers.authorization?.split(' ')[1];
+    if (!token) {
+      return res.status(401).json({ error: 'No token provided' });
+    }
+  
+    try {
+      const decoded = jwt.decode(token, { complete: true });
+      const kid = decoded.header.kid;
+      const key = await client.getSigningKey(kid);
+      const signingKey = key.getPublicKey();
+  
+      jwt.verify(token, signingKey, {
+        audience: auth0Audience,
+        issuer: `https://${auth0Domain}/`,
+        algorithms: ['RS256']
+      }, async (err, decodedToken) => {
+        if (err) {
+          return res.status(401).json({ error: 'Token verification failed' });
+        }
+        req.user = decodedToken;
+  
+        // Check if the user's auth0Id is linked to any player in any room
+        const player = await Player.findOne({ where: { auth0Id: req.user.sub } });
+        if (player) {
+          // If the user is linked to a player, set the player's roomId
+          const membership = await RoomMembership.findOne({ where: { auth0Id: req.user.sub } });
+          if (membership) {
+            req.user.roomId = membership.roomId;
+          }
+        }
+  
+        next();
+      });
+    } catch (error) {
+      return res.status(401).json({ error: 'Token verification failed' });
+    }
+  };
+  
 
 // Helper function to generate a 5-character alphanumeric room code
 const generateRoomCode = () => {
@@ -62,6 +68,25 @@ const generateRoomCode = () => {
     }
     return roomCode;
   };
+
+  // Endpoint to check if the user has a player linked to their auth0Id in any room
+router.get('/check-player-existence', protect, async (req, res) => {
+    const auth0Id = req.user.sub;
+  
+    try {
+      const player = await Player.findOne({ where: { auth0Id } });
+  
+      if (player) {
+        res.status(200).json({ exists: true, player });
+      } else {
+        res.status(200).json({ exists: false });
+      }
+    } catch (error) {
+      console.error('Error checking player existence:', error);
+      res.status(500).json({ error: 'Internal Server Error' });
+    }
+  });
+  
   
 
 // Endpoint for creating a room
