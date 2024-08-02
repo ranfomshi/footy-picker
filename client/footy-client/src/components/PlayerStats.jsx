@@ -13,7 +13,7 @@ const PlayerStats = () => {
     const fetchPlayerStats = async () => {
         try {
             const token = await getAccessTokenSilently();
-            const response = await axios.get(`${API_BASE_URL}/players`, {
+            const response = await axios.get(`${API_BASE_URL}/players?roomCode=${roomCode}`, {
                 headers: {
                     Authorization: `Bearer ${token}`
                 }
