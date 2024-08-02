@@ -28,13 +28,14 @@ const AddPlayer = () => {
     setLoadingPlayers(true);
     try {
       const token = await getAccessTokenSilently();
-      const response = await axios.get(`${API_BASE_URL}/players?roomCode=${roomCode}`, {
+      const response = await axios.get(`${API_BASE_URL}/players`, {
         headers: {
           Authorization: `Bearer ${token}`,
         },
       });
-      setPlayers(response.data.sort((a, b) => a.id - b.id));
-      setFilteredPlayers(response.data.sort((a, b) => a.id - b.id));
+      const sortedPlayers = response.data.sort((a, b) => a.id - b.id);
+      setPlayers(sortedPlayers);
+      setFilteredPlayers(sortedPlayers);
     } catch (error) {
       console.error("Error fetching players", error);
     } finally {
@@ -72,8 +73,6 @@ const AddPlayer = () => {
     }
   };
   
-  
-
   const showDeleteModal = (player) => {
     setPlayerToDelete(player);
     setIsDeleteModalVisible(true);
@@ -222,7 +221,12 @@ const AddPlayer = () => {
                     style={{ flexGrow: 1, cursor: "pointer" }}
                     onClick={() => viewPlayerDetails(player.id)}
                   >
-                    {player.name}{" "}{player.auth0Id != null &&<Tooltip title="Player linked to user"><CheckCircleOutlined style={{color:"green", transform:'translateY(1px)'}} /></Tooltip>}
+                    {player.name}{" "}
+                    {player.auth0Id && (
+                      <Tooltip title="Player linked to user">
+                        <CheckCircleOutlined style={{ color: "green", transform: 'translateY(1px)' }} />
+                      </Tooltip>
+                    )}
                   </div>
                   <Dropdown
                     overlay={
