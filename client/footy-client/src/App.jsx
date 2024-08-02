@@ -37,7 +37,7 @@ const Auth0ProviderWithHistory = ({ children }) => {
       clientId={clientId}
       redirectUri={redirectUri}
       onRedirectCallback={onRedirectCallback}
-      scope="openid profile email"
+      scope="openid profile email offline_access"
       useRefreshTokens={true}
       cacheLocation="localstorage"
     >
