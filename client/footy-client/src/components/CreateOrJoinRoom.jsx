@@ -16,6 +16,8 @@ const CreateOrJoinRoom = ({ onRoomJoined }) => {
     const [joiningRoomLoading, setJoiningRoomLoading] = useState(false);
     const { setRoomCode: setGlobalRoomCode } = useStore();
 
+    const API_BASE_URL = process.env.NODE_ENV === 'production' ? 'https://footy-picker-58753c2f9639.herokuapp.com/api' : 'http://localhost:5000/api';
+
     const createRoom = async () => {
         if (!roomName.trim()) {
             message.error("Room name cannot be empty");
@@ -25,7 +27,7 @@ const CreateOrJoinRoom = ({ onRoomJoined }) => {
         setCreatingRoomLoading(true);
         try {
             const token = await getAccessTokenSilently();
-            const response = await axios.post('/api/create-room', { name: roomName }, {
+            const response = await axios.post(`${API_BASE_URL}/create-room`, { name: roomName }, {
                 headers: {
                     Authorization: `Bearer ${token}`
                 }
@@ -50,7 +52,7 @@ const CreateOrJoinRoom = ({ onRoomJoined }) => {
         setJoiningRoomLoading(true);
         try {
             const token = await getAccessTokenSilently();
-            await axios.post('/api/join-room', { code: roomCode }, {
+            await axios.post(`${API_BASE_URL}/join-room`, { code: roomCode }, {
                 headers: {
                     Authorization: `Bearer ${token}`
                 }

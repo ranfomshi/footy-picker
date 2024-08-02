@@ -17,12 +17,14 @@ const LinkPlayer = ({ onPlayerLinked }) => {
     const [hasUnlinkedPlayers, setHasUnlinkedPlayers] = useState(false);
     const [linkingLoading, setLinkingLoading] = useState(false);
 
+    const API_BASE_URL = process.env.NODE_ENV === 'production' ? 'https://footy-picker-58753c2f9639.herokuapp.com/api' : 'http://localhost:5000/api';
+
     useEffect(() => {
         const fetchRoomMembership = async () => {
             setLoading(true);
             try {
                 const token = await getAccessTokenSilently();
-                const response = await axios.get('/api/check-room-membership', {
+                const response = await axios.get(`${API_BASE_URL}/check-room-membership`, {
                     headers: {
                         Authorization: `Bearer ${token}`
                     }
@@ -43,10 +45,11 @@ const LinkPlayer = ({ onPlayerLinked }) => {
     useEffect(() => {
         if (room) {
             const fetchPlayers = async () => {
+                alert(process.env.NODE_ENV)
                 setLoading(true);
                 try {
                     const token = await getAccessTokenSilently();
-                    const response = await axios.get('/api/players', {
+                    const response = await axios.get(`${API_BASE_URL}/players`, {
                         headers: {
                             Authorization: `Bearer ${token}`
                         }
@@ -73,7 +76,7 @@ const LinkPlayer = ({ onPlayerLinked }) => {
         setLinkingLoading(true);
         try {
             const token = await getAccessTokenSilently();
-            await axios.put(`/api/players/${selectedPlayerId}/link`, { auth0Id: user.sub }, {
+            await axios.put(`${API_BASE_URL}/players/${selectedPlayerId}/link`, { auth0Id: user.sub }, {
                 headers: {
                     Authorization: `Bearer ${token}`
                 }
@@ -97,12 +100,12 @@ const LinkPlayer = ({ onPlayerLinked }) => {
         setLinkingLoading(true);
         try {
             const token = await getAccessTokenSilently();
-            const response = await axios.post('/api/players', { name: newPlayerName }, {
+            const response = await axios.post(`${API_BASE_URL}/players`, { name: newPlayerName }, {
                 headers: {
                     Authorization: `Bearer ${token}`
                 }
             });
-            await axios.post('/api/link-player', { playerId: response.data.id }, {
+            await axios.post(`${API_BASE_URL}/link-player`, { playerId: response.data.id }, {
                 headers: {
                     Authorization: `Bearer ${token}`
                 }
