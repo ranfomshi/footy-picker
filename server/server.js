@@ -18,7 +18,13 @@ app.use('/api', require('./routes'));
 
 // Catch-all handler to serve the React app
 app.get('*', (req, res) => {
-    res.sendFile(path.join(__dirname, '../client/footy-client/dist/index.html'));
+    console.log(`Catch-all handler triggered for URL: ${req.originalUrl}`);
+    res.sendFile(path.join(__dirname, '../client/footy-client/dist/index.html'), (err) => {
+        if (err) {
+            console.error('Error serving index.html:', err);
+            res.status(500).send(err);
+        }
+    });
 });
 
 // Log environment variables to verify they are loaded correctly

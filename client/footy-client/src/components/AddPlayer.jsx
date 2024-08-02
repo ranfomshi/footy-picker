@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
-import { Input, Button, List, Modal, Spin, message, Dropdown, Menu, Space } from "antd";
-import { MoreOutlined, PlusOutlined } from "@ant-design/icons";
+import { Input, Button, List, Modal, Spin, message, Dropdown, Menu, Space, Tooltip } from "antd";
+import { MoreOutlined, PlusOutlined, CheckCircleOutlined } from "@ant-design/icons";
 import axios from "axios";
 import PlayerDetails from "./PlayerDetails";
 import { useAuth0 } from "@auth0/auth0-react";
@@ -47,21 +47,13 @@ const AddPlayer = () => {
       message.error("Player name cannot be empty");
       return;
     }
-
-    const duplicatePlayer = players.find(
-      (player) => player.name.toLowerCase() === newPlayerName.toLowerCase()
-    );
-    if (duplicatePlayer) {
-      message.error("Player name already exists");
-      return;
-    }
-
+  
     setLoading(true);
     try {
       const token = await getAccessTokenSilently();
       await axios.post(
         `${API_BASE_URL}/players`,
-        { name: newPlayerName },
+        { name: newPlayerName }, // Only send name for unlinked players
         {
           headers: {
             Authorization: `Bearer ${token}`,
@@ -74,10 +66,13 @@ const AddPlayer = () => {
       message.success("Player added successfully");
     } catch (error) {
       console.error("Error adding player", error);
+      message.error(error.response?.data?.error || "Error adding player");
     } finally {
       setLoading(false);
     }
   };
+  
+  
 
   const showDeleteModal = (player) => {
     setPlayerToDelete(player);
@@ -227,7 +222,7 @@ const AddPlayer = () => {
                     style={{ flexGrow: 1, cursor: "pointer" }}
                     onClick={() => viewPlayerDetails(player.id)}
                   >
-                    {player.name}
+                    {player.name}{" "}<Tooltip title="Player linked to user"><CheckCircleOutlined style={{color:"green", transform:'translateY(1px)'}} /></Tooltip>
                   </div>
                   <Dropdown
                     overlay={

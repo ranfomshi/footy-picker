@@ -247,6 +247,7 @@ const GameweekManager = () => {
         setResultGameweekId(gameweekId);
         form.setFieldsValue({ gameweekId });
         setIsResultModalVisible(true);
+        fetchAvailability(gameweekId); // Fetch availability only once when opening the modal
     };
 
     const handleCancel = () => {
@@ -265,12 +266,6 @@ const GameweekManager = () => {
         fetchPlayers();
         fetchRecordedResults();
     }, []);
-
-    useEffect(() => {
-        if (resultGameweekId) {
-            fetchAvailability(resultGameweekId);
-        }
-    }, [resultGameweekId, availability]);
 
     return (
         <div>

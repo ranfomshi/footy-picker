@@ -6,16 +6,26 @@ import GameweekManager from "./components/GameweekManager";
 import BottomNav from "./components/BottomNav";
 import PlayerStats from "./components/PlayerStats";
 import AccountManager from "./components/AccountManager";
-import { Button, ConfigProvider, theme } from "antd";
+import LinkPlayer from "./components/LinkPlayer";
+import CreateOrJoinRoom from "./components/CreateOrJoinRoom";
+import { Button, ConfigProvider, Typography, Spin } from "antd";
 import { Auth0Provider, useAuth0 } from "@auth0/auth0-react";
+import useStore from "./useStore"; // Import the Zustand store
 
-console.log("Auth0 Domain:", import.meta.env.VITE_AUTH0_DOMAIN);
-console.log("Auth0 Client ID:", import.meta.env.VITE_AUTH0_CLIENT_ID);
+const { Title, Text, Paragraph } = Typography;
 
 const Auth0ProviderWithHistory = ({ children }) => {
   const domain = import.meta.env.VITE_AUTH0_DOMAIN;
   const clientId = import.meta.env.VITE_AUTH0_CLIENT_ID;
   const redirectUri = window.location.origin;
+
+  const onRedirectCallback = (appState) => {
+    window.history.replaceState(
+      {},
+      document.title,
+      appState?.returnTo || window.location.pathname
+    );
+  };
 
   if (!domain || !clientId) {
     return <div>Error: Missing Auth0 environment variables</div>;
@@ -26,6 +36,10 @@ const Auth0ProviderWithHistory = ({ children }) => {
       domain={domain}
       clientId={clientId}
       redirectUri={redirectUri}
+      onRedirectCallback={onRedirectCallback}
+      scope="openid profile email"
+      useRefreshTokens={true}
+      cacheLocation="localstorage"
     >
       {children}
     </Auth0Provider>
@@ -33,11 +47,78 @@ const Auth0ProviderWithHistory = ({ children }) => {
 };
 
 function App() {
-  const { loginWithRedirect, logout, isAuthenticated, getAccessTokenSilently } = useAuth0();
+  const { loginWithRedirect, logout, isAuthenticated, getAccessTokenSilently, user, error } = useAuth0();
   const [players, setPlayers] = useState([]);
-  const [activeKey, setActiveKey] = useState("players");
+  const [activeKey, setActiveKey] = useState(localStorage.getItem("activeKey") || "players");
+  const [loading, setLoading] = useState(true);
+  const [playerLinked, setPlayerLinked] = useState(false);
+  const { hasJoinedRoom, roomCode, setHasJoinedRoom, setRoomCode, setRoomMembership } = useStore();
 
-  const API_BASE_URL = process.env.NODE_ENV === 'production' ? 'https://footy-picker-58753c2f9639.herokuapp.com/api' : 'http://localhost:5000/api';
+  const API_BASE_URL =
+    import.meta.env.NODE_ENV === "production"
+      ? "https://footy-picker-58753c2f9639.herokuapp.com/api"
+      : "http://localhost:5000/api";
+
+  const checkRoomMembership = async () => {
+    try {
+      const token = await getAccessTokenSilently();
+      const response = await axios.get(`${API_BASE_URL}/check-room-membership`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+      setRoomMembership(response.data.hasJoinedRoom, response.data.roomCode);
+    } catch (error) {
+      console.error("Error checking room membership", error);
+    }
+  };
+
+  const checkPlayerLinked = async () => {
+    try {
+      const token = await getAccessTokenSilently();
+      const response = await axios.get(`${API_BASE_URL}/players`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+      const linkedPlayer = response.data.find(player => player.auth0Id === user.sub);
+      setPlayerLinked(!!linkedPlayer);
+    } catch (error) {
+      console.error("Error checking linked player", error);
+    }
+  };
+
+  useEffect(() => {
+    const performInitialChecks = async () => {
+      if (isAuthenticated) {
+        await checkRoomMembership();
+        await checkPlayerLinked();
+      }
+      setLoading(false);
+    };
+
+    performInitialChecks();
+  }, [isAuthenticated]);
+
+  useEffect(() => {
+    localStorage.setItem("activeKey", activeKey);
+  }, [activeKey]);
+
+  useEffect(() => {
+    if (error) {
+      console.error("Auth0 Error:", error);
+    }
+  }, [error]);
+
+  const handleRoomJoined = () => {
+    setHasJoinedRoom(true);
+    checkPlayerLinked();
+  };
+
+  const handlePlayerLinked = () => {
+    setPlayerLinked(true);
+    fetchPlayers();
+  };
 
   const fetchPlayers = async () => {
     try {
@@ -53,12 +134,6 @@ function App() {
     }
   };
 
-  useEffect(() => {
-    if (isAuthenticated) {
-      fetchPlayers();
-    }
-  }, [isAuthenticated]);
-
   const renderContent = () => {
     switch (activeKey) {
       case "players":
@@ -73,6 +148,10 @@ function App() {
         return null;
     }
   };
+
+  if (loading) {
+    return <Spin size="large" />;
+  }
 
   return (
     <ConfigProvider
@@ -109,19 +188,6 @@ function App() {
               Log in
             </Button>
           )}
-          {/* {isAuthenticated && (
-            <Button
-              type="primary"
-              style={{
-                position: "absolute",
-                top: "10px",
-                right: "10px",
-              }}
-              onClick={() => logout({ returnTo: window.location.origin })}
-            >
-              Log out
-            </Button>
-          )} */}
         </div>
         <div className="content">
           <div
@@ -131,9 +197,24 @@ function App() {
               width: "100%",
             }}
           >
-            <h4 style={{ marginTop: 0 }}>Footy Picker</h4>
+            <Title level={4} style={{ marginTop: 0 }}>Footy Picker</Title>
+            {hasJoinedRoom && <Paragraph>Room Code: <Text code strong>{roomCode}</Text></Paragraph>}
           </div>
-          {isAuthenticated ? renderContent() : <p>Please log in</p>}
+          {isAuthenticated ? (
+            loading ? (
+              <Spin size="large" />
+            ) : hasJoinedRoom ? (
+              playerLinked ? (
+                renderContent()
+              ) : (
+                <LinkPlayer onPlayerLinked={handlePlayerLinked} />
+              )
+            ) : (
+              !playerLinked && !roomCode&&<CreateOrJoinRoom onRoomJoined={handleRoomJoined} />
+            )
+          ) : (
+            <Paragraph>Please log in</Paragraph>
+          )}
         </div>
         <div className="bottom-nav">
           <BottomNav activeKey={activeKey} onChange={setActiveKey} />
