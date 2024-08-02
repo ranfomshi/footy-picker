@@ -8,7 +8,7 @@ const { Title, Paragraph } = Typography;
 
 const CreateOrJoinRoom = ({ onRoomJoined }) => {
     const { getAccessTokenSilently } = useAuth0();
-    const [roomName, setRoomName] = useState('');
+    const [roomNameLocalState, setRoomNameLocalState] = useState('');
     const [roomCode, setRoomCode] = useState('');
     const [creatingRoom, setCreatingRoom] = useState(false);
     const [creatingRoomLoading, setCreatingRoomLoading] = useState(false);
@@ -17,12 +17,12 @@ const CreateOrJoinRoom = ({ onRoomJoined }) => {
     const [selectedUnlinkedPlayer, setSelectedUnlinkedPlayer] = useState(null);
     const [newPlayerName, setNewPlayerName] = useState('');
     const [isSelectPlayerModalVisible, setIsSelectPlayerModalVisible] = useState(false);
-    const { setRoomCode: setGlobalRoomCode } = useStore();
+    const { setRoomCode: setGlobalRoomCode, setRoomName } = useStore();
 
     const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
 
     const createRoom = async () => {
-        if (!roomName.trim()) {
+        if (!roomNameLocalState.trim()) {
             message.error("Room name cannot be empty");
             return;
         }
@@ -30,7 +30,7 @@ const CreateOrJoinRoom = ({ onRoomJoined }) => {
         setCreatingRoomLoading(true);
         try {
             const token = await getAccessTokenSilently();
-            const response = await axios.post(`${API_BASE_URL}/create-room`, { name: roomName }, {
+            const response = await axios.post(`${API_BASE_URL}/create-room`, { name: roomNameLocalState }, {
                 headers: {
                     Authorization: `Bearer ${token}`
                 }
@@ -117,8 +117,8 @@ const CreateOrJoinRoom = ({ onRoomJoined }) => {
                     <Form.Item label="Room Name" required>
                         <Input
                             placeholder="Enter room name"
-                            value={roomName}
-                            onChange={(e) => setRoomName(e.target.value)}
+                            value={roomNameLocalState}
+                            onChange={(e) => {setRoomName(e.target.value); setRoomNameLocalState(e.target.value)}}
                             disabled={creatingRoomLoading}
                         />
                     </Form.Item>

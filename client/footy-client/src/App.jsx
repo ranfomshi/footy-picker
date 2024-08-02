@@ -6,7 +6,6 @@ import GameweekManager from "./components/GameweekManager";
 import BottomNav from "./components/BottomNav";
 import PlayerStats from "./components/PlayerStats";
 import AccountManager from "./components/AccountManager";
-import LinkPlayer from "./components/LinkPlayer";
 import CreateOrJoinRoom from "./components/CreateOrJoinRoom";
 import { Button, ConfigProvider, Typography, Spin } from "antd";
 import { Auth0Provider, useAuth0 } from "@auth0/auth0-react";
@@ -47,12 +46,11 @@ const Auth0ProviderWithHistory = ({ children }) => {
 };
 
 function App() {
-  const { loginWithRedirect, logout, isAuthenticated, getAccessTokenSilently, user, error } = useAuth0();
+  const { loginWithRedirect, isAuthenticated, getAccessTokenSilently, error } = useAuth0();
   const [players, setPlayers] = useState([]);
   const [activeKey, setActiveKey] = useState(localStorage.getItem("activeKey") || "players");
   const [loading, setLoading] = useState(true);
-  const [playerLinked, setPlayerLinked] = useState(false);
-  const { hasJoinedRoom, roomCode, setHasJoinedRoom, setRoomCode, setRoomMembership } = useStore();
+  const { hasJoinedRoom, roomCode, setHasJoinedRoom, roomName, setRoomMembership } = useStore();
 
   const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
 
@@ -64,32 +62,17 @@ function App() {
           Authorization: `Bearer ${token}`,
         },
       });
-      setRoomMembership(response.data.hasJoinedRoom, response.data.roomCode);
+      setRoomMembership(response.data.hasJoinedRoom, response.data.roomCode, response.data.roomName);
     } catch (error) {
       console.error("Error checking room membership", error);
     }
   };
-
-  const checkPlayerLinked = async () => {
-    try {
-      const token = await getAccessTokenSilently();
-      const response = await axios.get(`${API_BASE_URL}/players`, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
-      const linkedPlayer = response.data.find(player => player.auth0Id === user.sub);
-      setPlayerLinked(!!linkedPlayer);
-    } catch (error) {
-      console.error("Error checking linked player", error);
-    }
-  };
+  
 
   useEffect(() => {
     const performInitialChecks = async () => {
       if (isAuthenticated) {
         await checkRoomMembership();
-        await checkPlayerLinked();
       }
       setLoading(false);
     };
@@ -107,14 +90,15 @@ function App() {
     }
   }, [error]);
 
-  const handleRoomJoined = () => {
+  const handleRoomJoined = async () => {
     setHasJoinedRoom(true);
-    checkPlayerLinked();
-  };
-
-  const handlePlayerLinked = () => {
-    setPlayerLinked(true);
-    fetchPlayers();
+    const token = await getAccessTokenSilently();
+    const response = await axios.get(`${API_BASE_URL}/players`, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+    setPlayers(response.data);
   };
 
   const fetchPlayers = async () => {
@@ -194,18 +178,14 @@ function App() {
               width: "100%",
             }}
           >
-            <Title level={4} style={{ marginTop: 0 }}>Footy Picker</Title>
+            {hasJoinedRoom ? <Title level={4} style={{ marginTop: 0 }}>{roomName}</Title> : <Title level={4} style={{ marginTop: 0 }}>Footy Picker</Title> }
             {hasJoinedRoom && <Paragraph>Room Code: <Text code strong>{roomCode}</Text></Paragraph>}
           </div>
           {isAuthenticated ? (
             loading ? (
               <Spin size="large" />
             ) : hasJoinedRoom ? (
-              playerLinked ? (
-                renderContent()
-              ) : (
-                <LinkPlayer onPlayerLinked={handlePlayerLinked} roomCode={roomCode} />
-              )
+              renderContent()
             ) : (
               <CreateOrJoinRoom onRoomJoined={handleRoomJoined} />
             )

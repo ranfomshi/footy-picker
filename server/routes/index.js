@@ -268,7 +268,7 @@ router.get('/check-room-membership', protect, async (req, res) => {
       });
   
       if (membership) {
-        res.status(200).json({ hasJoinedRoom: true, roomCode: membership.Room.code });
+        res.status(200).json({ hasJoinedRoom: true, roomCode: membership.Room.code, roomName: membership.Room.name });
       } else {
         res.status(200).json({ hasJoinedRoom: false });
       }
