@@ -40,6 +40,7 @@ const Auth0ProviderWithHistory = ({ children }) => {
       scope="openid profile email offline_access"
       useRefreshTokens={true}
       cacheLocation="localstorage"
+      audience="https://footy-picker.uk.auth0.com/api/v2/"
     >
       {children}
     </Auth0Provider>
