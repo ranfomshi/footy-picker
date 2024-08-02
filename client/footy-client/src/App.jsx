@@ -55,10 +55,7 @@ function App() {
   const [playerLinked, setPlayerLinked] = useState(false);
   const { hasJoinedRoom, roomCode, setHasJoinedRoom, setRoomCode, setRoomMembership } = useStore();
 
-  const API_BASE_URL =
-    import.meta.env.NODE_ENV === "production"
-      ? "https://footy-picker-58753c2f9639.herokuapp.com/api"
-      : "http://localhost:5000/api";
+  const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
 
   const checkRoomMembership = async () => {
     
@@ -76,7 +73,6 @@ function App() {
   };
 
   const checkPlayerLinked = async () => {
-    console.log('players called from app2.jsx')
     try {
       const token = await getAccessTokenSilently();
       const response = await axios.get(`${API_BASE_URL}/players`, {
@@ -124,7 +120,6 @@ function App() {
   };
 
   const fetchPlayers = async () => {
-    console.log('players called from app1.jsx')
     try {
       const token = await getAccessTokenSilently();
       const response = await axios.get(`${API_BASE_URL}/players`, {
