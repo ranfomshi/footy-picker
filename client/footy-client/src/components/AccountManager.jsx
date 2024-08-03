@@ -7,7 +7,7 @@ import useStore from '../useStore';
 const AccountManager = () => {
     const { user, logout, getAccessTokenSilently } = useAuth0();
     const [unlinking, setUnlinking] = useState(false);
-    const {roomCode, roomName} = useStore()
+    const {roomCode, roomName, setHasJoinedRoom} = useStore()
 
     const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
 
@@ -25,7 +25,7 @@ const AccountManager = () => {
                 }
             );
             message.success('Player unlinked successfully');
-            location.reload()
+            setHasJoinedRoom(false)
         } catch (error) {
             console.error('Error unlinking player:', error);
             message.error('Failed to unlink player');

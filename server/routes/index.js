@@ -234,7 +234,7 @@ router.post('/unlink-player', protect, async (req, res) => {
         await RoomMembership.update({ auth0Id: null }, { where: { auth0Id } });
 
         res.status(200).json({ message: 'Player unlinked successfully' });
-        location.reload()
+        
     } catch (error) {
         console.error('Error unlinking player:', error);
         res.status(500).json({ error: 'Internal Server Error' });
