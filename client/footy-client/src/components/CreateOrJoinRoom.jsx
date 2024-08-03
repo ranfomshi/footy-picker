@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useAuth0 } from '@auth0/auth0-react';
-import { Button, Input, Space, Typography, message, Form, Divider, Modal, Radio } from 'antd';
+import { Button, Input, Space, Typography, message, Form, Divider, Modal, Radio, Image } from 'antd';
 import axios from 'axios';
 import useStore from '../useStore';
 
@@ -159,6 +159,7 @@ const CreateOrJoinRoom = ({ onRoomJoined }) => {
             <Paragraph style={{ textAlign: 'center' }}>
                 Join an existing room or create a new one to get started.
             </Paragraph>
+            <Image width={200} height={200} preview={false} src='fp_logo.png'/>
             <Modal
                 title="Select or Create Player"
                 visible={isSelectPlayerModalVisible}
