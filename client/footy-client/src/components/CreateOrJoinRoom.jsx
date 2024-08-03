@@ -136,6 +136,11 @@ const CreateOrJoinRoom = ({ onRoomJoined }) => {
         }
     };
 
+    const getSelectedPlayerName = () => {
+        const selectedPlayer = unlinkedPlayers.find(player => player.id === selectedUnlinkedPlayer);
+        return selectedPlayer ? selectedPlayer.name : '';
+    };
+
     return (
         <div style={{ maxWidth: 400, margin: '0 auto', padding: '20px' }}>
             <Title level={2} style={{ textAlign: 'center' }}>Create or Join a Room</Title>
@@ -213,7 +218,7 @@ const CreateOrJoinRoom = ({ onRoomJoined }) => {
                         onClick={finalizeJoinRoom}
                         disabled={!selectedUnlinkedPlayer || joiningRoomLoading}
                     >
-                        OK
+                        {selectedUnlinkedPlayer ? `I'm ${getSelectedPlayerName()}` : 'OK'}
                     </Button>
                 ]}
             >
