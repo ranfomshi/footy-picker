@@ -146,7 +146,7 @@ const CreateOrJoinRoom = ({ onRoomJoined }) => {
                         <Input
                             placeholder="Enter room name"
                             value={roomNameLocalState}
-                            onChange={(e) => {setRoomName(e.target.value); setRoomNameLocalState(e.target.value)}}
+                            onChange={(e) => { setRoomName(e.target.value); setRoomNameLocalState(e.target.value) }}
                             disabled={creatingRoomLoading}
                         />
                     </Form.Item>
@@ -187,7 +187,7 @@ const CreateOrJoinRoom = ({ onRoomJoined }) => {
             <Paragraph style={{ textAlign: 'center' }}>
                 Join an existing room or create a new one to get started.
             </Paragraph>
-            <Image width={200} height={200} preview={false} src='fp_logo.png'/>
+            <Image width={200} height={200} preview={false} src='fp_logo.png' />
             <Modal
                 title="Select or Create Player"
                 visible={isSelectPlayerModalVisible}
@@ -195,9 +195,30 @@ const CreateOrJoinRoom = ({ onRoomJoined }) => {
                 onCancel={() => setIsSelectPlayerModalVisible(false)}
                 confirmLoading={joiningRoomLoading}
                 okButtonProps={{ disabled: !selectedUnlinkedPlayer }}
+                footer={[
+                    <Button key="back" onClick={() => setIsSelectPlayerModalVisible(false)}>
+                        Cancel
+                    </Button>,
+                    <Button
+                        key="create"
+                        type="primary"
+                        onClick={createAndLinkNewPlayer}
+                        disabled={joiningRoomLoading}
+                    >
+                        None of these players is me
+                    </Button>,
+                    <Button
+                        key="submit"
+                        type="primary"
+                        onClick={finalizeJoinRoom}
+                        disabled={!selectedUnlinkedPlayer || joiningRoomLoading}
+                    >
+                        OK
+                    </Button>
+                ]}
             >
                 <Paragraph>The room you're joining has some players without accounts. If one of them is you, please select them from the list. This way your historic stats will be used. If you are not on the list, add your player to the bottom </Paragraph>
-                <div className='scroll-list' style={{maxHeight:'40vh'}}>
+                <div className='scroll-list' style={{ maxHeight: '40vh' }}>
                     <Radio.Group
                         onChange={handleRadioChange}
                         value={selectedUnlinkedPlayer}
@@ -210,16 +231,6 @@ const CreateOrJoinRoom = ({ onRoomJoined }) => {
                         ))}
                     </Radio.Group>
                 </div>
-                {!selectedUnlinkedPlayer && (
-                    <Button
-                        type="primary"
-                        onClick={createAndLinkNewPlayer}
-                        disabled={joiningRoomLoading}
-                        block
-                    >
-                        Create and Link New Player
-                    </Button>
-                )}
             </Modal>
         </div>
     );
