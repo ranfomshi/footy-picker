@@ -70,7 +70,7 @@ const CreateOrJoinRoom = ({ onRoomJoined }) => {
             }
         } catch (error) {
             console.error('Error joining room:', error);
-            message.error("Error joining room");
+            message.error("Error joining room - check your room code and try again");
         } finally {
             setJoiningRoomLoading(false);
         }
@@ -168,6 +168,7 @@ const CreateOrJoinRoom = ({ onRoomJoined }) => {
                 <Form layout="vertical">
                     <Form.Item label="Room Code" required>
                         <Input
+                        maxLength={5}
                             placeholder="Enter room code"
                             value={roomCode}
                             onChange={(e) => setRoomCode(e.target.value)}
