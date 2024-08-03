@@ -166,7 +166,7 @@ const CreateOrJoinRoom = ({ onRoomJoined }) => {
                 onCancel={() => setIsSelectPlayerModalVisible(false)}
                 confirmLoading={joiningRoomLoading}
             ><Paragraph>The room you're joining has some players without accounts. If one of them is you, please select them from the list. This way your historic stats will be used. If you are not on the list, add your player to the bottom </Paragraph>
-                <Radio.Group
+                <div className='scroll-list' style={{maxHeight:'40vh'}}><Radio.Group
                     onChange={(e) => setSelectedUnlinkedPlayer(e.target.value)}
                     value={selectedUnlinkedPlayer}
                     style={{ display: 'block', marginBottom: '1em' }}
@@ -176,7 +176,7 @@ const CreateOrJoinRoom = ({ onRoomJoined }) => {
                             {player.name}
                         </Radio>
                     ))}
-                </Radio.Group>
+                </Radio.Group></div>
                 <Input
                     placeholder="Enter new player name"
                     value={newPlayerName}
