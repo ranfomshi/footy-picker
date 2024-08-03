@@ -160,9 +160,7 @@ const CreateOrJoinRoom = ({ onRoomJoined }) => {
                             <Button type="primary" onClick={createRoom} loading={creatingRoomLoading} block>
                                 Create Room
                             </Button>
-                            <Button onClick={() => setCreatingRoom(false)} disabled={creatingRoomLoading} block>
-                                Cancel
-                            </Button>
+                          
                         </Space>
                     </Form.Item>
                 </Form>
