@@ -77,11 +77,6 @@ const CreateOrJoinRoom = ({ onRoomJoined }) => {
     };
 
     const finalizeJoinRoom = async () => {
-        if (!selectedUnlinkedPlayer) {
-            message.error("You must select an existing player or create a new one");
-            return;
-        }
-
         setJoiningRoomLoading(true);
         try {
             const token = await getAccessTokenSilently();
@@ -130,6 +125,14 @@ const CreateOrJoinRoom = ({ onRoomJoined }) => {
         } finally {
             setJoiningRoomLoading(false);
             setIsSelectPlayerModalVisible(false);
+        }
+    };
+
+    const handleRadioChange = (e) => {
+        if (selectedUnlinkedPlayer === e.target.value) {
+            setSelectedUnlinkedPlayer(null);
+        } else {
+            setSelectedUnlinkedPlayer(e.target.value);
         }
     };
 
@@ -191,11 +194,12 @@ const CreateOrJoinRoom = ({ onRoomJoined }) => {
                 onOk={finalizeJoinRoom}
                 onCancel={() => setIsSelectPlayerModalVisible(false)}
                 confirmLoading={joiningRoomLoading}
+                okButtonProps={{ disabled: !selectedUnlinkedPlayer }}
             >
                 <Paragraph>The room you're joining has some players without accounts. If one of them is you, please select them from the list. This way your historic stats will be used. If you are not on the list, add your player to the bottom </Paragraph>
                 <div className='scroll-list' style={{maxHeight:'40vh'}}>
                     <Radio.Group
-                        onChange={(e) => setSelectedUnlinkedPlayer(e.target.value)}
+                        onChange={handleRadioChange}
                         value={selectedUnlinkedPlayer}
                         style={{ display: 'block', marginBottom: '1em' }}
                     >
@@ -206,14 +210,16 @@ const CreateOrJoinRoom = ({ onRoomJoined }) => {
                         ))}
                     </Radio.Group>
                 </div>
-                <Button
-                    type="primary"
-                    onClick={createAndLinkNewPlayer}
-                    disabled={joiningRoomLoading}
-                    block
-                >
-                    Create and Link New Player
-                </Button>
+                {!selectedUnlinkedPlayer && (
+                    <Button
+                        type="primary"
+                        onClick={createAndLinkNewPlayer}
+                        disabled={joiningRoomLoading}
+                        block
+                    >
+                        Create and Link New Player
+                    </Button>
+                )}
             </Modal>
         </div>
     );
