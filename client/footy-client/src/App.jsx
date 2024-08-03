@@ -94,12 +94,13 @@ function App() {
     setHasJoinedRoom(true);
     const token = await getAccessTokenSilently();
     const response = await axios.get(`${API_BASE_URL}/players`, {
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
+        headers: {
+            Authorization: `Bearer ${token}`,
+        },
     });
     setPlayers(response.data);
-  };
+    setActiveKey("players"); // Set active component to "AddPlayer"
+};
 
   const fetchPlayers = async () => {
     try {
@@ -117,18 +118,18 @@ function App() {
 
   const renderContent = () => {
     switch (activeKey) {
-      case "players":
-        return <AddPlayer fetchPlayers={fetchPlayers} players={players} />;
-      case "gameweeks":
-        return <GameweekManager />;
-      case "playerStats":
-        return <PlayerStats />;
-      case "account":
-        return <AccountManager />;
-      default:
-        return null;
+        case "players":
+            return <AddPlayer fetchPlayers={fetchPlayers} players={players} />;
+        case "gameweeks":
+            return <GameweekManager />;
+        case "playerStats":
+            return <PlayerStats />;
+        case "account":
+            return <AccountManager />;
+        default:
+            return null;
     }
-  };
+};
 
   if (loading) {
     return <Spin size="large" />;
