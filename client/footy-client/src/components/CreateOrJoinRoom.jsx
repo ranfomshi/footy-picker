@@ -7,7 +7,7 @@ import useStore from '../useStore';
 const { Title, Paragraph } = Typography;
 
 const CreateOrJoinRoom = ({ onRoomJoined }) => {
-    const { getAccessTokenSilently } = useAuth0();
+    const { getAccessTokenSilently, user } = useAuth0();
     const [roomNameLocalState, setRoomNameLocalState] = useState('');
     const [roomCode, setRoomCode] = useState('');
     const [creatingRoom, setCreatingRoom] = useState(false);
@@ -15,7 +15,6 @@ const CreateOrJoinRoom = ({ onRoomJoined }) => {
     const [joiningRoomLoading, setJoiningRoomLoading] = useState(false);
     const [unlinkedPlayers, setUnlinkedPlayers] = useState([]);
     const [selectedUnlinkedPlayer, setSelectedUnlinkedPlayer] = useState(null);
-    const [newPlayerName, setNewPlayerName] = useState('');
     const [isSelectPlayerModalVisible, setIsSelectPlayerModalVisible] = useState(false);
     const { setRoomCode: setGlobalRoomCode, setRoomName } = useStore();
 
@@ -78,7 +77,7 @@ const CreateOrJoinRoom = ({ onRoomJoined }) => {
     };
 
     const finalizeJoinRoom = async () => {
-        if (!selectedUnlinkedPlayer && !newPlayerName.trim()) {
+        if (!selectedUnlinkedPlayer) {
             message.error("You must select an existing player or create a new one");
             return;
         }
@@ -89,7 +88,33 @@ const CreateOrJoinRoom = ({ onRoomJoined }) => {
             await axios.post(`${API_BASE_URL}/finalize-join-room`, {
                 roomCode,
                 playerId: selectedUnlinkedPlayer,
-                newPlayerName: selectedUnlinkedPlayer ? null : newPlayerName
+                newPlayerName: null
+            }, {
+                headers: {
+                    Authorization: `Bearer ${token}`
+                }
+            });
+
+            message.success('Joined room successfully');
+            setGlobalRoomCode(roomCode);
+            onRoomJoined();
+        } catch (error) {
+            console.error('Error finalizing room join:', error);
+            message.error("Error finalizing room join");
+        } finally {
+            setJoiningRoomLoading(false);
+            setIsSelectPlayerModalVisible(false);
+        }
+    };
+
+    const createAndLinkNewPlayer = async () => {
+        setJoiningRoomLoading(true);
+        try {
+            const token = await getAccessTokenSilently();
+            await axios.post(`${API_BASE_URL}/finalize-join-room`, {
+                roomCode,
+                playerId: null,
+                newPlayerName: user.name
             }, {
                 headers: {
                     Authorization: `Bearer ${token}`
@@ -166,24 +191,29 @@ const CreateOrJoinRoom = ({ onRoomJoined }) => {
                 onOk={finalizeJoinRoom}
                 onCancel={() => setIsSelectPlayerModalVisible(false)}
                 confirmLoading={joiningRoomLoading}
-            ><Paragraph>The room you're joining has some players without accounts. If one of them is you, please select them from the list. This way your historic stats will be used. If you are not on the list, add your player to the bottom </Paragraph>
-                <div className='scroll-list' style={{maxHeight:'40vh'}}><Radio.Group
-                    onChange={(e) => setSelectedUnlinkedPlayer(e.target.value)}
-                    value={selectedUnlinkedPlayer}
-                    style={{ display: 'block', marginBottom: '1em' }}
-                >
-                    {unlinkedPlayers.map((player) => (
-                        <Radio key={player.id} value={player.id} style={{ display: 'block' }}>
-                            {player.name}
-                        </Radio>
-                    ))}
-                </Radio.Group></div>
-                <Input
-                    placeholder="Enter new player name"
-                    value={newPlayerName}
-                    onChange={(e) => setNewPlayerName(e.target.value)}
+            >
+                <Paragraph>The room you're joining has some players without accounts. If one of them is you, please select them from the list. This way your historic stats will be used. If you are not on the list, add your player to the bottom </Paragraph>
+                <div className='scroll-list' style={{maxHeight:'40vh'}}>
+                    <Radio.Group
+                        onChange={(e) => setSelectedUnlinkedPlayer(e.target.value)}
+                        value={selectedUnlinkedPlayer}
+                        style={{ display: 'block', marginBottom: '1em' }}
+                    >
+                        {unlinkedPlayers.map((player) => (
+                            <Radio key={player.id} value={player.id} style={{ display: 'block' }}>
+                                {player.name}
+                            </Radio>
+                        ))}
+                    </Radio.Group>
+                </div>
+                <Button
+                    type="primary"
+                    onClick={createAndLinkNewPlayer}
                     disabled={joiningRoomLoading}
-                />
+                    block
+                >
+                    Create and Link New Player
+                </Button>
             </Modal>
         </div>
     );

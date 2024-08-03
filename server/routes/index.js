@@ -189,12 +189,23 @@ router.post('/finalize-join-room', protect, async (req, res) => {
 
             // Update RoomMembership with auth0Id
             await RoomMembership.update({ auth0Id }, { where: { playerId, roomId: room.id } });
-        } else if (newPlayerName) {
-            // Create a new player for the user
+        } else if (newPlayerName !== null) {
+            // Create a new player for the user using the provided newPlayerName
             const newPlayer = await Player.create({ auth0Id, name: newPlayerName });
             await RoomMembership.create({ playerId: newPlayer.id, auth0Id, roomId: room.id });
         } else {
-            return res.status(400).json({ error: 'Invalid player selection' });
+            // Create a new player for the user using the Auth0 username
+            const accessToken = req.headers.authorization.split(' ')[1];
+            const userInfoResponse = await axios.get(`https://${auth0Domain}/userinfo`, {
+                headers: {
+                    Authorization: `Bearer ${accessToken}`
+                }
+            });
+
+            const username = userInfoResponse.data.name;
+
+            const newPlayer = await Player.create({ auth0Id, name: username });
+            await RoomMembership.create({ playerId: newPlayer.id, auth0Id, roomId: room.id });
         }
 
         res.status(200).json({ message: 'Joined room successfully' });
