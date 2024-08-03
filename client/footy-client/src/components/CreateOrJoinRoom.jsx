@@ -220,7 +220,7 @@ const CreateOrJoinRoom = ({ onRoomJoined }) => {
                     </Button>
                 ]}
             >
-                <Paragraph>The room you're joining has some players without accounts. If one of them is you, please select them from the list. This way your historic stats will be used. If you are not on the list, add your player at the bottom </Paragraph>
+                <Paragraph>Select your name from the list to retain your historic stats. If you are not listed, add your player at the bottom. </Paragraph>
                 <div className='scroll-list' style={{ maxHeight: '40vh' }}>
                     <Radio.Group
                         onChange={handleRadioChange}
