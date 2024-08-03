@@ -215,6 +215,31 @@ router.post('/finalize-join-room', protect, async (req, res) => {
     }
 });
 
+// Endpoint to unlink the player from the current user
+router.post('/unlink-player', protect, async (req, res) => {
+    const auth0Id = req.user.sub;
+
+    try {
+        // Find the player associated with this user
+        const player = await Player.findOne({ where: { auth0Id } });
+        if (!player) {
+            return res.status(404).json({ error: 'Player not found' });
+        }
+
+        // Unlink the player by setting auth0Id to null
+        player.auth0Id = null;
+        await player.save();
+
+        // Remove the RoomMembership entries for this user
+        await RoomMembership.destroy({ where: { auth0Id } });
+
+        res.status(200).json({ message: 'Player unlinked successfully' });
+    } catch (error) {
+        console.error('Error unlinking player:', error);
+        res.status(500).json({ error: 'Internal Server Error' });
+    }
+});
+
 
   
 

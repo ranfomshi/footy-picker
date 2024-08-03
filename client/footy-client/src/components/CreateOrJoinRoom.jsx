@@ -60,13 +60,11 @@ const CreateOrJoinRoom = ({ onRoomJoined }) => {
                 }
             });
 
-            if (response.data.unlinkedPlayers) {
+            if (response.data.unlinkedPlayers && response.data.unlinkedPlayers.length > 0) {
                 setUnlinkedPlayers(response.data.unlinkedPlayers);
                 setIsSelectPlayerModalVisible(true);
             } else {
-                message.success('Joined room successfully');
-                setGlobalRoomCode(roomCode);
-                onRoomJoined();
+                createAndLinkNewPlayer();
             }
         } catch (error) {
             console.error('Error joining room:', error);
