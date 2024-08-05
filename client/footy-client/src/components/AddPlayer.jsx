@@ -4,6 +4,7 @@ import { MoreOutlined, PlusOutlined, CheckCircleOutlined } from "@ant-design/ico
 import axios from "axios";
 import PlayerDetails from "./PlayerDetails";
 import { useAuth0 } from "@auth0/auth0-react";
+import { SearchOutline } from 'antd-mobile-icons'; // Import the new icon
 
 const AddPlayer = () => {
   const { getAccessTokenSilently } = useAuth0();
@@ -197,12 +198,13 @@ const AddPlayer = () => {
       
       <div style={{ maxWidth: "100vw", position: "relative", padding: "1em" }}>
         <Space direction="vertical" style={{ width: "100%" }}>
-          <Input
+        <Space direction="horizontal" align="baseline"><SearchOutline/><Input
             placeholder="Search players"
             value={searchTerm}
             onChange={handleSearch}
-            style={{ marginBottom: "1em" }}
-          />
+            style={{ marginBottom: "1em", flexGrow:2 }}
+            
+          /></Space>
           <Spin spinning={loadingPlayers}>
             <List
               className="scroll-list"
@@ -225,7 +227,7 @@ const AddPlayer = () => {
                     {player.name}{" "}
                     {player.auth0Id && (
                       <Tooltip title="Player linked to user">
-                        <CheckCircleOutlined style={{ color: "green", transform: 'translateY(1px)' }} />
+                        <CheckCircleOutlined onClick={(e) => e.stopPropagation()}  style={{ color: "green", transform: 'translateY(1px)' }} />
                       </Tooltip>
                     )}
                   </div>
