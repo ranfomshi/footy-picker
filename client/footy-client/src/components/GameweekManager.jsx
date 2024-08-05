@@ -1,9 +1,9 @@
 import React, { useEffect, useState } from 'react';
 import axios from 'axios';
-import { List, Button, DatePicker, message, Popconfirm, Collapse, Input, Form, Modal } from 'antd';
+import { List, Button, DatePicker, message, Popconfirm, Collapse, Input, Form, Modal, Typography } from 'antd';
 import { DeleteOutlined, CloseOutlined, PlusOutlined } from '@ant-design/icons';
 import { useAuth0 } from '@auth0/auth0-react';
-
+const { Title, Text, Paragraph } = Typography;
 const { Panel } = Collapse;
 
 const GameweekManager = () => {
@@ -334,7 +334,7 @@ const GameweekManager = () => {
                                             <Panel header="Show players who did not play this match" key="1">
                                                 <div>
                                                     {playersWhoDidNotPlay.map(player => (
-                                                        <div key={player.id} style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}>
+                                                        <div key={player.id} style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 0 }}>
                                                             <span>{player.name}</span>
                                                         </div>
                                                     ))}
@@ -345,7 +345,7 @@ const GameweekManager = () => {
                                     {teams[gameweek.id] && (
                                         <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 16 }}>
                                             <div style={{ flex: 1, marginRight: 16 }}>
-                                                <h3>Team A</h3>
+                                                <Title level={5}>Team A</Title>
                                                 <ul style={{ margin: 0, padding: 0 }}>
                                                     {teams[gameweek.id].teamA.map(player => (
                                                         <li style={{ listStyle: 'none', display: 'flex', justifyContent: 'space-between' }} key={player.id}>
@@ -362,7 +362,7 @@ const GameweekManager = () => {
                                                 </ul>
                                             </div>
                                             <div style={{ flex: 1 }}>
-                                                <h3>Team B</h3>
+                                            <Title level={5}>Team B</Title>
                                                 <ul style={{ margin: 0, padding: 0 }}>
                                                     {teams[gameweek.id].teamB.map(player => (
                                                         <li style={{ listStyle: 'none', display: 'flex', justifyContent: 'space-between' }} key={player.id}>
