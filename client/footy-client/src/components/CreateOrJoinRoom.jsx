@@ -139,9 +139,25 @@ const CreateOrJoinRoom = ({ onRoomJoined }) => {
         return selectedPlayer ? selectedPlayer.name : '';
     };
 
+    const handleRoomNameKeyPress = (e) => {
+        if (e.key === 'Enter') {
+            createRoom();
+        }
+    };
+
+    const handleRoomCodeKeyPress = (e) => {
+        if (e.key === 'Enter') {
+            joinRoom();
+        }
+    };
+
     return (
-        <div style={{ maxWidth: 400, margin: '0 auto', padding: '20px' }}>
-            <Title level={2} style={{ textAlign: 'center' }}>Create or Join a Room</Title>
+        <div style={{ maxWidth: 400, margin: '0 auto', padding: '20px', textAlign: 'center' }}>
+            <Image width={100} height={100} preview={false} src='fp_logo.png' style={{ marginBottom: '20px' }} />
+            <Title level={2} style={{ fontWeight: 'bold' }}>Welcome to Footy Picker</Title>
+            <Paragraph>
+                Effortlessly divide teams based on previous results. Save time and money by knowing your team from the start and tracking historic results.
+            </Paragraph>
             <Divider />
             {creatingRoom ? (
                 <Form layout="vertical">
@@ -150,15 +166,18 @@ const CreateOrJoinRoom = ({ onRoomJoined }) => {
                             placeholder="Enter room name"
                             value={roomNameLocalState}
                             onChange={(e) => { setRoomName(e.target.value); setRoomNameLocalState(e.target.value) }}
+                            onKeyPress={handleRoomNameKeyPress}
                             disabled={creatingRoomLoading}
                         />
                     </Form.Item>
                     <Form.Item>
                         <Space direction="vertical" style={{ width: '100%' }}>
-                            <Button type="primary" onClick={createRoom} loading={creatingRoomLoading} block>
+                            <Button type="primary" size="large" onClick={createRoom} loading={creatingRoomLoading} block>
                                 Create Room
                             </Button>
-                          
+                            <Button size="large" onClick={() => setCreatingRoom(false)} disabled={creatingRoomLoading} block>
+                                Go Back
+                            </Button>
                         </Space>
                     </Form.Item>
                 </Form>
@@ -166,19 +185,20 @@ const CreateOrJoinRoom = ({ onRoomJoined }) => {
                 <Form layout="vertical">
                     <Form.Item label="Room Code" required>
                         <Input
-                        maxLength={5}
+                            maxLength={5}
                             placeholder="Enter room code"
                             value={roomCode}
                             onChange={(e) => setRoomCode(e.target.value)}
+                            onKeyPress={handleRoomCodeKeyPress}
                             disabled={joiningRoomLoading}
                         />
                     </Form.Item>
                     <Form.Item>
                         <Space direction="vertical" style={{ width: '100%' }}>
-                            <Button type="primary" onClick={joinRoom} loading={joiningRoomLoading} block>
+                            <Button type="primary" size="large" onClick={joinRoom} loading={joiningRoomLoading} block>
                                 Join Room
                             </Button>
-                            <Button onClick={() => setCreatingRoom(true)} disabled={joiningRoomLoading} block>
+                            <Button size="large" onClick={() => setCreatingRoom(true)} disabled={joiningRoomLoading} block>
                                 Create New Room
                             </Button>
                         </Space>
@@ -186,10 +206,9 @@ const CreateOrJoinRoom = ({ onRoomJoined }) => {
                 </Form>
             )}
             <Divider />
-            <Paragraph style={{ textAlign: 'center' }}>
+            <Paragraph>
                 Join an existing room or create a new one to get started.
             </Paragraph>
-            <Image width={200} height={200} preview={false} src='fp_logo.png' />
             <Modal
                 title="Select or Create Player"
                 visible={isSelectPlayerModalVisible}
@@ -198,18 +217,18 @@ const CreateOrJoinRoom = ({ onRoomJoined }) => {
                 confirmLoading={joiningRoomLoading}
                 okButtonProps={{ disabled: !selectedUnlinkedPlayer }}
                 footer={[
-                    <Button key="back" onClick={() => setIsSelectPlayerModalVisible(false)}>
-                        Cancel
-                    </Button>,
                     <Button
+                        block
                         key="create"
                         type="primary"
                         onClick={createAndLinkNewPlayer}
-                        disabled={joiningRoomLoading}
+                        disabled={selectedUnlinkedPlayer || joiningRoomLoading}
                     >
                         None of these players is me
                     </Button>,
                     <Button
+                    style={{marginTop:16, marginLeft:0}}
+                        block
                         key="submit"
                         type="primary"
                         onClick={finalizeJoinRoom}
@@ -219,7 +238,7 @@ const CreateOrJoinRoom = ({ onRoomJoined }) => {
                     </Button>
                 ]}
             >
-                <Paragraph>Select your name from the list to retain your historic stats. If you are not listed, add your player at the bottom. </Paragraph>
+                <Paragraph>Select your name from the list to retain your historic stats. If you are not listed, add your player at the bottom.</Paragraph>
                 <div className='scroll-list' style={{ maxHeight: '40vh' }}>
                     <Radio.Group
                         onChange={handleRadioChange}
