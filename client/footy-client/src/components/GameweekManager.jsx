@@ -311,7 +311,7 @@ const GameweekManager = () => {
                                             />
                                             <div  style={{ maxHeight: '200px', overflowY: 'scroll' }}>
                                                 {filteredPlayers(gameweek.id).map(player => (
-                                                    <div key={player.id} style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}>
+                                                    <div key={player.id} style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 0 }}>
                                                         <span>{player.name}</span>
                                                         <Button type='default' size='small' style={{marginRight:8}} icon={ <PlusOutlined
                                                             onClick={() => {
