@@ -34,7 +34,7 @@ const AddPlayer = () => {
           Authorization: `Bearer ${token}`,
         },
       });
-      const sortedPlayers = response.data.sort((a, b) => a.id - b.id);
+      const sortedPlayers = response.data.sort((a, b) => a.name.localeCompare(b.name));
       setPlayers(sortedPlayers);
       setFilteredPlayers(sortedPlayers);
     } catch (error) {
@@ -49,13 +49,22 @@ const AddPlayer = () => {
       message.error("Player name cannot be empty");
       return;
     }
-  
+
+    const duplicatePlayer = players.find(
+      (player) =>
+        player.name.toLowerCase() === newPlayerName.toLowerCase()
+    );
+    if (duplicatePlayer) {
+      message.error("Player name already exists");
+      return;
+    }
+
     setLoading(true);
     try {
       const token = await getAccessTokenSilently();
       await axios.post(
         `${API_BASE_URL}/players`,
-        { name: newPlayerName }, // Only send name for unlinked players
+        { name: newPlayerName },
         {
           headers: {
             Authorization: `Bearer ${token}`,
@@ -73,7 +82,7 @@ const AddPlayer = () => {
       setLoading(false);
     }
   };
-  
+
   const showDeleteModal = (player) => {
     setPlayerToDelete(player);
     setIsDeleteModalVisible(true);
@@ -184,31 +193,29 @@ const AddPlayer = () => {
 
   return (
     <Spin spinning={loading}>
-         <Button
-          type="primary"
-          block
-          icon={<PlusOutlined />}
-          size="small"
-          style={{
-        
-            zIndex: 1000,
-          }}
-          onClick={() => setIsAddModalVisible(true)}
-        >Add Player</Button>
-       <Input
-            placeholder="Search players"
-            value={searchTerm}
-            onChange={handleSearch}
-            style={{ marginBottom: "4px", marginTop:'8px' }}
-            block
-          />
+      <Button
+        type="primary"
+        block
+        icon={<PlusOutlined />}
+        size="small"
+        style={{ zIndex: 1000 }}
+        onClick={() => setIsAddModalVisible(true)}
+      >
+        Add Player
+      </Button>
+      <Input
+        placeholder="Search players"
+        value={searchTerm}
+        onChange={handleSearch}
+        style={{ marginBottom: "4px", marginTop: '8px' }}
+        block
+      />
       <div style={{ maxWidth: "100vw", position: "relative", padding: "1em" }}>
         <Space direction="vertical" style={{ width: "100%" }}>
-      
           <Spin spinning={loadingPlayers}>
             <List
               className="scroll-list"
-              style={{maxHeight:'72vh', overflowY:'scroll'}}
+              style={{ maxHeight: '72vh', overflowY: 'scroll' }}
               dataSource={filteredPlayers}
               renderItem={(player) => (
                 <List.Item style={{ height: 45 }}>
@@ -227,7 +234,7 @@ const AddPlayer = () => {
                     {player.name}{" "}
                     {player.auth0Id && (
                       <Tooltip title="Player linked to user">
-                        <CheckCircleOutlined onClick={(e) => e.stopPropagation()}  style={{ color: "green", transform: 'translateY(1px)' }} />
+                        <CheckCircleOutlined onClick={(e) => e.stopPropagation()} style={{ color: "green", transform: 'translateY(1px)' }} />
                       </Tooltip>
                     )}
                   </div>
@@ -252,7 +259,6 @@ const AddPlayer = () => {
             />
           </Spin>
         </Space>
-       
         <Modal
           title="Add Player"
           visible={isAddModalVisible}
