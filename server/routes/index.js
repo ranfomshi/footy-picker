@@ -448,14 +448,35 @@ router.post('/players', protect, async (req, res) => {
         return res.status(400).json({ error: 'User is not a member of any room' });
       }
   
-      // Create the new player
-      const newPlayer = await Player.create({ name });
+      const roomId = currentUserMembership.roomId;
+  
+      // Calculate the average rating of existing players in the room
+      const existingPlayers = await Player.findAll({
+        include: {
+          model: RoomMembership,
+          where: { roomId }
+        }
+      });
+  
+      const totalRating = existingPlayers.reduce((sum, player) => sum + parseFloat(player.rating || 0), 0);
+      const averageRating = existingPlayers.length > 0 ? (totalRating / existingPlayers.length) : 0;
+  
+      // Create the new player with the initial average rating
+      const newPlayer = await Player.create({ name, rating: averageRating });
+  
+      // Add initial rating to the Ratings table
+      await Rating.create({
+        playerId: newPlayer.id,
+        date: new Date(),
+        rating: averageRating,
+        raterId: null
+      });
   
       // Link the new player to the same room as the logged-in user
       await RoomMembership.create({
         playerId: newPlayer.id,
         auth0Id: null, // Unlinked player
-        roomId: currentUserMembership.roomId
+        roomId
       });
   
       res.status(201).json(newPlayer);
@@ -464,6 +485,7 @@ router.post('/players', protect, async (req, res) => {
       res.status(500).json({ error: 'Internal Server Error' });
     }
   });
+
   
 
 router.delete('/players/:id', protect, async (req, res) => {
