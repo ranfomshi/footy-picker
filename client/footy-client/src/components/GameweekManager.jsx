@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import axios from 'axios';
-import { List, Button, DatePicker, message, Popconfirm, Collapse, Input, Form, Modal, Typography } from 'antd';
-import { DeleteOutlined, CloseOutlined, PlusOutlined } from '@ant-design/icons';
+import { List, Button, DatePicker, message, Popconfirm, Collapse, Input, Form, Modal, Typography, Tooltip } from 'antd';
+import { DeleteOutlined, CloseOutlined, PlusOutlined, CheckCircleOutlined } from '@ant-design/icons';
 import { useAuth0 } from '@auth0/auth0-react';
 const { Title, Text, Paragraph } = Typography;
 const { Panel } = Collapse;
@@ -312,7 +312,14 @@ const GameweekManager = () => {
                                             <div  style={{ maxHeight: '200px', overflowY: 'scroll' }}>
                                                 {filteredPlayers(gameweek.id).map(player => (
                                                     <div key={player.id} style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 0 }}>
-                                                        <span>{player.name}</span>
+                                                        <span>
+                                                            {player.name}{" "}
+                                                            {player.auth0Id && (
+                                                                <Tooltip title="Player linked to user">
+                                                                    <CheckCircleOutlined style={{ color: "green", marginLeft: 5 }} />
+                                                                </Tooltip>
+                                                            )}
+                                                        </span>
                                                         <Button type='default' size='small' style={{marginRight:8}} icon={ <PlusOutlined
                                                             onClick={() => {
                                                                 setPlayerAvailability(player.id, gameweek.id, true);
@@ -335,7 +342,14 @@ const GameweekManager = () => {
                                                 <div>
                                                     {playersWhoDidNotPlay.map(player => (
                                                         <div key={player.id} style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 0 }}>
-                                                            <span>{player.name}</span>
+                                                            <span>
+                                                                {player.name}{" "}
+                                                                {player.auth0Id && (
+                                                                    <Tooltip title="Player linked to user">
+                                                                        <CheckCircleOutlined style={{ color: "green", marginLeft: 5 }} />
+                                                                    </Tooltip>
+                                                                )}
+                                                            </span>
                                                         </div>
                                                     ))}
                                                 </div>
@@ -349,7 +363,14 @@ const GameweekManager = () => {
                                                 <ul style={{ margin: 0, padding: 0 }}>
                                                     {teams[gameweek.id].teamA.map(player => (
                                                         <li style={{ listStyle: 'none', display: 'flex', justifyContent: 'space-between' }} key={player.id}>
-                                                            {player.name}
+                                                            <span>
+                                                                {player.name}{" "}
+                                                                {player.auth0Id && (
+                                                                    <Tooltip title="Player linked to user">
+                                                                        <CheckCircleOutlined style={{ color: "green", marginLeft: 5 }} />
+                                                                    </Tooltip>
+                                                                )}
+                                                            </span>
                                                             {!resultExists && <Button size='small' icon={<CloseOutlined onClick={() => {
                                                                 removePlayerAvailability(player.id, gameweek.id);
                                                                 setAvailability(prevAvailability => ({
@@ -366,7 +387,14 @@ const GameweekManager = () => {
                                                 <ul style={{ margin: 0, padding: 0 }}>
                                                     {teams[gameweek.id].teamB.map(player => (
                                                         <li style={{ listStyle: 'none', display: 'flex', justifyContent: 'space-between' }} key={player.id}>
-                                                            {player.name}
+                                                            <span>
+                                                                {player.name}{" "}
+                                                                {player.auth0Id && (
+                                                                    <Tooltip title="Player linked to user">
+                                                                        <CheckCircleOutlined style={{ color: "green", marginLeft: 5 }} />
+                                                                    </Tooltip>
+                                                                )}
+                                                            </span>
                                                             {!resultExists && <Button size='small' icon={<CloseOutlined onClick={() => {
                                                                 removePlayerAvailability(player.id, gameweek.id);
                                                                 setAvailability(prevAvailability => ({
