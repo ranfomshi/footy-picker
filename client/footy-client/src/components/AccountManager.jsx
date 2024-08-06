@@ -9,7 +9,8 @@ const AccountManager = () => {
   const { user, logout, getAccessTokenSilently } = useAuth0();
   const [unlinking, setUnlinking] = useState(false);
   const { roomCode, roomName, setHasJoinedRoom } = useStore();
-  const [isModalVisible, setIsModalVisible] = useState(false); // State to manage modal visibility
+  const [isModalVisible, setIsModalVisible] = useState(false);
+  const [isConfirmVisible, setIsConfirmVisible] = useState(false); // State to manage confirmation modal visibility
 
   const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
 
@@ -33,6 +34,7 @@ const AccountManager = () => {
       message.error('Failed to unlink player');
     } finally {
       setUnlinking(false);
+      setIsConfirmVisible(false); // Close confirmation modal after unlinking
     }
   };
 
@@ -48,6 +50,18 @@ const AccountManager = () => {
     setIsModalVisible(false);
   };
 
+  const showConfirm = () => {
+    setIsConfirmVisible(true);
+  };
+
+  const handleConfirmOk = () => {
+    handleUnlink();
+  };
+
+  const handleConfirmCancel = () => {
+    setIsConfirmVisible(false);
+  };
+
   return (
     <div>
       <h2>Account Management</h2>
@@ -58,12 +72,12 @@ const AccountManager = () => {
         <Button
           type='ghost'
           style={{ color: 'red', position: 'absolute', bottom: 100, right: '50%', transform: 'translateX(50%)' }}
-          onClick={handleUnlink}
+          onClick={showConfirm}
           loading={unlinking}
         >
           <u>Leave <b>{roomName} <code>{roomCode}</code></b> room</u>
         </Button>
-        <Button style={{  position: 'absolute', bottom: 200, right: '50%', transform: 'translateX(50%)' }} type='ghost' onClick={showModal}>View Scoring System</Button>
+        <Button style={{ position: 'absolute', bottom: 160, right: '50%', transform: 'translateX(50%)', textDecoration:'underline' }} type='ghost' onClick={showModal}>View Scoring System</Button>
         <Modal
           title="Scoring System Guide"
           visible={isModalVisible}
@@ -71,7 +85,6 @@ const AccountManager = () => {
           onCancel={handleCancel}
           width="90%"
           style={{ top: 20 }}
-          bodyStyle={{ padding: '20px' }}
           footer={[
             <Button key="close" onClick={handleCancel}>
               Close
@@ -79,6 +92,16 @@ const AccountManager = () => {
           ]}
         >
           <ScoringGuide />
+        </Modal>
+        <Modal
+          title={<>Leave Room <b>{roomName} <code>{roomCode}</code></b>?</>}
+          visible={isConfirmVisible}
+          onOk={handleConfirmOk}
+          onCancel={handleConfirmCancel}
+          okText="Yes, Leave"
+          cancelText="No"
+        >
+          <p>Are you sure you want to leave the room? </p><p>This unlinks your profile from the player but leaves the player in the room so you can still take part in games with your group.</p>
         </Modal>
       </div>
     </div>
