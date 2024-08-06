@@ -184,31 +184,31 @@ const AddPlayer = () => {
 
   return (
     <Spin spinning={loading}>
-         <div style={{width:50, position:'fixed', bottom:80, right:10, height:80, textAlign:"right", zIndex:2000}}>  <Button
+         <Button
           type="primary"
-          shape="circle"
+          block
           icon={<PlusOutlined />}
-          size="large"
+          size="small"
           style={{
         
             zIndex: 1000,
           }}
           onClick={() => setIsAddModalVisible(true)}
-        /></div>
-      
-      <div style={{ maxWidth: "100vw", position: "relative", padding: "1em" }}>
-        <Space direction="vertical" style={{ width: "100%" }}>
-        <Space direction="horizontal" align="baseline"><SearchOutline/><Input
+        >Add Player</Button>
+       <Input
             placeholder="Search players"
             value={searchTerm}
             onChange={handleSearch}
-            style={{ marginBottom: "1em", flexGrow:2 }}
-            
-          /></Space>
+            style={{ marginBottom: "4px", marginTop:'8px' }}
+            block
+          />
+      <div style={{ maxWidth: "100vw", position: "relative", padding: "1em" }}>
+        <Space direction="vertical" style={{ width: "100%" }}>
+      
           <Spin spinning={loadingPlayers}>
             <List
               className="scroll-list"
-              style={{maxHeight:'60vh', overflowY:'scroll'}}
+              style={{maxHeight:'72vh', overflowY:'scroll'}}
               dataSource={filteredPlayers}
               renderItem={(player) => (
                 <List.Item style={{ height: 45 }}>

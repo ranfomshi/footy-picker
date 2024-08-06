@@ -161,7 +161,7 @@ function App() {
              <Image width={200} height={200} preview={false} src='fp_logo.png' style={{ marginBottom: '20px' }} />
             <Button
               type="primary"
-             size="large"
+              size="large"
               onClick={() => loginWithRedirect()}
             >
               Log in
