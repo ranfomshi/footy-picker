@@ -519,29 +519,38 @@ router.put('/players/:id', protect, async (req, res) => {
 });
 
 router.post('/gameresults', protect, async (req, res) => {
-  try {
-    const { gameweekId, teamA_score, teamB_score } = req.body;
-    const { roomId } = req.user;
+    try {
+        const { gameweekId, teamA_score, teamB_score } = req.body;
+        const { roomId } = req.user;
 
-    const [gameResult, created] = await GameResult.upsert({
-      gameweekId, teamA_score, teamB_score
-    }, {
-      returning: true
-    });
+        // Count the number of players in each team
+        const teamA_player_count = await TeamAssignment.count({
+            where: { gameweekId, team: 'A' }
+        });
+        const teamB_player_count = await TeamAssignment.count({
+            where: { gameweekId, team: 'B' }
+        });
 
-    if (created) {
-      console.log(`Game result recorded for gameweek ${gameweekId}: Team A ${teamA_score} - ${teamB_score} Team B`);
-    } else {
-      console.log(`Game result updated for gameweek ${gameweekId}: Team A ${teamA_score} - ${teamB_score} Team B`);
+        const [gameResult, created] = await GameResult.upsert({
+            gameweekId, teamA_score, teamB_score, teamA_player_count, teamB_player_count
+        }, {
+            returning: true
+        });
+
+        if (created) {
+            console.log(`Game result recorded for gameweek ${gameweekId}: Team A ${teamA_score} - ${teamB_score} Team B`);
+        } else {
+            console.log(`Game result updated for gameweek ${gameweekId}: Team A ${teamA_score} - ${teamB_score} Team B`);
+        }
+
+        await updatePlayerRatings(gameweekId, roomId);
+        res.json(gameResult);
+    } catch (error) {
+        console.error('Error recording game result:', error);
+        res.status(500).json({ error: 'Internal Server Error' });
     }
-
-    await updatePlayerRatings(gameweekId, roomId);
-    res.json(gameResult);
-  } catch (error) {
-    console.error('Error recording game result:', error);
-    res.status(500).json({ error: 'Internal Server Error' });
-  }
 });
+
 
 const updatePlayerRatings = async (gameweekId) => {
     try {
@@ -560,24 +569,34 @@ const updatePlayerRatings = async (gameweekId) => {
             include: [Player]
         });
 
+        const { teamA_score, teamB_score, teamA_player_count, teamB_player_count } = gameResult;
+
         for (const assignment of teamAssignments) {
             let points = 0;
-            if ((assignment.team === 'A' && gameResult.teamA_score > gameResult.teamB_score) ||
-                (assignment.team === 'B' && gameResult.teamB_score > gameResult.teamA_score)) {
-                points += 3;
-            } else if (gameResult.teamA_score === gameResult.teamB_score) {
+            const isHandicappedWin = teamA_player_count !== teamB_player_count;
+            const winPoints = isHandicappedWin ? (assignment.team === 'A' && teamA_player_count > teamB_player_count ? 2 : 4) : 3;
+
+            if ((assignment.team === 'A' && teamA_score > teamB_score) ||
+                (assignment.team === 'B' && teamB_score > teamA_score)) {
+                points += winPoints;
+            } else if (teamA_score === teamB_score) {
                 points += 1;
             }
 
             if (assignment.team === 'A') {
-                points += gameResult.teamA_score * 0.2 - gameResult.teamB_score * 0.1;
+                points += teamA_score * (teamA_player_count > teamB_player_count ? 0.1 : 0.2);
+                if (teamA_player_count <= teamB_player_count) {
+                    points -= teamB_score * 0.1;
+                }
             } else {
-                points += gameResult.teamB_score * 0.2 - gameResult.teamA_score * 0.1;
+                points += teamB_score * (teamB_player_count > teamA_player_count ? 0.1 : 0.2);
+                if (teamB_player_count <= teamA_player_count) {
+                    points -= teamA_score * 0.1;
+                }
             }
 
             console.log(`Player ${assignment.playerId} earned ${points.toFixed(2)} points for gameweek ${gameweekId}`);
 
-            // Ensure the rating is created correctly
             await Rating.create({
                 playerId: assignment.playerId,
                 date: gameResult.Gameweek.date,
@@ -585,21 +604,13 @@ const updatePlayerRatings = async (gameweekId) => {
                 raterId: null
             });
 
-            // Retrieve the last 5 ratings for the player
+            // Fetch the last 5 ratings where the player actually played
             const ratings = await Rating.findAll({
                 where: { playerId: assignment.playerId },
                 limit: 5,
                 order: [['date', 'DESC']]
             });
 
-            console.log(`Ratings for player ${assignment.playerId}:`, ratings);
-
-            if (ratings.length === 0) {
-                console.error(`No ratings found for player ${assignment.playerId}`);
-                continue;
-            }
-
-            // Sum the total points from the last 5 ratings
             const totalPoints = ratings.reduce((acc, rating) => acc + parseFloat(rating.rating || 0), 0);
             const player = await Player.findByPk(assignment.playerId);
 
@@ -608,17 +619,16 @@ const updatePlayerRatings = async (gameweekId) => {
                 continue;
             }
 
-            // Update the player's rating with the total points
             player.rating = totalPoints;
-
             console.log(`Total points: ${totalPoints.toFixed(2)}, Updated rating: ${player.rating.toFixed(2)}`);
-
             await player.save();
         }
     } catch (error) {
         console.error('Error updating player ratings:', error);
     }
 };
+
+
 
 router.get('/gameresults', protect, async (req, res) => {
   try {

@@ -101,11 +101,22 @@ const GameResult = sequelize.define('GameResult', {
     teamB_score: {
         type: DataTypes.INTEGER,
         allowNull: false
+    },
+    teamA_player_count: {
+        type: DataTypes.INTEGER,
+        allowNull: false,
+        defaultValue: 0
+    },
+    teamB_player_count: {
+        type: DataTypes.INTEGER,
+        allowNull: false,
+        defaultValue: 0
     }
 }, {
     tableName: 'GameResults',
     timestamps: true
 });
+
 
 const Availability = sequelize.define('Availability', {
     status: {
