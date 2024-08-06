@@ -3,6 +3,7 @@ import axios from 'axios';
 import { List, Button, DatePicker, message, Popconfirm, Collapse, Input, Form, Modal, Typography, Tooltip } from 'antd';
 import { DeleteOutlined, CloseOutlined, PlusOutlined, CheckCircleOutlined } from '@ant-design/icons';
 import { useAuth0 } from '@auth0/auth0-react';
+
 const { Title, Text, Paragraph } = Typography;
 const { Panel } = Collapse;
 
@@ -267,34 +268,38 @@ const GameweekManager = () => {
         fetchRecordedResults();
     }, []);
 
+    // Sort gameweeks by date in descending order
+    const sortedGameweeks = Object.values(gameweeks).sort((a, b) => new Date(b.date) - new Date(a.date));
+
     return (
         <div>
-            <Button size='small' type="primary" onClick={showAddGameweekModal}>Add Gameweek</Button>
+            <Button size='small' type="primary" block onClick={showAddGameweekModal}>Add Gameweek</Button>
             <List
+            style={{ maxHeight:'75vh', overflowY:'scroll', width:'100%' }}
                 className='scroll-list'
                 itemLayout="horizontal"
-                dataSource={Object.values(gameweeks)}
+                dataSource={sortedGameweeks}
                 renderItem={gameweek => {
                     const resultExists = !!recordedResults[gameweek.id];
                     const result = recordedResults[gameweek.id];
                     const playersWhoDidNotPlay = players.filter(player => !availability[gameweek.id]?.[player.id]);
                     return (
-                        <List.Item style={{ width: '100%' }}>
+                        <List.Item style={{ width: '100%', padding:'8px 0px 0px 0px'}}>
                             <Collapse
-                                style={{ width: '100%' }}
+                                style={{ width: '100%'}}
                                 onChange={() => {
                                     fetchAvailability(gameweek.id);
                                     fetchAssignments(gameweek.id);
                                     fetchTeams(gameweek.id);
                                 }}
                             >
-                                <Panel 
+                                <Panel
                                     header={
                                         <div style={{ display: 'flex', justifyContent: 'space-between', width: '100%' }}>
                                             <span>{`${new Date(gameweek.date).toLocaleDateString('en-GB')}`}</span>
                                             {resultExists && (
                                                 <span style={{display:'flex', alignItems:'baseline'}}>
-                                                    Team A  <div style={{background:'#00b96b', borderRadius:'3', color:'white', margin:'0 5px 0 5px', padding:'0 5px 0 5px', width:50}}><strong>{result.teamA_score}</strong> - <strong>{result.teamB_score}</strong></div>  Team B
+                                                    Team A  <div style={{background:'#00b96b', borderRadius:'3px', color:'white', margin:'0 5px', padding:'0 2px', width:50}}><strong>{result.teamA_score}</strong> - <strong>{result.teamB_score}</strong></div>  Team B
                                                 </span>
                                             )}
                                         </div>
@@ -336,57 +341,39 @@ const GameweekManager = () => {
                                             </div>
                                         </div>
                                     )}
-                                    {resultExists && playersWhoDidNotPlay.length > 0 && (
-                                        <Collapse size='small' style={{margin:0, border:'none', padding:0, fontSize:'smaller'}}>
-                                            <Panel header="Show players who did not play this match" key="1">
-                                                <div>
-                                                    {playersWhoDidNotPlay.map(player => (
-                                                        <div key={player.id} style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 0 }}>
-                                                            <span>
-                                                                {player.name}{" "}
-                                                                {player.auth0Id && (
-                                                                    <Tooltip title="Player linked to user">
-                                                                        <CheckCircleOutlined style={{ color: "green", marginLeft: 5 }} />
-                                                                    </Tooltip>
-                                                                )}
-                                                            </span>
-                                                        </div>
-                                                    ))}
-                                                </div>
-                                            </Panel>
-                                        </Collapse>
-                                    )}
+                                   
                                     {teams[gameweek.id] && (
-                                        <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 16 }}>
+                                        <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                                             <div style={{ flex: 1, marginRight: 16 }}>
-                                                <Title level={5}>Team A</Title>
+                                                <Title style={{marginTop:0}} level={5} marginTop={0}>Team A</Title>
                                                 <ul style={{ margin: 0, padding: 0 }}>
                                                     {teams[gameweek.id].teamA.map(player => (
-                                                        <li style={{ listStyle: 'none', display: 'flex', justifyContent: 'space-between' }} key={player.id}>
-                                                            <span>
-                                                                {player.name}{" "}
-                                                                {player.auth0Id && (
-                                                                    <Tooltip title="Player linked to user">
-                                                                        <CheckCircleOutlined style={{ color: "green", marginLeft: 5 }} />
-                                                                    </Tooltip>
-                                                                )}
-                                                            </span>
-                                                            {!resultExists && <Button size='small' icon={<CloseOutlined onClick={() => {
+                                                        <li style={{ listStyle: 'none', display: 'flex', justifyContent: 'flex-start', gap:4 }} key={player.id}>
+                                                             {!resultExists && <Button size='small' icon={<CloseOutlined onClick={() => {
                                                                 removePlayerAvailability(player.id, gameweek.id);
                                                                 setAvailability(prevAvailability => ({
                                                                     ...prevAvailability,
                                                                     [gameweek.id]: { ...prevAvailability[gameweek.id], [player.id]: false }
                                                                 }));
                                                             }} style={{color: 'red', cursor: 'pointer' }} />}/>}
+                                                            <span>
+                                                                {player.name}{" "}
+                                                                {player.auth0Id && (
+                                                                    <Tooltip title="Player linked to user">
+                                                                        <CheckCircleOutlined style={{ color: "green", marginLeft: 5 }} />
+                                                                    </Tooltip>
+                                                                )}
+                                                            </span>
+                                                           
                                                         </li>
                                                     ))}
                                                 </ul>
                                             </div>
                                             <div style={{ flex: 1 }}>
-                                            <Title level={5}>Team B</Title>
-                                                <ul style={{ margin: 0, padding: 0 }}>
+                                            <Title style={{marginTop:0}} level={5}>Team B</Title>
+                                                <ul style={{ margin: 0, padding: 0}}>
                                                     {teams[gameweek.id].teamB.map(player => (
-                                                        <li style={{ listStyle: 'none', display: 'flex', justifyContent: 'space-between' }} key={player.id}>
+                                                        <li style={{ listStyle: 'none', display: 'flex', justifyContent: 'flex-end', gap:4}} key={player.id}>
                                                             <span>
                                                                 {player.name}{" "}
                                                                 {player.auth0Id && (
