@@ -7,7 +7,7 @@ import BottomNav from "./components/BottomNav";
 import PlayerStats from "./components/PlayerStats";
 import AccountManager from "./components/AccountManager";
 import CreateOrJoinRoom from "./components/CreateOrJoinRoom";
-import { Button, ConfigProvider, Typography, Spin } from "antd";
+import { Button, ConfigProvider, Typography, Spin, Image, Space } from "antd";
 import { Auth0Provider, useAuth0 } from "@auth0/auth0-react";
 import useStore from "./useStore"; // Import the Zustand store
 
@@ -157,18 +157,16 @@ function App() {
       <div className="App">
         <div className="header">
           {!isAuthenticated && (
+            <Space direction="vertical">
+             <Image width={200} height={200} preview={false} src='fp_logo.png' style={{ marginBottom: '20px' }} />
             <Button
               type="primary"
-              style={{
-                position: "absolute",
-                top: "50%",
-                left: "50%",
-                transform: "translate(-50%, -50%)",
-              }}
+             size="large"
               onClick={() => loginWithRedirect()}
             >
               Log in
-            </Button>
+            </Button></Space>
+            
           )}
         </div>
         <div className="content scroll-list">
