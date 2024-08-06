@@ -8,6 +8,7 @@ import PlayerStats from "./components/PlayerStats";
 import AccountManager from "./components/AccountManager";
 import CreateOrJoinRoom from "./components/CreateOrJoinRoom";
 import { Button, ConfigProvider, Typography, Spin } from "antd";
+import UserAvatar from "./components/UserAvatar";
 import { Auth0Provider, useAuth0 } from "@auth0/auth0-react";
 import useStore from "./useStore"; // Import the Zustand store
 
@@ -179,7 +180,7 @@ function App() {
               width: "100%",
             }}
           >
-            {hasJoinedRoom ? <Title level={4} style={{ marginTop: 0 }}>{roomName}</Title> : <Title level={4} style={{ marginTop: 0 }}>Footy Picker</Title> }
+            {hasJoinedRoom ? <><Title level={4} style={{ marginTop: 0 }}>{roomName}</Title><UserAvatar/></> : <Title level={4} style={{ marginTop: 0 }}>Footy Picker</Title> }
             {hasJoinedRoom && <Paragraph>Room Code: <Text code strong>{roomCode}</Text></Paragraph>}
           </div>
           {isAuthenticated ? (
