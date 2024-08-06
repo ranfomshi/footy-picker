@@ -208,7 +208,7 @@ const AddPlayer = () => {
           <Spin spinning={loadingPlayers}>
             <List
               className="scroll-list"
-              style={{maxHeight:'60vh'}}
+              style={{maxHeight:'60vh', overflowY:'scroll'}}
               dataSource={filteredPlayers}
               renderItem={(player) => (
                 <List.Item style={{ height: 45 }}>

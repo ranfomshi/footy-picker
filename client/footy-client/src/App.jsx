@@ -172,7 +172,7 @@ function App() {
             </Button>
           )}
         </div>
-        <div className="content">
+        <div className="content scroll-list">
           <div
             style={{
               borderBottom: "1px solid black",

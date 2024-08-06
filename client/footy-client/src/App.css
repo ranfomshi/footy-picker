@@ -47,6 +47,7 @@
 
 .scroll-list::-webkit-scrollbar {
   display: none;
+  max-height: 80vh;
 }
 
 .App {
