@@ -92,15 +92,9 @@ const AccountManager = () => {
         </Space>
         <Space direction="vertical" style={{ width: '100%', marginTop: '20%' }}>
           <Button block type='default' onClick={() => logout({ returnTo: window.location.origin })}>Log out</Button>
-          <Button
-            type='link'
-            danger
-            onClick={showConfirm}
-            loading={unlinking}
-            style={{ marginTop: '10px' }}
-          >
-            <u>Leave <b>{roomName} <code>{roomCode}</code></b> room</u>
-          </Button>
+          
+            <Button type='text' block danger onClick={showConfirm}>Leave <b>{roomName} <code>{roomCode}</code></b> room</Button>
+         
         </Space>
         <Modal
           title={<>Leave Room <b>{roomName} <code>{roomCode}</code></b>?</>}
