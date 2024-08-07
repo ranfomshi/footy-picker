@@ -1,9 +1,9 @@
-import React, { useState } from 'react';
-import { Avatar, Button, Image, message, Modal, Space, Typography } from 'antd';
-import { useAuth0 } from '@auth0/auth0-react';
-import axios from 'axios';
-import useStore from '../useStore';
-import ScoringGuide from './ScoringGuide';
+import React, { useState } from "react";
+import { Avatar, Button, Image, message, Modal, Space, Typography } from "antd";
+import { useAuth0 } from "@auth0/auth0-react";
+import axios from "axios";
+import useStore from "../useStore";
+import ScoringGuide from "./ScoringGuide";
 
 const { Title, Text } = Typography;
 
@@ -25,15 +25,15 @@ const AccountManager = () => {
         {},
         {
           headers: {
-            Authorization: `Bearer ${token}`
-          }
+            Authorization: `Bearer ${token}`,
+          },
         }
       );
-      message.success('Player unlinked successfully');
+      message.success("Player unlinked successfully");
       setHasJoinedRoom(false);
     } catch (error) {
-      console.error('Error unlinking player:', error);
-      message.error('Failed to unlink player');
+      console.error("Error unlinking player:", error);
+      message.error("Failed to unlink player");
     } finally {
       setUnlinking(false);
       setIsConfirmVisible(false);
@@ -65,15 +65,24 @@ const AccountManager = () => {
   };
 
   return (
-    <div style={{ padding: '20px', maxWidth: '600px', margin: 'auto' }}>
-    
-      <Title level={2}>Account Management</Title>  <Image src={user.picture} preview={false} style={{borderRadius:'75px', margin:30, height:150, width:150}}/>
+    <div style={{ padding: "20px", maxWidth: "600px", margin: "auto" }}>
+      <Title level={2}>Account Management</Title>{" "}
+      <Image
+        src={user.picture}
+        preview={false}
+        style={{ borderRadius: "75px", margin: 30, height: 150, width: 150 }}
+      />
       <div>
         <Text strong>Name:</Text> <Text>{user.name}</Text>
         <br />
         <Text strong>Email:</Text> <Text>{user.email}</Text>
-        <Space direction="vertical" style={{ width: '100%', marginTop: '20px' }}>
-          <Button block type='primary' onClick={showModal}>View Scoring System</Button>
+        <Space
+          direction="vertical"
+          style={{ width: "100%", marginTop: "20px" }}
+        >
+          <Button block type="primary" onClick={showModal}>
+            View Scoring System
+          </Button>
           <Modal
             title="Scoring System Guide"
             visible={isModalVisible}
@@ -90,21 +99,44 @@ const AccountManager = () => {
             <ScoringGuide />
           </Modal>
         </Space>
-        <Space direction="vertical" style={{ width: '100%', marginTop: '20%' }}>
-          <Button block type='default' onClick={() => logout({ returnTo: window.location.origin })}>Log out</Button>
-          
-            <Button type='text' block danger onClick={showConfirm}>Leave <b>{roomName} <code>{roomCode}</code></b> room</Button>
-         
+        <Space direction="vertical" style={{ width: "100%", marginTop: "20%" }}>
+          <Button
+            block
+            type="default"
+            onClick={() => logout({ returnTo: window.location.origin })}
+          >
+            Log out
+          </Button>
+
+          <Button type="text" block danger onClick={showConfirm}>
+            Leave{" "}
+            <b>
+              {roomName} <code>{roomCode}</code>
+            </b>{" "}
+            room
+          </Button>
         </Space>
         <Modal
-          title={<>Leave Room <b>{roomName} <code>{roomCode}</code></b>?</>}
+          title={
+            <>
+              Leave Room{" "}
+              <b>
+                {roomName} <code>{roomCode}</code>
+              </b>
+              ?
+            </>
+          }
           visible={isConfirmVisible}
           onOk={handleConfirmOk}
           onCancel={handleConfirmCancel}
           okText="Yes, Leave"
           cancelText="No"
         >
-          <p>Are you sure you want to leave the room? This unlinks your profile from the player but leaves the player in the room so you can still take part in games with your group.</p>
+          <p>
+            Are you sure you want to leave the room? This unlinks your profile
+            from the player but leaves the player in the room so you can still
+            take part in games with your group.
+          </p>
         </Modal>
       </div>
     </div>
