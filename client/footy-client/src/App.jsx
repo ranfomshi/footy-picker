@@ -10,6 +10,7 @@ import CreateOrJoinRoom from "./components/CreateOrJoinRoom";
 import { Button, ConfigProvider, Typography, Spin, Image, Space } from "antd";
 import { Auth0Provider, useAuth0 } from "@auth0/auth0-react";
 import useStore from "./useStore"; // Import the Zustand store
+import Avatar from "./components/Avatar";
 
 const { Title, Text, Paragraph } = Typography;
 
@@ -154,8 +155,9 @@ function App() {
         },
       }}
     >
-      <div className="App">
-        <div className="header">
+      <div className="App">{isAuthenticated &&<Avatar/>}
+        <div className="header">  
+        
           {!isAuthenticated && (
             <Space direction="vertical">
              <Image width={200} height={200} preview={false} src='fp_logo.png' style={{ marginBottom: '20px' }} />
