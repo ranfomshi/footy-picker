@@ -48,7 +48,7 @@ const Auth0ProviderWithHistory = ({ children }) => {
 function App() {
   const { loginWithRedirect, isAuthenticated, getAccessTokenSilently, error } = useAuth0();
   const [players, setPlayers] = useState([]);
-  const [activeKey, setActiveKey] = useState(localStorage.getItem("activeKey") || "players");
+  const [activeKey, setActiveKey] = useState("players");
   const [loading, setLoading] = useState(true);
   const { hasJoinedRoom, roomCode, setHasJoinedRoom, roomName, setRoomMembership } = useStore();
 

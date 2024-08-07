@@ -1,16 +1,18 @@
 import React, { useState } from 'react';
-import { Button, message, Modal } from 'antd';
+import { Avatar, Button, Image, message, Modal, Space, Typography } from 'antd';
 import { useAuth0 } from '@auth0/auth0-react';
 import axios from 'axios';
 import useStore from '../useStore';
 import ScoringGuide from './ScoringGuide';
+
+const { Title, Text } = Typography;
 
 const AccountManager = () => {
   const { user, logout, getAccessTokenSilently } = useAuth0();
   const [unlinking, setUnlinking] = useState(false);
   const { roomCode, roomName, setHasJoinedRoom } = useStore();
   const [isModalVisible, setIsModalVisible] = useState(false);
-  const [isConfirmVisible, setIsConfirmVisible] = useState(false); // State to manage confirmation modal visibility
+  const [isConfirmVisible, setIsConfirmVisible] = useState(false);
 
   const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
 
@@ -34,7 +36,7 @@ const AccountManager = () => {
       message.error('Failed to unlink player');
     } finally {
       setUnlinking(false);
-      setIsConfirmVisible(false); // Close confirmation modal after unlinking
+      setIsConfirmVisible(false);
     }
   };
 
@@ -63,36 +65,43 @@ const AccountManager = () => {
   };
 
   return (
-    <div>
-      <h2>Account Management</h2>
+    <div style={{ padding: '20px', maxWidth: '600px', margin: 'auto' }}>
+    
+      <Title level={2}>Account Management</Title>  <Image src={user.picture} preview={false} style={{borderRadius:'75px', margin:30, height:150, width:150}}/>
       <div>
-        <p>Name: {user.name}</p>
-        <p>Email: {user.email}</p>
-        <Button type='primary' onClick={() => logout({ returnTo: window.location.origin })}>Log out</Button>
-        <Button
-          type='ghost'
-          style={{ color: 'red', position: 'absolute', bottom: 100, right: '50%', transform: 'translateX(50%)' }}
-          onClick={showConfirm}
-          loading={unlinking}
-        >
-          <u>Leave <b>{roomName} <code>{roomCode}</code></b> room</u>
-        </Button>
-        <Button style={{ position: 'absolute', bottom: 160, right: '50%', transform: 'translateX(50%)', textDecoration:'underline' }} type='ghost' onClick={showModal}>View Scoring System</Button>
-        <Modal
-          title="Scoring System Guide"
-          visible={isModalVisible}
-          onOk={handleOk}
-          onCancel={handleCancel}
-          width="90%"
-          style={{ top: 20 }}
-          footer={[
-            <Button key="close" onClick={handleCancel}>
-              Close
-            </Button>,
-          ]}
-        >
-          <ScoringGuide />
-        </Modal>
+        <Text strong>Name:</Text> <Text>{user.name}</Text>
+        <br />
+        <Text strong>Email:</Text> <Text>{user.email}</Text>
+        <Space direction="vertical" style={{ width: '100%', marginTop: '20px' }}>
+          <Button block type='primary' onClick={showModal}>View Scoring System</Button>
+          <Modal
+            title="Scoring System Guide"
+            visible={isModalVisible}
+            onOk={handleOk}
+            onCancel={handleCancel}
+            width="90%"
+            style={{ top: 20 }}
+            footer={[
+              <Button key="close" onClick={handleCancel}>
+                Close
+              </Button>,
+            ]}
+          >
+            <ScoringGuide />
+          </Modal>
+        </Space>
+        <Space direction="vertical" style={{ width: '100%', marginTop: '50%' }}>
+          <Button block type='default' onClick={() => logout({ returnTo: window.location.origin })}>Log out</Button>
+          <Button
+            type='link'
+            danger
+            onClick={showConfirm}
+            loading={unlinking}
+            style={{ marginTop: '10px' }}
+          >
+            <u>Leave <b>{roomName} <code>{roomCode}</code></b> room</u>
+          </Button>
+        </Space>
         <Modal
           title={<>Leave Room <b>{roomName} <code>{roomCode}</code></b>?</>}
           visible={isConfirmVisible}
@@ -101,7 +110,7 @@ const AccountManager = () => {
           okText="Yes, Leave"
           cancelText="No"
         >
-          <p>Are you sure you want to leave the room? </p><p>This unlinks your profile from the player but leaves the player in the room so you can still take part in games with your group.</p>
+          <p>Are you sure you want to leave the room? This unlinks your profile from the player but leaves the player in the room so you can still take part in games with your group.</p>
         </Modal>
       </div>
     </div>

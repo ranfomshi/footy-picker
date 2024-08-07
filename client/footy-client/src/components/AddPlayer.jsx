@@ -304,6 +304,7 @@ const AddPlayer = () => {
           okText="Delete"
         >
           <p>Are you sure you want to delete this player? This action cannot be undone.</p>
+          <p>To leave the room but have your player's rank and stats retained go to the Account Management tab</p>
         </Modal>
       </div>
     </Spin>

@@ -273,7 +273,7 @@ const GameweekManager = () => {
 
     return (
         <div>
-            <Button size='small' type="primary" block onClick={showAddGameweekModal}>Add Gameweek</Button>
+            <Button size='small' type="primary" block onClick={showAddGameweekModal}><PlusOutlined/>Add Gameweek</Button>
             <List
             style={{ maxHeight:'75vh', overflowY:'scroll', width:'100%' }}
                 className='scroll-list'
