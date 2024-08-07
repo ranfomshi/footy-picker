@@ -70,12 +70,12 @@ const AccountManager = () => {
       <Image
         src={user.picture}
         preview={false}
-        style={{ borderRadius: "75px", margin: 30, height: 150, width: 150 }}
+        style={{ borderRadius: "75px", margin: 30, height: 100, width: 100 }}
       />
       <div>
-        <Text strong>Name:</Text> <Text>{user.name}</Text>
+        <Text>{user.name}</Text>
         <br />
-        <Text strong>Email:</Text> <Text>{user.email}</Text>
+       <Text>{user.email}</Text>
         <Space
           direction="vertical"
           style={{ width: "100%", marginTop: "20px" }}
