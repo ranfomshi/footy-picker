@@ -90,7 +90,7 @@ const AccountManager = () => {
             <ScoringGuide />
           </Modal>
         </Space>
-        <Space direction="vertical" style={{ width: '100%', marginTop: '50%' }}>
+        <Space direction="vertical" style={{ width: '100%', marginTop: '20%' }}>
           <Button block type='default' onClick={() => logout({ returnTo: window.location.origin })}>Log out</Button>
           <Button
             type='link'
