@@ -12,6 +12,7 @@ require('dotenv').config();
 // Environment variables
 const auth0Domain = process.env.AUTH0_DOMAIN;
 const auth0Audience = process.env.AUTH0_AUDIENCE;
+console.log('Auth0 Domain:', auth0Domain);
 
 // JWKS client
 const client = jwksRsa({
@@ -20,43 +21,69 @@ const client = jwksRsa({
 
 // Middleware to protect routes and set roomId
 const protect = async (req, res, next) => {
-    const token = req.headers.authorization?.split(' ')[1];
-    if (!token) {
-      return res.status(401).json({ error: 'No token provided' });
+  console.log('process env', process.env)
+  const token = req.headers.authorization?.split(' ')[1];
+  if (!token) {
+    console.error('No token provided');
+    return res.status(401).json({ error: 'No token provided' });
+  }
+
+  try {
+    console.log('Decoding token...');
+    const decoded = jwt.decode(token, { complete: true });
+    
+    if (!decoded) {
+      console.error('Failed to decode token');
+      return res.status(401).json({ error: 'Invalid token' });
     }
-  
-    try {
-      const decoded = jwt.decode(token, { complete: true });
-      const kid = decoded.header.kid;
-      const key = await client.getSigningKey(kid);
-      const signingKey = key.getPublicKey();
-  
-      jwt.verify(token, signingKey, {
-        audience: auth0Audience,
-        issuer: `https://${auth0Domain}/`,
-        algorithms: ['RS256']
-      }, async (err, decodedToken) => {
-        if (err) {
-          return res.status(401).json({ error: 'Token verification failed' });
+
+    console.log('Token decoded:', decoded);
+
+    const kid = decoded.header.kid;
+    console.log('Key ID (kid) from token:', kid);
+
+    const key = await client.getSigningKey(kid);
+    const signingKey = key.getPublicKey();
+    console.log('Signing key retrieved:', signingKey);
+
+
+    jwt.verify(token, signingKey, {
+      audience: auth0Audience,
+      issuer: `https://${auth0Domain}/`,
+      algorithms: ['RS256']
+    }, async (err, decodedToken) => {
+      if (err) {
+        console.error('Token verification failed:', err);
+        return res.status(401).json({ error: 'Token verification failed 1' });
+      }
+
+      console.log('Token verified:', decodedToken);
+      req.user = decodedToken;
+
+      // Check if the user's auth0Id is linked to any player in any room
+      const player = await Player.findOne({ where: { auth0Id: req.user.sub } });
+      if (player) {
+        console.log('Player found:', player.id);
+        // If the user is linked to a player, set the player's roomId
+        const membership = await RoomMembership.findOne({ where: { auth0Id: req.user.sub } });
+        if (membership) {
+          console.log('RoomMembership found:', membership.roomId);
+          req.user.roomId = membership.roomId;
+        } else {
+          console.log('No RoomMembership found for player');
         }
-        req.user = decodedToken;
-  
-        // Check if the user's auth0Id is linked to any player in any room
-        const player = await Player.findOne({ where: { auth0Id: req.user.sub } });
-        if (player) {
-          // If the user is linked to a player, set the player's roomId
-          const membership = await RoomMembership.findOne({ where: { auth0Id: req.user.sub } });
-          if (membership) {
-            req.user.roomId = membership.roomId;
-          }
-        }
-  
-        next();
-      });
-    } catch (error) {
-      return res.status(401).json({ error: 'Token verification failed' });
-    }
-  };
+      } else {
+        console.log('No player linked to this user');
+      }
+
+      next();
+    });
+  } catch (error) {
+    console.error('Error during token verification:', error);
+    return res.status(401).json({ error: 'Token verification failed 2' });
+  }
+};
+
   
 
 // Helper function to generate a 5-character alphanumeric room code
@@ -879,5 +906,75 @@ router.get('/teamassignments', protect, async (req, res) => {
     res.status(500).json({ error: 'Internal Server Error' });
   }
 });
+
+const getPlayerPairsWinStats = async (roomId) => {
+  const results = await TeamAssignment.findAll({
+      include: [
+          {
+              model: GameResult,
+              required: true, // Only include results with an existing game result
+              include: [{
+                  model: Gameweek,
+                  where: { roomId }
+              }]
+          }
+      ]
+  });
+
+  const playerPairs = {};
+
+  results.forEach(result => {
+      const { gameweekId, team, playerId } = result;
+
+      // Find all other players in the same team for that gameweek
+      results.forEach(otherResult => {
+          if (
+              otherResult.gameweekId === gameweekId &&
+              otherResult.team === team &&
+              otherResult.playerId !== playerId
+          ) {
+              const pairKey = [playerId, otherResult.playerId].sort().join('-');
+
+              if (!playerPairs[pairKey]) {
+                  playerPairs[pairKey] = {
+                      wins: 0,
+                      losses: 0,
+                      draws: 0
+                  };
+              }
+
+              const gameResult = result.GameResult;
+              const teamAScore = gameResult.teamA_score;
+              const teamBScore = gameResult.teamB_score;
+
+              const isTeamA = team === 'A';
+              const isTeamB = team === 'B';
+
+              if ((isTeamA && teamAScore > teamBScore) || (isTeamB && teamBScore > teamAScore)) {
+                  playerPairs[pairKey].wins++;
+              } else if (teamAScore === teamBScore) {
+                  playerPairs[pairKey].draws++;
+              } else {
+                  playerPairs[pairKey].losses++;
+              }
+          }
+      });
+  });
+
+  return playerPairs;
+};
+
+router.get('/player-pairs-win-stats', protect, async (req, res) => {
+  const { roomId } = req.user;
+
+  try {
+      const pairsData = await getPlayerPairsWinStats(roomId);
+      res.json(pairsData);
+  } catch (error) {
+      console.error('Error fetching player pairs win stats:', error);
+      res.status(500).json({ error: 'An error occurred while fetching player pairs win stats' });
+  }
+});
+
 
 module.exports = router;
