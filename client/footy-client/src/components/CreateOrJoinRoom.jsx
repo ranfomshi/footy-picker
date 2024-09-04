@@ -7,7 +7,7 @@ import useStore from '../useStore';
 const { Title, Paragraph } = Typography;
 
 const CreateOrJoinRoom = ({ onRoomJoined }) => {
-    const { getAccessTokenSilently, user } = useAuth0();
+    const { getAccessTokenSilently, user, logout } = useAuth0(); // Added logout
     const [roomNameLocalState, setRoomNameLocalState] = useState('');
     const [roomCode, setRoomCode] = useState('');
     const [creatingRoom, setCreatingRoom] = useState(false);
@@ -20,6 +20,14 @@ const CreateOrJoinRoom = ({ onRoomJoined }) => {
 
     const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
 
+    const handle401Error = (error) => {
+        if (error.response && error.response.status === 401) {
+            // Log out the user if a 401 error is encountered
+            logout({ returnTo: window.location.origin });
+        }
+    };
+
+    // Create Room Function
     const createRoom = async () => {
         if (!roomNameLocalState.trim()) {
             message.error("Room name cannot be empty");
@@ -38,6 +46,7 @@ const CreateOrJoinRoom = ({ onRoomJoined }) => {
             setGlobalRoomCode(response.data.code);
             onRoomJoined();
         } catch (error) {
+            handle401Error(error); // Log out if 401 error
             console.error('Error creating room:', error);
             message.error("Error creating room");
         } finally {
@@ -45,6 +54,7 @@ const CreateOrJoinRoom = ({ onRoomJoined }) => {
         }
     };
 
+    // Join Room Function
     const joinRoom = async () => {
         if (!roomCode.trim()) {
             message.error("Room code cannot be empty");
@@ -67,6 +77,7 @@ const CreateOrJoinRoom = ({ onRoomJoined }) => {
                 createAndLinkNewPlayer();
             }
         } catch (error) {
+            handle401Error(error); // Log out if 401 error
             console.error('Error joining room:', error);
             message.error("Error joining room - check your room code and try again");
         } finally {
@@ -74,6 +85,7 @@ const CreateOrJoinRoom = ({ onRoomJoined }) => {
         }
     };
 
+    // Finalize Join Room
     const finalizeJoinRoom = async () => {
         setJoiningRoomLoading(true);
         try {
@@ -92,6 +104,7 @@ const CreateOrJoinRoom = ({ onRoomJoined }) => {
             setGlobalRoomCode(roomCode);
             onRoomJoined();
         } catch (error) {
+            handle401Error(error); // Log out if 401 error
             console.error('Error finalizing room join:', error);
             message.error("Error finalizing room join");
         } finally {
@@ -100,6 +113,7 @@ const CreateOrJoinRoom = ({ onRoomJoined }) => {
         }
     };
 
+    // Create and Link New Player
     const createAndLinkNewPlayer = async () => {
         setJoiningRoomLoading(true);
         try {
@@ -118,6 +132,7 @@ const CreateOrJoinRoom = ({ onRoomJoined }) => {
             setGlobalRoomCode(roomCode);
             onRoomJoined();
         } catch (error) {
+            handle401Error(error); // Log out if 401 error
             console.error('Error finalizing room join:', error);
             message.error("Error finalizing room join");
         } finally {
@@ -227,7 +242,7 @@ const CreateOrJoinRoom = ({ onRoomJoined }) => {
                         None of these players is me
                     </Button>,
                     <Button
-                    style={{marginTop:16, marginLeft:0}}
+                        style={{ marginTop: 16, marginLeft: 0 }}
                         block
                         key="submit"
                         type="primary"
