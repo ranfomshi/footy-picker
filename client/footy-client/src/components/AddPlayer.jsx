@@ -4,7 +4,6 @@ import { MoreOutlined, PlusOutlined, CheckCircleOutlined } from "@ant-design/ico
 import axios from "axios";
 import PlayerDetails from "./PlayerDetails";
 import { useAuth0 } from "@auth0/auth0-react";
-import { SearchOutline } from 'antd-mobile-icons'; // Import the new icon
 
 const AddPlayer = () => {
   const { getAccessTokenSilently } = useAuth0();

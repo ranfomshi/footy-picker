@@ -313,6 +313,7 @@ router.get('/players', protect, async (req, res) => {
       return res.status(400).json({ error: 'User is not associated with any room' });
     }
 
+    // Fetch all players in the room
     const players = await Player.findAll({
       include: [
         {
@@ -344,43 +345,138 @@ router.get('/players', protect, async (req, res) => {
         let losses = 0;
         let goalsFor = 0;
         let goalsAgainst = 0;
+        let teammateStats = {};
 
-        teamAssignments.forEach((assignment) => {
+        console.log(`Processing player ${player.name} (ID: ${player.id})`);
+
+        // Iterate through each team assignment for the player
+        for (const assignment of teamAssignments) {
           const gameResult = assignment.Gameweek.GameResult;
-          if (gameResult) {
-            const team = assignment.team;
-            const teamScore = team === 'A' ? gameResult.teamA_score : gameResult.teamB_score;
-            const opponentScore = team === 'A' ? gameResult.teamB_score : gameResult.teamA_score;
 
-            goalsFor += teamScore;
-            goalsAgainst += opponentScore;
-
-            if (teamScore > opponentScore) {
-              wins += 1;
-            } else if (teamScore < opponentScore) {
-              losses += 1;
-            } else {
-              draws += 1;
-            }
+          // Skip if there is no result for the gameweek (i.e., player didn't play or result wasn't recorded)
+          if (!gameResult) {
+            console.log(`Skipping gameweek ${assignment.gameweekId} (no result)`);
+            continue;
           }
+
+          const team = assignment.team;
+          const teamScore = team === 'A' ? gameResult.teamA_score : gameResult.teamB_score;
+          const opponentScore = team === 'A' ? gameResult.teamB_score : gameResult.teamA_score;
+
+          // Update goals stats for the player
+          goalsFor += teamScore;
+          goalsAgainst += opponentScore;
+
+          // Update result stats (win/draw/loss)
+          if (teamScore > opponentScore) {
+            wins += 1;
+          } else if (teamScore < opponentScore) {
+            losses += 1;
+          } else {
+            draws += 1;
+          }
+
+          // Fetch all teammates (players on the same team in the same gameweek)
+          const teammates = await TeamAssignment.findAll({
+            where: {
+              gameweekId: assignment.gameweekId,
+              team: assignment.team,
+              playerId: {
+                [Op.ne]: player.id, // Exclude the current player
+              },
+            },
+          });
+
+          // Update teammate stats
+          teammates.forEach((teammate) => {
+            if (!teammateStats[teammate.playerId]) {
+              teammateStats[teammate.playerId] = {
+                wins: 0,
+                points: 0,
+                goalsFor: 0,
+              };
+            }
+
+            // Increment wins, points, and goalsFor stats for this teammate
+            if (teamScore > opponentScore) {
+              teammateStats[teammate.playerId].wins += 1;
+            }
+
+            teammateStats[teammate.playerId].points += teamScore; // Points from this game
+            teammateStats[teammate.playerId].goalsFor += teamScore; // Goals scored together
+          });
+
+     
+        }
+
+        // Determine favorite teammate(s) based on wins, points, and goals
+        let favoriteTeammateIds = [];
+        let bestStat = { wins: 0, points: 0, goalsFor: 0 };
+        let favoriteReasons = {}; // Store reasons for favorite
+
+        for (const teammateId in teammateStats) {
+          const stats = teammateStats[teammateId];
+
+          if (
+            stats.wins > bestStat.wins ||
+            (stats.wins === bestStat.wins && stats.points > bestStat.points) ||
+            (stats.wins === bestStat.wins && stats.points === bestStat.points && stats.goalsFor > bestStat.goalsFor)
+          ) {
+            bestStat = stats;
+            favoriteTeammateIds = [teammateId]; // Reset to new best teammate
+            favoriteReasons[teammateId] = {
+              winsTogether: stats.wins,
+              pointsTogether: stats.points,
+              goalsForTogether: stats.goalsFor,
+            };
+          } else if (
+            stats.wins === bestStat.wins &&
+            stats.points === bestStat.points &&
+            stats.goalsFor === bestStat.goalsFor
+          ) {
+            favoriteTeammateIds.push(teammateId); // Add tied teammate
+            favoriteReasons[teammateId] = {
+              winsTogether: stats.wins,
+              pointsTogether: stats.points,
+              goalsForTogether: stats.goalsFor,
+            };
+          }
+        }
+
+       
+
+        // Fetch the favorite teammates from the database
+        const favoriteTeammates = await Player.findAll({
+          where: { id: favoriteTeammateIds },
         });
 
+        // Attach the calculated stats and favorite teammate(s) to the player's data
         player.dataValues.wins = wins;
         player.dataValues.draws = draws;
         player.dataValues.losses = losses;
         player.dataValues.goalsFor = goalsFor;
         player.dataValues.goalsAgainst = goalsAgainst;
 
+        // Attach favorite teammates along with reasons
+        player.dataValues.favoriteTeammates = favoriteTeammates.length > 0
+          ? favoriteTeammates.map(teammate => ({
+              ...teammate.toJSON(), // Convert Sequelize instance to JSON
+              reason: favoriteReasons[teammate.id], // Attach the reason for being the favorite
+            }))
+          : null;
+
         return player;
       })
     );
 
+    // Return the final response
     res.json(playerStats);
   } catch (error) {
     console.error('Error fetching players:', error);
     res.status(500).json({ error: 'Internal Server Error' });
   }
 });
+
 
 router.put('/players/:id/link', protect, async (req, res) => {
   const { id } = req.params;
