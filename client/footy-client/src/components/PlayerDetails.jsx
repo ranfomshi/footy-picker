@@ -46,7 +46,7 @@ const PlayerDetails = ({ player, onClose }) => {
             <Statistic
               title={<Text style={{ color: '#007a4a', fontSize: 'small' }}>Draws</Text>}
               value={player.draws}
-              valueStyle={{ fontSize: '1.5rem', color: coreColor }}
+              valueStyle={{ fontSize: '1.5rem', color: '#ff4d00' }}
               prefix={<TeamOutlined />}
             />
           </Card>
