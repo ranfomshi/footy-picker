@@ -345,6 +345,7 @@ router.get('/players', protect, async (req, res) => {
         let losses = 0;
         let goalsFor = 0;
         let goalsAgainst = 0;
+        let totalPoints = 0; // For the player
         let teammateStats = {};
 
         console.log(`Processing player ${player.name} (ID: ${player.id})`);
@@ -362,19 +363,49 @@ router.get('/players', protect, async (req, res) => {
           const team = assignment.team;
           const teamScore = team === 'A' ? gameResult.teamA_score : gameResult.teamB_score;
           const opponentScore = team === 'A' ? gameResult.teamB_score : gameResult.teamA_score;
+          const teamPlayerCount = team === 'A' ? gameResult.teamA_player_count : gameResult.teamB_player_count;
+          const opponentPlayerCount = team === 'A' ? gameResult.teamB_player_count : gameResult.teamA_player_count;
 
           // Update goals stats for the player
           goalsFor += teamScore;
           goalsAgainst += opponentScore;
 
-          // Update result stats (win/draw/loss)
+          // Calculate game result points (basic points)
+          let gamePoints = 0;
           if (teamScore > opponentScore) {
             wins += 1;
+            gamePoints = 3;
           } else if (teamScore < opponentScore) {
             losses += 1;
+            gamePoints = 0;
           } else {
             draws += 1;
+            gamePoints = 1;
           }
+
+          // Calculate goal-based points
+          let goalPoints = 0;
+          const isHandicapped = teamPlayerCount !== opponentPlayerCount;
+
+          if (isHandicapped) {
+            if (teamPlayerCount > opponentPlayerCount) {
+              // Team has more players
+              goalPoints += teamScore * 0.1; // Goals scored
+              goalPoints -= opponentScore * 0.1; // Goals conceded
+            } else {
+              // Team has fewer players
+              goalPoints += teamScore * 0.2; // Goals scored
+              goalPoints -= opponentScore * 0.1; // Goals conceded
+            }
+          } else {
+            // Balanced game
+            goalPoints += teamScore * 0.2; // Goals scored
+            goalPoints -= opponentScore * 0.1; // Goals conceded
+          }
+
+          // Total points for this gameweek for the player
+          const totalGameweekPoints = gamePoints + goalPoints;
+          totalPoints += totalGameweekPoints;
 
           // Fetch all teammates (players on the same team in the same gameweek)
           const teammates = await TeamAssignment.findAll({
@@ -394,24 +425,24 @@ router.get('/players', protect, async (req, res) => {
                 wins: 0,
                 points: 0,
                 goalsFor: 0,
+                goalsAgainst: 0, // Add goalsAgainst tracking for teammates
               };
             }
 
-            // Increment wins, points, and goalsFor stats for this teammate
+            // Update stats for this teammate
             if (teamScore > opponentScore) {
               teammateStats[teammate.playerId].wins += 1;
             }
 
-            teammateStats[teammate.playerId].points += teamScore; // Points from this game
+            teammateStats[teammate.playerId].points += totalGameweekPoints; // Points from this game
             teammateStats[teammate.playerId].goalsFor += teamScore; // Goals scored together
+            teammateStats[teammate.playerId].goalsAgainst += opponentScore; // Goals conceded together
           });
-
-     
         }
 
         // Determine favorite teammate(s) based on wins, points, and goals
         let favoriteTeammateIds = [];
-        let bestStat = { wins: 0, points: 0, goalsFor: 0 };
+        let bestStat = { wins: 0, points: 0, goalsFor: 0, goalsAgainst: 0 }; // Add goalsAgainst for comparison
         let favoriteReasons = {}; // Store reasons for favorite
 
         for (const teammateId in teammateStats) {
@@ -428,6 +459,7 @@ router.get('/players', protect, async (req, res) => {
               winsTogether: stats.wins,
               pointsTogether: stats.points,
               goalsForTogether: stats.goalsFor,
+              goalsAgainstTogether: stats.goalsAgainst, // Include goalsAgainst in the reasons
             };
           } else if (
             stats.wins === bestStat.wins &&
@@ -439,11 +471,10 @@ router.get('/players', protect, async (req, res) => {
               winsTogether: stats.wins,
               pointsTogether: stats.points,
               goalsForTogether: stats.goalsFor,
+              goalsAgainstTogether: stats.goalsAgainst, // Include goalsAgainst in the reasons
             };
           }
         }
-
-       
 
         // Fetch the favorite teammates from the database
         const favoriteTeammates = await Player.findAll({
@@ -456,6 +487,8 @@ router.get('/players', protect, async (req, res) => {
         player.dataValues.losses = losses;
         player.dataValues.goalsFor = goalsFor;
         player.dataValues.goalsAgainst = goalsAgainst;
+        player.dataValues.goalDifference = goalsFor - goalsAgainst; // Calculate goal difference
+        player.dataValues.points = totalPoints;
 
         // Attach favorite teammates along with reasons
         player.dataValues.favoriteTeammates = favoriteTeammates.length > 0
@@ -476,6 +509,8 @@ router.get('/players', protect, async (req, res) => {
     res.status(500).json({ error: 'Internal Server Error' });
   }
 });
+
+
 
 
 router.put('/players/:id/link', protect, async (req, res) => {
