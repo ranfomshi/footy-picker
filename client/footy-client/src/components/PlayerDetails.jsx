@@ -99,7 +99,7 @@ const PlayerDetails = ({ player, onClose }) => {
             <Statistic
               title={<Text style={{ color: '#007a4a', fontSize: 'small' }}>Team Goals -</Text>}
               value={player.goalsAgainst}
-              valueStyle={{ fontSize: '1.5rem', color: '#ff6f61' }} // Red for goals against
+              valueStyle={{ fontSize: '1.5rem', color: '#cf1322' }} // Red for goals against
               prefix={<MinusCircleOutlined />}
             />
           </Card>
