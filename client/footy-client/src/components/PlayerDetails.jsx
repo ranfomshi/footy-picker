@@ -158,7 +158,7 @@ const PlayerDetails = ({ player, onClose }) => {
                 <Title level={5} style={{ color: '#333' }}>Stats when Playing Together</Title>
               </>
             )}
-            <div className="scroll-list" style={{ maxHeight: 250, overflowY: 'auto', paddingRight: 16 }}>
+            <div className="scroll-list" style={{ maxHeight: 250, overflowY: 'auto', paddingRight: 8 }}>
               <List
                 itemLayout="horizontal"
                 dataSource={player.favoriteTeammates}
@@ -179,9 +179,8 @@ const PlayerDetails = ({ player, onClose }) => {
                         description={
                           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                             <Text>Wins: <strong>{teammate.reason.winsTogether}</strong></Text>
-                            <Text>Points: <strong>{formatPoints(teammate.reason.pointsTogether)}</strong></Text> {/* Rounding points */}
-                            <Text>Goals +: <strong>{teammate.reason.goalsForTogether}</strong></Text>
-                            <Text>Goals -: <strong>{teammate.reason.goalsAgainstTogether}</strong></Text>
+                            <Text>Goals+: <strong>{teammate.reason.goalsForTogether}</strong></Text>
+                            <Text>Goals-: <strong>{teammate.reason.goalsAgainstTogether}</strong></Text>
                             <Text>+/-: <strong>{calculateGoalDifference(teammate.reason.goalsForTogether, teammate.reason.goalsAgainstTogether)}</strong></Text>
                           </div>
                         }
