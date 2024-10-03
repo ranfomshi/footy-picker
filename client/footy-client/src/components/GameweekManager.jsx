@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import axios from 'axios';
-import { List, Button, DatePicker, message, Popconfirm, Collapse, Input, Form, Modal, Typography, Tooltip, Row, Col } from 'antd';
+import { List, Button, DatePicker, message, Popconfirm, Collapse, Input, Form, Modal, Typography, Tooltip } from 'antd';
 import { DeleteOutlined, CloseOutlined, PlusOutlined, CheckCircleOutlined } from '@ant-design/icons';
 import { useAuth0 } from '@auth0/auth0-react';
 
@@ -426,66 +426,37 @@ const GameweekManager = () => {
                 <DatePicker onChange={(date, dateString) => setSelectedDate(dateString)} />
             </Modal>
             <Modal
-  title="Record Game Result"
-  visible={isResultModalVisible}
-  onCancel={handleCancel}
-  footer={[
-    <Button key="cancel" onClick={handleCancel}>
-      Cancel
-    </Button>,
-    <Button key="submit" type="primary" onClick={() => form.submit()}>
-      Submit
-    </Button>,
-  ]}
->
-  <Form form={form} onFinish={handleGameResult}>
-    <Form.Item name="gameweekId" hidden>
-      <Input />
-    </Form.Item>
-    <Form.Item label="Game Result">
-      <Row align="middle" justify="center">
-        <Col>
-          <span>{teamAName}</span>
-        </Col>
-        <Col>
-          <Form.Item
-            name="teamA_score"
-            noStyle
-            rules={[
-              { required: true, message: 'Please enter the score for Team A' },
-            ]}
-          >
-            <Input
-              style={{ width: '50px', textAlign: 'center', margin: '0 8px' }}
-              type="number"
-            />
-          </Form.Item>
-        </Col>
-        <Col>
-          <span style={{ margin: '0 8px' }}>-</span>
-        </Col>
-        <Col>
-          <Form.Item
-            name="teamB_score"
-            noStyle
-            rules={[
-              { required: true, message: 'Please enter the score for Team B' },
-            ]}
-          >
-            <Input
-              style={{ width: '50px', textAlign: 'center', margin: '0 8px' }}
-              type="number"
-            />
-          </Form.Item>
-        </Col>
-        <Col>
-          <span>{teamBName}</span>
-        </Col>
-      </Row>
-    </Form.Item>
-  </Form>
-</Modal>
-
+                title="Record Game Result"
+                visible={isResultModalVisible}
+                onCancel={handleCancel}
+                footer={[
+                    <Button key="cancel" onClick={handleCancel}>Cancel</Button>,
+                    <Button key="submit" type="primary" onClick={() => form.submit()}>Submit</Button>
+                ]}
+            >
+                <Form
+                    form={form}
+                    onFinish={handleGameResult}
+                >
+                    <Form.Item name="gameweekId" hidden>
+                        <Input />
+                    </Form.Item>
+                    <Form.Item
+                        name="teamA_score"
+                        label="Team A Score"
+                        rules={[{ required: true, message: 'Please enter the score for Team A' }]}
+                    >
+                        <Input type="number" />
+                    </Form.Item>
+                    <Form.Item
+                        name="teamB_score"
+                        label="Team B Score"
+                        rules={[{ required: true, message: 'Please enter the score for Team B' }]}
+                    >
+                        <Input type="number" />
+                    </Form.Item>
+                </Form>
+            </Modal>
         </div>
     );
 };
