@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import axios from 'axios';
-import { List, Button, DatePicker, message, Popconfirm, Collapse, Input, Form, Modal, Typography, Tooltip } from 'antd';
+import { List, Button, DatePicker, message, Popconfirm, Collapse, Input, Form, Modal, Typography, Tooltip, Row, Col } from 'antd';
 import { DeleteOutlined, CloseOutlined, PlusOutlined, CheckCircleOutlined } from '@ant-design/icons';
 import { useAuth0 } from '@auth0/auth0-react';
 
