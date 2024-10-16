@@ -49,8 +49,33 @@ const GameweekManager = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedGameweekId, setSelectedGameweekId] = useState(null);
   const [playerAssignments, setPlayerAssignments] = useState({});
+  const [hasVoted, setHasVoted] = useState(false);
 
   const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
+
+  const checkVotingStatus = async (gameweekId) => {
+    const token = await getAccessTokenSilently();
+    const response = await axios.get(
+      `${API_BASE_URL}/has-voted?gameweekId=${gameweekId}`,
+      {
+        headers: { Authorization: `Bearer ${token}` },
+      }
+    );
+    setHasVoted(response.data.hasVoted);
+  };
+
+  const castVote = async (gameweekId, votedPlayerId) => {
+    const token = await getAccessTokenSilently();
+    await axios.post(
+      `${API_BASE_URL}/votes`,
+      { gameweekId, votedPlayerId },
+      {
+        headers: { Authorization: `Bearer ${token}` },
+      }
+    );
+    setHasVoted(true);
+    message.success("Vote cast successfully!");
+  };
 
   const fetchGameweeks = async () => {
     try {
@@ -99,9 +124,13 @@ const GameweekManager = () => {
       const teamB = [];
       response.data.forEach((assignment) => {
         if (assignment.team === "A") {
-          teamA.push(players.find((player) => player.id === assignment.playerId));
+          teamA.push(
+            players.find((player) => player.id === assignment.playerId)
+          );
         } else {
-          teamB.push(players.find((player) => player.id === assignment.playerId));
+          teamB.push(
+            players.find((player) => player.id === assignment.playerId)
+          );
         }
       });
       setTeams((prevTeams) => ({
@@ -398,6 +427,7 @@ const GameweekManager = () => {
                   fetchAvailability(gameweek.id);
                   fetchAssignments(gameweek.id);
                   fetchTeams(gameweek.id);
+                  checkVotingStatus(gameweek.id); // Check voting status for the gameweek
                 }}
               >
                 <Panel
@@ -437,6 +467,14 @@ const GameweekManager = () => {
                   }
                   key={gameweek.id}
                 >
+                  {gameweek.playerOfTheMatch && (
+                    <div style={{ marginBottom: 8 }}>
+                      <strong>Player(s) of the Match:</strong>{" "}
+                      {Array.isArray(gameweek.playerOfTheMatch)
+                        ? gameweek.playerOfTheMatch.join(", ")
+                        : gameweek.playerOfTheMatch}
+                    </div>
+                  )}
                   {!resultExists && (
                     <div>
                       <Input.Search
@@ -563,6 +601,16 @@ const GameweekManager = () => {
                                   </Tooltip>
                                 )}
                               </span>
+                              {!hasVoted && (
+                                <Button
+                                  size="small"
+                                  onClick={() =>
+                                    castVote(gameweek.id, player.id)
+                                  }
+                                >
+                                  Vote
+                                </Button>
+                              )}
                             </li>
                           ))}
                         </ul>
@@ -621,6 +669,16 @@ const GameweekManager = () => {
                                   }
                                 />
                               )}
+                              {!hasVoted && (
+                                <Button
+                                  size="small"
+                                  onClick={() =>
+                                    castVote(gameweek.id, player.id)
+                                  }
+                                >
+                                  Vote
+                                </Button>
+                              )}
                             </li>
                           ))}
                         </ul>
@@ -654,8 +712,10 @@ const GameweekManager = () => {
                       <Dropdown
                         overlay={
                           <Menu>
-                            <Menu.Item
-                              onClick={() => showManualAssignmentModal(gameweek.id)}
+                            <Menu.Item  disabled={resultExists}
+                              onClick={() =>
+                                showManualAssignmentModal(gameweek.id)
+                              }
                             >
                               Override
                             </Menu.Item>
@@ -663,20 +723,17 @@ const GameweekManager = () => {
                         }
                         trigger={["click"]}
                       >
-                        <Button icon={<EllipsisOutlined />} />
+                        <Button icon={<EllipsisOutlined  disabled={resultExists} />} />
                       </Dropdown>
                       <Button
                         size="small"
                         type="primary"
                         onClick={() => showResultModal(gameweek.id)}
-                        disabled={
-                          !(
-                            teams[gameweek.id]?.teamA?.length > 0 &&
-                            teams[gameweek.id]?.teamB?.length > 0
-                          )
-                        }
+                        disabled={resultExists}
                       >
-                        {resultExists ? "Result Recorded" : "Record Game Result"}
+                        {resultExists
+                          ? "Result Recorded"
+                          : "Record Game Result"}
                       </Button>
                     </Space>
                   </div>
@@ -814,18 +871,26 @@ const GameweekManager = () => {
         {players.map((player) => (
           <div
             key={player.id}
-            style={{ display: "flex", justifyContent: "space-between", margin: '8px 0' }}
+            style={{
+              display: "flex",
+              justifyContent: "space-between",
+              margin: "8px 0",
+            }}
           >
             <span>{player.name}</span>
             <Space>
               <Button
-                type={playerAssignments[player.id] === "A" ? "primary" : "default"}
+                type={
+                  playerAssignments[player.id] === "A" ? "primary" : "default"
+                }
                 onClick={() => assignTeam(player.id, "A")}
               >
                 Team A
               </Button>
               <Button
-                type={playerAssignments[player.id] === "B" ? "primary" : "default"}
+                type={
+                  playerAssignments[player.id] === "B" ? "primary" : "default"
+                }
                 onClick={() => assignTeam(player.id, "B")}
               >
                 Team B

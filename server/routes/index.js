@@ -8,6 +8,7 @@ const {
   Rating,
   RoomMembership,
   Room,
+  Vote,
   sequelize,
 } = require('../models');
 const router = express.Router();
@@ -30,7 +31,7 @@ const client = jwksRsa({
   jwksUri: `https://${auth0Domain}/.well-known/jwks.json`,
 });
 
-// Middleware to protect routes and set roomId
+// Middleware to protect routes, verify token, and set playerId and roomId
 const protect = async (req, res, next) => {
   const token = req.headers.authorization?.split(' ')[1];
   if (!token) {
@@ -39,6 +40,7 @@ const protect = async (req, res, next) => {
   }
 
   try {
+    // Decode the JWT token
     const decoded = jwt.decode(token, { complete: true });
     if (!decoded) {
       console.error('Failed to decode token');
@@ -49,6 +51,7 @@ const protect = async (req, res, next) => {
     const key = await client.getSigningKey(kid);
     const signingKey = key.getPublicKey();
 
+    // Verify the JWT token
     jwt.verify(
       token,
       signingKey,
@@ -63,17 +66,26 @@ const protect = async (req, res, next) => {
           return res.status(401).json({ error: 'Token verification failed' });
         }
 
+        // Attach the decoded token to the request object
         req.user = decodedToken;
 
-        // Check if the user's auth0Id is linked to any player in any room
+        // Fetch the player using the auth0Id from the token
         const player = await Player.findOne({ where: { auth0Id: req.user.sub } });
+
         if (player) {
+          // Store playerId for further use
+          req.user.playerId = player.id;
+
+          // Check if the player is a member of any room and store roomId
           const membership = await RoomMembership.findOne({ where: { auth0Id: req.user.sub } });
           if (membership) {
             req.user.roomId = membership.roomId;
           }
+          next();
+        } else {
+          // If player not found, respond with 404
+          return res.status(404).json({ error: 'Player not found' });
         }
-        next();
       }
     );
   } catch (error) {
@@ -105,6 +117,32 @@ router.get('/check-player-existence', protect, async (req, res) => {
     res.status(500).json({ error: 'Internal Server Error' });
   }
 });
+
+router.get('/current-player', protect, async (req, res) => {
+  try {
+    const playerId = req.user.playerId;  // This is set in the `protect` middleware
+
+    if (!playerId) {
+      return res.status(404).json({ error: 'Player not found' });
+    }
+
+    // Fetch the player information using the internal `id`
+    const player = await Player.findByPk(playerId, {
+      attributes: ['id', 'name', 'rating'], // Fetch any additional details you need
+    });
+
+    if (!player) {
+      return res.status(404).json({ error: 'Player not found' });
+    }
+
+    // Return the player's information
+    res.json(player);
+  } catch (error) {
+    console.error('Error fetching current player:', error);
+    res.status(500).json({ error: 'Internal Server Error' });
+  }
+});
+
 
 router.post('/create-room', protect, async (req, res) => {
   const { name } = req.body;
@@ -348,7 +386,6 @@ router.get('/players', protect, async (req, res) => {
         let totalPoints = 0; // For the player
         let teammateStats = {};
 
-        console.log(`Processing player ${player.name} (ID: ${player.id})`);
 
         // Iterate through each team assignment for the player
         for (const assignment of teamAssignments) {
@@ -356,7 +393,7 @@ router.get('/players', protect, async (req, res) => {
 
           // Skip if there is no result for the gameweek (i.e., player didn't play or result wasn't recorded)
           if (!gameResult) {
-            console.log(`Skipping gameweek ${assignment.gameweekId} (no result)`);
+            //console.log(`Skipping gameweek ${assignment.gameweekId} (no result)`);
             continue;
           }
 
@@ -673,6 +710,12 @@ router.post('/gameresults', protect, async (req, res) => {
       }
     );
 
+    // Set the voting close time to 48 hours after the game result is recorded
+    await Gameweek.update(
+      { voting_close_time: sequelize.literal("NOW() + INTERVAL '48 HOURS'") },
+      { where: { id: gameweekId } }
+    );
+
     await updatePlayerRatings(gameweekId, roomId);
     res.json(gameResult);
   } catch (error) {
@@ -680,6 +723,8 @@ router.post('/gameresults', protect, async (req, res) => {
     res.status(500).json({ error: 'Internal Server Error' });
   }
 });
+
+
 
 const updatePlayerRatings = async (gameweekId) => {
   try {
@@ -977,13 +1022,54 @@ router.get('/gameweeks', protect, async (req, res) => {
   try {
     const { roomId } = req.user;
 
-    const gameweeks = await Gameweek.findAll({ where: { roomId } });
-    res.json(gameweeks);
+    const gameweeks = await Gameweek.findAll({
+      where: { roomId },
+      include: [
+        {
+          model: GameResult,
+          attributes: ['teamA_score', 'teamB_score'],
+        },
+      ],
+    });
+
+    const gameweekData = await Promise.all(
+      gameweeks.map(async (gameweek) => {
+        const gameweekId = gameweek.id; // Define gameweekId correctly here
+        const votes = await Vote.findAll({
+          where: { gameweek_id: gameweekId }, // Use gameweekId here
+          attributes: [
+            'voted_player_id',
+            [sequelize.fn('COUNT', sequelize.col('voted_player_id')), 'vote_count'],
+          ],
+          group: ['voted_player_id'],
+          order: [[sequelize.literal('vote_count'), 'DESC']],
+        });
+
+        let playerOfTheMatch = null;
+
+        if (votes.length > 0) {
+          const topVote = votes[0];
+          playerOfTheMatch = await Player.findByPk(topVote.voted_player_id, {
+            attributes: ['id', 'name'],
+          });
+        }
+
+        return {
+          ...gameweek.toJSON(),
+          playerOfTheMatch: playerOfTheMatch ? playerOfTheMatch.name : 'No votes yet',
+          votingCloseTime: gameweek.voting_close_time,
+        };
+      })
+    );
+
+    res.json(gameweekData);
   } catch (error) {
     console.error('Error fetching gameweeks:', error);
     res.status(500).json({ error: 'Internal Server Error' });
   }
 });
+
+
 
 router.delete('/gameweeks/:id', protect, async (req, res) => {
   try {
@@ -1026,6 +1112,122 @@ router.get('/teamassignments', protect, async (req, res) => {
     res.status(500).json({ error: 'Internal Server Error' });
   }
 });
+
+
+router.post('/votes', protect, async (req, res) => {
+  const { gameweekId, votedPlayerId } = req.body; // Ensure you're passing internal player id
+  const votingPlayerId = req.user.playerId;  // Using internal player ID, not auth0Id
+
+  try {
+    const gameweek = await Gameweek.findByPk(gameweekId);
+
+    if (!gameweek) {
+      return res.status(404).json({ message: 'Gameweek not found' });
+    }
+
+    // Check if voting is still open
+    const now = new Date();
+    const votingCloseTime = new Date(gameweek.voting_close_time);
+    
+    if (now > votingCloseTime) {
+      return res.status(400).json({ message: 'Voting has closed for this gameweek' });
+    }
+    
+
+    // Create or update vote
+    const vote = await Vote.upsert({
+      gameweek_id: gameweekId,
+      voting_player_id: votingPlayerId,
+      voted_player_id: votedPlayerId,  // Ensure this is present
+      voted_at: new Date(),
+    });
+    
+    res.json(vote);
+  } catch (error) {
+    console.error('Error voting for Player of the Match:', error);
+    res.status(500).json({ error: 'Error submitting vote' });
+  }
+});
+
+router.get('/has-voted', protect, async (req, res) => {
+  const { gameweekId } = req.query;
+  const voting_player_id = req.user.playerId; // Internal player ID
+
+  try {
+    const vote = await Vote.findOne({
+      where: {
+        gameweek_id: gameweekId,
+        voting_player_id, // Internal player ID to check if they have voted
+      },
+    });
+
+    if (vote) {
+      return res.json({ hasVoted: true });
+    } else {
+      return res.json({ hasVoted: false });
+    }
+  } catch (error) {
+    console.error('Error checking voting status:', error);
+    res.status(500).json({ error: 'Error checking voting status' });
+  }
+});
+
+
+router.post('/votes', protect, async (req, res) => {
+  const { gameweekId, votedPlayerId } = req.body;
+  const votingPlayerId = req.user.playerId; // Using internal player ID
+
+  try {
+    // Check if the gameweek exists
+    const gameweek = await Gameweek.findByPk(gameweekId);
+    if (!gameweek) {
+      return res.status(404).json({ message: 'Gameweek not found' });
+    }
+
+    // Check if voting is still open
+    const now = new Date();
+    if (gameweek.voting_close_time && now > new Date(gameweek.voting_close_time)) {
+      return res.status(400).json({ message: 'Voting is closed for this gameweek' });
+    }
+
+    // Cast the vote (upsert ensures either insert or update)
+    const vote = await Vote.upsert({
+      gameweek_id: gameweekId,
+      voting_player_id: votingPlayerId,
+      voted_player_id: votedPlayerId,
+    });
+
+    res.json(vote);
+  } catch (error) {
+    console.error('Error casting vote:', error);
+    res.status(500).json({ error: 'Internal Server Error' });
+  }
+});
+
+
+router.get('/has-voted', protect, async (req, res) => {
+  const { gameweekId } = req.query;
+  const votingPlayerId = req.user.playerId;
+
+  try {
+    const vote = await Vote.findOne({
+      where: {
+        gameweek_id: gameweekId,
+        voting_player_id: votingPlayerId,
+      },
+    });
+
+    if (vote) {
+      return res.json({ hasVoted: true });
+    } else {
+      return res.json({ hasVoted: false });
+    }
+  } catch (error) {
+    console.error('Error checking voting status:', error);
+    res.status(500).json({ error: 'Internal Server Error' });
+  }
+});
+
 
 
 

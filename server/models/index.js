@@ -208,6 +208,41 @@ const TeamAssignment = sequelize.define('TeamAssignment', {
     ]
 });
 
+const Vote = sequelize.define('Vote', {
+    gameweek_id: {
+        type: DataTypes.INTEGER,
+        references: {
+            model: Gameweek,
+            key: 'id',
+        },
+        allowNull: false,
+    },
+    voting_player_id: {
+        type: DataTypes.INTEGER,
+        references: {
+            model: Player,
+            key: 'id',
+        },
+        allowNull: false,
+    },
+    voted_player_id: {
+        type: DataTypes.INTEGER,
+        references: {
+            model: Player,
+            key: 'id',
+        },
+        allowNull: false,
+    },
+    voted_at: {
+        type: DataTypes.DATE,
+        defaultValue: DataTypes.NOW,
+    }
+}, {
+    tableName: 'Votes',
+    timestamps: false,
+});
+
+
 // Associations
 Player.belongsToMany(Gameweek, { through: Availability, foreignKey: 'playerId', otherKey: 'gameweekId' });
 Gameweek.belongsToMany(Player, { through: Availability, foreignKey: 'gameweekId', otherKey: 'playerId' });
@@ -240,4 +275,4 @@ RoomMembership.belongsTo(Room, { foreignKey: 'roomId' });
 Player.hasMany(RoomMembership, { foreignKey: 'playerId' });
 Room.hasMany(RoomMembership, { foreignKey: 'roomId' });
 
-module.exports = { Player, Gameweek, GameResult, Availability, Rating, TeamAssignment, Room, RoomMembership, sequelize };
+module.exports = { Player, Gameweek, GameResult, Availability, Rating, TeamAssignment, Room, RoomMembership, Vote, sequelize };
