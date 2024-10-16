@@ -807,6 +807,43 @@ router.post('/availability', protect, async (req, res) => {
   }
 });
 
+router.post('/manual-teamassignment', protect, async (req, res) => {
+  const { gameweekId, playerId, team } = req.body;
+  const { roomId } = req.user;
+
+  try {
+    // Verify the player and gameweek are valid
+    const player = await Player.findOne({
+      include: {
+        model: RoomMembership,
+        where: { roomId },
+      },
+      where: { id: playerId },
+    });
+    if (!player) {
+      return res.status(404).json({ error: 'Player not found' });
+    }
+
+    const gameweek = await Gameweek.findByPk(gameweekId);
+    if (!gameweek) {
+      return res.status(404).json({ error: 'Gameweek not found' });
+    }
+
+    // Manually assign the player to the specified team
+    await TeamAssignment.upsert({
+      gameweekId,
+      playerId,
+      team,
+    });
+
+    res.status(200).json({ message: 'Player assigned to team successfully' });
+  } catch (error) {
+    console.error('Error manually assigning player to team', error);
+    res.status(500).json({ error: 'Internal Server Error' });
+  }
+});
+
+
 router.post('/teamassignments', protect, async (req, res) => {
   try {
     const { gameweekId, playerIds, team } = req.body;

@@ -15,16 +15,19 @@ import {
   Row,
   Col,
   Space,
+  Dropdown,
+  Menu,
 } from "antd";
 import {
   DeleteOutlined,
   CloseOutlined,
   PlusOutlined,
   CheckCircleOutlined,
+  EllipsisOutlined,
 } from "@ant-design/icons";
 import { useAuth0 } from "@auth0/auth0-react";
 
-const { Title, Text, Paragraph } = Typography;
+const { Title } = Typography;
 const { Panel } = Collapse;
 
 const GameweekManager = () => {
@@ -39,9 +42,13 @@ const GameweekManager = () => {
   const [isAddGameweekModalVisible, setIsAddGameweekModalVisible] =
     useState(false);
   const [isResultModalVisible, setIsResultModalVisible] = useState(false);
+  const [manualAssignmentModalVisible, setManualAssignmentModalVisible] =
+    useState(false);
   const [resultGameweekId, setResultGameweekId] = useState(null);
   const [recordedResults, setRecordedResults] = useState({});
   const [searchTerm, setSearchTerm] = useState("");
+  const [selectedGameweekId, setSelectedGameweekId] = useState(null);
+  const [playerAssignments, setPlayerAssignments] = useState({});
 
   const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
 
@@ -92,19 +99,20 @@ const GameweekManager = () => {
       const teamB = [];
       response.data.forEach((assignment) => {
         if (assignment.team === "A") {
-          teamA.push(
-            players.find((player) => player.id === assignment.playerId)
-          );
+          teamA.push(players.find((player) => player.id === assignment.playerId));
         } else {
-          teamB.push(
-            players.find((player) => player.id === assignment.playerId)
-          );
+          teamB.push(players.find((player) => player.id === assignment.playerId));
         }
       });
       setTeams((prevTeams) => ({
         ...prevTeams,
         [gameweekId]: { teamA, teamB },
       }));
+      const playerAssignmentsData = response.data.reduce((acc, assignment) => {
+        acc[assignment.playerId] = assignment.team;
+        return acc;
+      }, {});
+      setPlayerAssignments(playerAssignmentsData);
     } catch (error) {
       console.error("Error fetching teams", error);
     }
@@ -155,6 +163,26 @@ const GameweekManager = () => {
       }));
     } catch (error) {
       console.error("Error fetching availability", error);
+    }
+  };
+
+  const handleManualTeamAssignment = async (playerId, gameweekId, team) => {
+    try {
+      const token = await getAccessTokenSilently();
+      await axios.post(
+        `${API_BASE_URL}/manual-teamassignment`,
+        { gameweekId, playerId, team },
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+      message.success("Player manually assigned to team");
+      fetchTeams(gameweekId); // Refresh teams after manual assignment
+    } catch (error) {
+      console.error("Error manually assigning player", error);
+      message.error("Error manually assigning player");
     }
   };
 
@@ -309,9 +337,24 @@ const GameweekManager = () => {
     fetchAvailability(gameweekId); // Fetch availability only once when opening the modal
   };
 
+  const showManualAssignmentModal = (gameweekId) => {
+    setSelectedGameweekId(gameweekId);
+    setManualAssignmentModalVisible(true);
+    fetchTeams(gameweekId);
+  };
+
+  const assignTeam = (playerId, team) => {
+    setPlayerAssignments((prevAssignments) => ({
+      ...prevAssignments,
+      [playerId]: team,
+    }));
+    handleManualTeamAssignment(playerId, selectedGameweekId, team);
+  };
+
   const handleCancel = () => {
     setIsAddGameweekModalVisible(false);
     setIsResultModalVisible(false);
+    setManualAssignmentModalVisible(false);
     form.resetFields();
   };
 
@@ -347,9 +390,6 @@ const GameweekManager = () => {
         renderItem={(gameweek) => {
           const resultExists = !!recordedResults[gameweek.id];
           const result = recordedResults[gameweek.id];
-          const playersWhoDidNotPlay = players.filter(
-            (player) => !availability[gameweek.id]?.[player.id]
-          );
           return (
             <List.Item style={{ width: "100%", padding: "8px 0px 0px 0px" }}>
               <Collapse
@@ -405,7 +445,14 @@ const GameweekManager = () => {
                         onChange={(e) => setSearchTerm(e.target.value)}
                         style={{ marginBottom: 8 }}
                       />
-                      <div style={{ maxHeight: "200px", overflowY: "scroll", borderBottom:'1px solid lightGray', marginBottom:4 }}>
+                      <div
+                        style={{
+                          maxHeight: "200px",
+                          overflowY: "scroll",
+                          borderBottom: "1px solid lightGray",
+                          marginBottom: 4,
+                        }}
+                      >
                         {filteredPlayers(gameweek.id).map((player) => (
                           <div
                             key={player.id}
@@ -508,7 +555,10 @@ const GameweekManager = () => {
                                 {player.auth0Id && (
                                   <Tooltip title="Player linked to user">
                                     <CheckCircleOutlined
-                                      style={{ color: "green", marginLeft: 5 }}
+                                      style={{
+                                        color: "green",
+                                        marginLeft: 5,
+                                      }}
                                     />
                                   </Tooltip>
                                 )}
@@ -537,7 +587,10 @@ const GameweekManager = () => {
                                 {player.auth0Id && (
                                   <Tooltip title="Player linked to user">
                                     <CheckCircleOutlined
-                                      style={{ color: "green", marginLeft: 5 }}
+                                      style={{
+                                        color: "green",
+                                        marginLeft: 5,
+                                      }}
                                     />
                                   </Tooltip>
                                 )}
@@ -597,19 +650,35 @@ const GameweekManager = () => {
                         <DeleteOutlined />
                       </Button>
                     </Popconfirm>
-                    <Button
-                      size="small"
-                      type="primary"
-                      onClick={() => showResultModal(gameweek.id)}
-                      disabled={
-                        !(
-                          teams[gameweek.id]?.teamA?.length > 0 &&
-                          teams[gameweek.id]?.teamB?.length > 0
-                        )
-                      }
-                    >
-                      {resultExists ? "Result Recorded" : "Record Game Result"}
-                    </Button>
+                    <Space>
+                      <Dropdown
+                        overlay={
+                          <Menu>
+                            <Menu.Item
+                              onClick={() => showManualAssignmentModal(gameweek.id)}
+                            >
+                              Override
+                            </Menu.Item>
+                          </Menu>
+                        }
+                        trigger={["click"]}
+                      >
+                        <Button icon={<EllipsisOutlined />} />
+                      </Dropdown>
+                      <Button
+                        size="small"
+                        type="primary"
+                        onClick={() => showResultModal(gameweek.id)}
+                        disabled={
+                          !(
+                            teams[gameweek.id]?.teamA?.length > 0 &&
+                            teams[gameweek.id]?.teamB?.length > 0
+                          )
+                        }
+                      >
+                        {resultExists ? "Result Recorded" : "Record Game Result"}
+                      </Button>
+                    </Space>
                   </div>
                 </Panel>
               </Collapse>
@@ -729,6 +798,41 @@ const GameweekManager = () => {
             </Space>
           </Row>
         </Form>
+      </Modal>
+
+      <Modal
+        title="Manual Team Assignment"
+        visible={manualAssignmentModalVisible}
+        onCancel={handleCancel}
+        footer={[
+          <Button key="cancel" onClick={handleCancel}>
+            Cancel
+          </Button>,
+        ]}
+      >
+        <p>Assign Players to Teams</p>
+        {players.map((player) => (
+          <div
+            key={player.id}
+            style={{ display: "flex", justifyContent: "space-between", margin: '8px 0' }}
+          >
+            <span>{player.name}</span>
+            <Space>
+              <Button
+                type={playerAssignments[player.id] === "A" ? "primary" : "default"}
+                onClick={() => assignTeam(player.id, "A")}
+              >
+                Team A
+              </Button>
+              <Button
+                type={playerAssignments[player.id] === "B" ? "primary" : "default"}
+                onClick={() => assignTeam(player.id, "B")}
+              >
+                Team B
+              </Button>
+            </Space>
+          </div>
+        ))}
       </Modal>
     </div>
   );
