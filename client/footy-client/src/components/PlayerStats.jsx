@@ -31,6 +31,11 @@ const PlayerStats = () => {
         fetchPlayerStats();
     }, []);
 
+    const calculatePercentage = (count, total) => {
+        if (total === 0) return "0%";
+        return `${((count / total) * 100).toFixed(1)}%`;
+    };
+
     const columns = [
         {
             title: 'Name',
@@ -55,7 +60,18 @@ const PlayerStats = () => {
             key: 'wins',
             sorter: (a, b) => a.wins - b.wins,
             defaultSortOrder: 'descend',
-            width: 50,
+            width: 45,
+            render: (wins, record) => {
+                const totalGames = record.wins + record.losses + record.draws;
+                return (
+                    <div style={{textAlign:'center'}}>
+                        {wins}
+                        <br /><span style={{ fontSize: '0.6em', color: 'gray', whiteSpace:'nowrap'}}>
+                            ({calculatePercentage(wins, totalGames)})
+                        </span>
+                    </div>
+                );
+            }
         },
         {
             title: 'Ls',
@@ -63,6 +79,17 @@ const PlayerStats = () => {
             key: 'losses',
             sorter: (a, b) => a.losses - b.losses,
             width: 50,
+            render: (losses, record) => {
+                const totalGames = record.wins + record.losses + record.draws;
+                return (
+                    <div style={{textAlign:'center', padding:0}}>
+                        {losses}
+                        <br /><span style={{ fontSize: '0.6em', color: 'gray', whiteSpace:'nowrap'}}>
+                            ({calculatePercentage(losses, totalGames)})
+                        </span>
+                    </div>
+                );
+            }
         },
         {
             title: 'Ds',
@@ -70,6 +97,17 @@ const PlayerStats = () => {
             key: 'draws',
             sorter: (a, b) => a.draws - b.draws,
             width: 50,
+            render: (draws, record) => {
+                const totalGames = record.wins + record.losses + record.draws;
+                return (
+                    <div style={{textAlign:'center', padding:0}}>
+                        {draws}
+                        <br /><span style={{ fontSize: '0.6em', color: 'gray', whiteSpace:'nowrap'}}>
+                            ({calculatePercentage(draws, totalGames)})
+                        </span>
+                    </div>
+                );
+            }
         },
         {
             title: 'G+',
