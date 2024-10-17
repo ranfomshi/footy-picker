@@ -74,11 +74,11 @@ const GameweekManager = () => {
     console.log("Current User ID:", currentUserId); // Add this line for debugging
   }, [currentUserId]);
 
-  const castVote = async (gameweekId, votedPlayerId) => {
+  const castVote = async (gameweekId, votedPlayerId, currentUserId) => {
     const token = await getAccessTokenSilently();
     await axios.post(
       `${API_BASE_URL}/votes`,
-      { gameweekId, votedPlayerId },
+      { gameweekId, votedPlayerId, currentUserId },
       {
         headers: { Authorization: `Bearer ${token}` },
       }
@@ -665,7 +665,7 @@ const GameweekManager = () => {
                                   <Button
                                     size="small"
                                     onClick={() =>
-                                      castVote(gameweek.id, player.id)
+                                      castVote(gameweek.id, player.id, currentUserId)
                                     }
                                   >
                                     Vote
@@ -741,7 +741,7 @@ const GameweekManager = () => {
                                   <Button
                                     size="small"
                                     onClick={() =>
-                                      castVote(gameweek.id, player.id)
+                                      castVote(gameweek.id, player.id, currentUserId)
                                     }
                                   >
                                     Vote

@@ -1138,14 +1138,13 @@ router.get('/teamassignments', protect, async (req, res) => {
 
 router.post('/votes', protect, async (req, res) => {
   try {
-    const { gameweekId, votedPlayerId } = req.body;
-    const { userId, auth0Id } = req.user; // Assume auth0Id is being passed to identify the user.
+    const { gameweekId, votedPlayerId, currentUserId } = req.body;
 
     // Fetch the gameweek assignments to check if the user played in this gameweek
     const playerAssignment = await TeamAssignment.findOne({
       where: {
-        gameweek_id: gameweekId,
-        player_id: userId, // Check if the user was assigned to a team
+        gameweekId: gameweekId,
+        playerId: currentUserId, // Check if the user was assigned to a team
       },
     });
 
@@ -1153,21 +1152,16 @@ router.post('/votes', protect, async (req, res) => {
       return res.status(403).json({ error: 'You did not play in this gameweek and cannot vote.' });
     }
 
-    // Fetch the player's record to prevent self-voting
-    const userPlayerRecord = await Player.findOne({ where: { auth0Id } });
-
-    if (!userPlayerRecord) {
-      return res.status(404).json({ error: 'Player record not found.' });
-    }
+    
 
     // Prevent self-voting
-    if (userPlayerRecord.id === votedPlayerId) {
+    if (currentUserId === votedPlayerId) {
       return res.status(403).json({ error: 'You cannot vote for yourself.' });
     }
 
     // Check if the user has already voted in this gameweek
     const existingVote = await Vote.findOne({
-      where: { gameweek_id: gameweekId, player_id: userPlayerRecord.id },
+      where: { gameweek_id: gameweekId, voting_player_id: currentUserId },
     });
 
     if (existingVote) {
@@ -1178,7 +1172,7 @@ router.post('/votes', protect, async (req, res) => {
     const vote = await Vote.create({
       gameweek_id: gameweekId,
       voted_player_id: votedPlayerId,
-      player_id: userPlayerRecord.id, // The player casting the vote
+      voting_player_id: currentUserId,
     });
 
     return res.status(201).json({ message: 'Vote cast successfully!', vote });
@@ -1213,61 +1207,6 @@ router.get('/has-voted', protect, async (req, res) => {
 });
 
 
-router.post('/votes', protect, async (req, res) => {
-  const { gameweekId, votedPlayerId } = req.body;
-  const votingPlayerId = req.user.playerId; // Using internal player ID
-
-  try {
-    // Check if the gameweek exists
-    const gameweek = await Gameweek.findByPk(gameweekId);
-    if (!gameweek) {
-      return res.status(404).json({ message: 'Gameweek not found' });
-    }
-
-    // Check if voting is still open
-    const now = new Date();
-    if (gameweek.voting_close_time && now > new Date(gameweek.voting_close_time)) {
-      return res.status(400).json({ message: 'Voting is closed for this gameweek' });
-    }
-
-    // Cast the vote (upsert ensures either insert or update)
-    const vote = await Vote.upsert({
-      gameweek_id: gameweekId,
-      voting_player_id: votingPlayerId,
-      voted_player_id: votedPlayerId,
-    });
-
-    res.json(vote);
-  } catch (error) {
-    
-    console.error('Error casting vote:', req.user);
-    res.status(500).json({ error: 'Internal Server Error' });
-  }
-});
-
-
-router.get('/has-voted', protect, async (req, res) => {
-  const { gameweekId } = req.query;
-  const votingPlayerId = req.user.playerId;
-
-  try {
-    const vote = await Vote.findOne({
-      where: {
-        gameweek_id: gameweekId,
-        voting_player_id: votingPlayerId,
-      },
-    });
-
-    if (vote) {
-      return res.json({ hasVoted: true });
-    } else {
-      return res.json({ hasVoted: false });
-    }
-  } catch (error) {
-    console.error('Error checking voting status:', error);
-    res.status(500).json({ error: 'Internal Server Error' });
-  }
-});
 
 
 
