@@ -50,6 +50,7 @@ const GameweekManager = () => {
   const [selectedGameweekId, setSelectedGameweekId] = useState(null);
   const [playerAssignments, setPlayerAssignments] = useState({});
   const [hasVoted, setHasVoted] = useState({});
+  const [currentUserId, setCurrentUserId] = useState(null);
 
   const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
 
@@ -65,7 +66,13 @@ const GameweekManager = () => {
       ...prevHasVoted,
       [gameweekId]: response.data.hasVoted,
     }));
+
+    setCurrentUserId(response.data.player_id);
   };
+
+  useEffect(() => {
+    console.log("Current User ID:", currentUserId); // Add this line for debugging
+  }, [currentUserId]);
 
   const castVote = async (gameweekId, votedPlayerId) => {
     const token = await getAccessTokenSilently();
@@ -495,20 +502,30 @@ const GameweekManager = () => {
                   }
                   key={gameweek.id}
                 >
-                  {resultExists && <>{gameweek.playerOfTheMatch && (
-                    <div style={{ marginBottom: 8 }}>
-                      <strong>Player(s) of the Match:</strong>{" "}
-                      {Array.isArray(gameweek.playerOfTheMatch)
-                        ? gameweek.playerOfTheMatch.join(", ")
-                        : gameweek.playerOfTheMatch}
-                    </div>
+                  {resultExists && (
+                    <>
+                      {gameweek.playerOfTheMatch && (
+                        <div style={{ marginBottom: 8 }}>
+                          <strong>Player(s) of the Match:</strong>{" "}
+                          {Array.isArray(gameweek.playerOfTheMatch)
+                            ? gameweek.playerOfTheMatch.join(", ")
+                            : gameweek.playerOfTheMatch}
+                        </div>
+                      )}
+                      <div>
+                        <span>
+                          {isVotingOpen(gameweek) ? (
+                            <>
+                              <strong>Voting closes:</strong>
+                              {`${formatTime(gameweek.votingCloseTime)}`}
+                            </>
+                          ) : (
+                            <strong>Voting closed</strong>
+                          )}
+                        </span>
+                      </div>
+                    </>
                   )}
-                  <div>
-                    <span>
-                    {isVotingOpen(gameweek) ? <><strong>Voting closes:</strong>
-                      {`${formatTime(gameweek.votingCloseTime)}`}</> : <strong>Voting closed</strong>}
-                    </span>
-                  </div></>}
                   {!resultExists && (
                     <div>
                       <Input.Search
@@ -635,8 +652,16 @@ const GameweekManager = () => {
                                   </Tooltip>
                                 )}
                               </span>
-                              {isVotingOpen(gameweek) &&
-                                !hasVoted[gameweek.id] && resultExists && (
+                              {teams[gameweek.id] &&
+                                currentUserId && // Ensure the currentUserId is available
+                                teams[gameweek.id].teamA
+                                  .concat(teams[gameweek.id].teamB)
+                                  .some(
+                                    (player) => player.id === currentUserId
+                                  ) &&
+                                isVotingOpen(gameweek) && // Ensure voting is still open
+                                !hasVoted[gameweek.id] && // Ensure the player hasn't voted yet
+                                player.id !== currentUserId && ( // Only hide the vote button for yourself
                                   <Button
                                     size="small"
                                     onClick={() =>
@@ -704,8 +729,15 @@ const GameweekManager = () => {
                                   }
                                 />
                               )}
-                              {isVotingOpen(gameweek) &&
-                                !hasVoted[gameweek.id] && resultExists && (
+                              {teams[gameweek.id] &&
+                                teams[gameweek.id].teamA
+                                  .concat(teams[gameweek.id].teamB)
+                                  .some(
+                                    (player) => player.id === currentUserId
+                                  ) && // Check if the player participated
+                                isVotingOpen(gameweek) && // Ensure voting is still open
+                                !hasVoted[gameweek.id] && // Ensure the player hasn't voted yet
+                                player.id !== currentUserId && ( // Only hide the vote button for yourself
                                   <Button
                                     size="small"
                                     onClick={() =>
