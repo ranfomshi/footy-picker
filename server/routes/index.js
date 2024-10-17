@@ -1058,18 +1058,28 @@ router.get('/gameweeks', protect, async (req, res) => {
           order: [[sequelize.literal('vote_count'), 'DESC']],
         });
 
-        let playerOfTheMatch = null;
+        let playerOfTheMatch = [];
 
         if (votes.length > 0) {
-          const topVote = votes[0];
-          playerOfTheMatch = await Player.findByPk(topVote.voted_player_id, {
-            attributes: ['id', 'name'],
-          });
+          const topVoteCount = votes[0].dataValues.vote_count;
+          
+          // Find all players tied for the top vote count
+          const topVotes = votes.filter(vote => vote.dataValues.vote_count === topVoteCount);
+
+          // Fetch all players tied for the top spot
+          for (const vote of topVotes) {
+            const player = await Player.findByPk(vote.voted_player_id, {
+              attributes: ['id', 'name'],
+            });
+            if (player) {
+              playerOfTheMatch.push(player.name); // Add player name to array
+            }
+          }
         }
 
         return {
           ...gameweek.toJSON(),
-          playerOfTheMatch: playerOfTheMatch ? playerOfTheMatch.name : 'No votes yet',
+          playerOfTheMatch: playerOfTheMatch.length > 0 ? playerOfTheMatch : 'No votes yet', // Return array or message
           votingCloseTime, // Dynamically calculated
         };
       })

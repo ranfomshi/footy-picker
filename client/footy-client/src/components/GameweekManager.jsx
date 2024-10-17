@@ -505,8 +505,8 @@ const GameweekManager = () => {
                   )}
                   <div>
                     <span>
-                      <strong>Voting closes:</strong>{" "}
-                      {`${formatTime(gameweek.votingCloseTime)}`}
+                    {isVotingOpen(gameweek) ? <><strong>Voting closes:</strong>
+                      {`${formatTime(gameweek.votingCloseTime)}`}</> : <strong>Voting closed</strong>}
                     </span>
                   </div></>}
                   {!resultExists && (
