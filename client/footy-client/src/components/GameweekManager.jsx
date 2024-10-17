@@ -49,7 +49,7 @@ const GameweekManager = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedGameweekId, setSelectedGameweekId] = useState(null);
   const [playerAssignments, setPlayerAssignments] = useState({});
-  const [hasVoted, setHasVoted] = useState(false);
+  const [hasVoted, setHasVoted] = useState({});
 
   const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
 
@@ -61,7 +61,10 @@ const GameweekManager = () => {
         headers: { Authorization: `Bearer ${token}` },
       }
     );
-    setHasVoted(response.data.hasVoted);
+    setHasVoted((prevHasVoted) => ({
+      ...prevHasVoted,
+      [gameweekId]: response.data.hasVoted,
+    }));
   };
 
   const castVote = async (gameweekId, votedPlayerId) => {
@@ -73,7 +76,10 @@ const GameweekManager = () => {
         headers: { Authorization: `Bearer ${token}` },
       }
     );
-    setHasVoted(true);
+    setHasVoted((prevHasVoted) => ({
+      ...prevHasVoted,
+      [gameweekId]: true,
+    }));
     message.success("Vote cast successfully!");
   };
 
@@ -213,6 +219,12 @@ const GameweekManager = () => {
       console.error("Error manually assigning player", error);
       message.error("Error manually assigning player");
     }
+  };
+
+  const isVotingOpen = (gameweek) => {
+    const now = new Date();
+    const votingCloseTime = new Date(gameweek.votingCloseTime);
+    return now < votingCloseTime;
   };
 
   const fetchRecordedResults = async () => {
@@ -400,6 +412,22 @@ const GameweekManager = () => {
     fetchRecordedResults();
   }, []);
 
+  function formatTime(isoString) {
+    const date = new Date(isoString);
+
+    const options = {
+      year: "numeric",
+      month: "long",
+      day: "numeric",
+      hour: "numeric",
+      minute: "numeric",
+      second: "numeric",
+      hour12: true,
+    };
+
+    return date.toLocaleDateString("en-US", options);
+  }
+
   // Sort gameweeks by date in descending order
   const sortedGameweeks = Object.values(gameweeks).sort(
     (a, b) => new Date(b.date) - new Date(a.date)
@@ -467,7 +495,7 @@ const GameweekManager = () => {
                   }
                   key={gameweek.id}
                 >
-                  {gameweek.playerOfTheMatch && (
+                  {resultExists && <>{gameweek.playerOfTheMatch && (
                     <div style={{ marginBottom: 8 }}>
                       <strong>Player(s) of the Match:</strong>{" "}
                       {Array.isArray(gameweek.playerOfTheMatch)
@@ -475,6 +503,12 @@ const GameweekManager = () => {
                         : gameweek.playerOfTheMatch}
                     </div>
                   )}
+                  <div>
+                    <span>
+                      <strong>Voting closes:</strong>{" "}
+                      {`${formatTime(gameweek.votingCloseTime)}`}
+                    </span>
+                  </div></>}
                   {!resultExists && (
                     <div>
                       <Input.Search
@@ -601,16 +635,17 @@ const GameweekManager = () => {
                                   </Tooltip>
                                 )}
                               </span>
-                              {!hasVoted && (
-                                <Button
-                                  size="small"
-                                  onClick={() =>
-                                    castVote(gameweek.id, player.id)
-                                  }
-                                >
-                                  Vote
-                                </Button>
-                              )}
+                              {isVotingOpen(gameweek) &&
+                                !hasVoted[gameweek.id] && resultExists && (
+                                  <Button
+                                    size="small"
+                                    onClick={() =>
+                                      castVote(gameweek.id, player.id)
+                                    }
+                                  >
+                                    Vote
+                                  </Button>
+                                )}
                             </li>
                           ))}
                         </ul>
@@ -669,16 +704,17 @@ const GameweekManager = () => {
                                   }
                                 />
                               )}
-                              {!hasVoted && (
-                                <Button
-                                  size="small"
-                                  onClick={() =>
-                                    castVote(gameweek.id, player.id)
-                                  }
-                                >
-                                  Vote
-                                </Button>
-                              )}
+                              {isVotingOpen(gameweek) &&
+                                !hasVoted[gameweek.id] && resultExists && (
+                                  <Button
+                                    size="small"
+                                    onClick={() =>
+                                      castVote(gameweek.id, player.id)
+                                    }
+                                  >
+                                    Vote
+                                  </Button>
+                                )}
                             </li>
                           ))}
                         </ul>
@@ -712,7 +748,8 @@ const GameweekManager = () => {
                       <Dropdown
                         overlay={
                           <Menu>
-                            <Menu.Item  disabled={resultExists}
+                            <Menu.Item
+                              disabled={resultExists}
                               onClick={() =>
                                 showManualAssignmentModal(gameweek.id)
                               }
@@ -723,7 +760,9 @@ const GameweekManager = () => {
                         }
                         trigger={["click"]}
                       >
-                        <Button icon={<EllipsisOutlined  disabled={resultExists} />} />
+                        <Button
+                          icon={<EllipsisOutlined disabled={resultExists} />}
+                        />
                       </Dropdown>
                       <Button
                         size="small"

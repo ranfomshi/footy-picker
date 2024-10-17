@@ -1027,16 +1027,29 @@ router.get('/gameweeks', protect, async (req, res) => {
       include: [
         {
           model: GameResult,
-          attributes: ['teamA_score', 'teamB_score'],
+          attributes: ['teamA_score', 'teamB_score', 'createdAt'], // Ensure createdAt is included
         },
       ],
     });
 
     const gameweekData = await Promise.all(
       gameweeks.map(async (gameweek) => {
-        const gameweekId = gameweek.id; // Define gameweekId correctly here
+        const gameweekId = gameweek.id;
+        const gameResult = gameweek.GameResult;
+
+        // Calculate voting close time dynamically based on the GameResult's createdAt timestamp
+        let votingCloseTime = null;
+
+        if (gameResult) {
+          // Use Date.parse() to correctly parse the GameResult's createdAt date including the timezone offset
+          const parsedCreatedAt = new Date(Date.parse(gameResult.createdAt));
+
+          // Calculate voting close time by adding 48 hours to the GameResult's createdAt
+          votingCloseTime = new Date(parsedCreatedAt.getTime() + 48 * 60 * 60 * 1000);
+        }
+
         const votes = await Vote.findAll({
-          where: { gameweek_id: gameweekId }, // Use gameweekId here
+          where: { gameweek_id: gameweekId },
           attributes: [
             'voted_player_id',
             [sequelize.fn('COUNT', sequelize.col('voted_player_id')), 'vote_count'],
@@ -1057,7 +1070,7 @@ router.get('/gameweeks', protect, async (req, res) => {
         return {
           ...gameweek.toJSON(),
           playerOfTheMatch: playerOfTheMatch ? playerOfTheMatch.name : 'No votes yet',
-          votingCloseTime: gameweek.voting_close_time,
+          votingCloseTime, // Dynamically calculated
         };
       })
     );
@@ -1068,7 +1081,6 @@ router.get('/gameweeks', protect, async (req, res) => {
     res.status(500).json({ error: 'Internal Server Error' });
   }
 });
-
 
 
 router.delete('/gameweeks/:id', protect, async (req, res) => {
