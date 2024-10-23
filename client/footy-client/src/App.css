@@ -33,13 +33,18 @@
 .content {
   flex: 1;
   padding: 20px;
-  background: linear-gradient(180deg, rgba(242,242,242,1) 0%, rgba(242,242,242,1) 62%, rgba(52,176,119,0.711922268907563) 100%);
+  background: linear-gradient(
+    180deg,
+    rgba(242, 242, 242, 1) 0%,
+    rgba(242, 242, 242, 1) 62%,
+    rgba(52, 176, 119, 0.711922268907563) 100%
+  );
 }
 
 .bottom-nav {
   position: fixed;
   bottom: 0;
-  width: 100VW;
+  width: 100vw;
   max-width: 500px;
   background: #fff;
   box-shadow: 0 -2px 8px rgba(0, 0, 0, 0.1);
@@ -64,8 +69,15 @@
   padding: 2em;
 }
 
-.ant-switch-checked{
-  background:#3aad44 !important;
+.ant-switch-checked {
+  background: #3aad44 !important;
 }
 
-
+.voteBtn {
+  padding: 3px;
+  height: 17px;
+  font-size: smaller;
+  align-self: end;
+  margin: 2px;
+  line-height: normal;
+}

@@ -24,6 +24,7 @@ import {
   PlusOutlined,
   CheckCircleOutlined,
   EllipsisOutlined,
+  TrophyTwoTone
 } from "@ant-design/icons";
 import { useAuth0 } from "@auth0/auth0-react";
 
@@ -84,26 +85,25 @@ const GameweekManager = () => {
           headers: { Authorization: `Bearer ${token}` },
         }
       );
-  
+
       // Update the gameweeks state with the updated player of the match
       setGameweeks((prevGameweeks) => ({
         ...prevGameweeks,
         [gameweekId]: response.data,
       }));
-  
+
       // Update hasVoted state immediately
       setHasVoted((prevHasVoted) => ({
         ...prevHasVoted,
         [gameweekId]: true, // Set to true for this gameweek
       }));
-  
+
       message.success("Vote cast successfully!");
     } catch (error) {
       console.error("Error casting vote", error);
       message.error("Failed to cast vote");
     }
   };
-  
 
   const fetchGameweeks = async () => {
     try {
@@ -518,9 +518,10 @@ const GameweekManager = () => {
                   key={gameweek.id}
                 >
                   {resultExists && (
-                    <>
+                    <div style={{padding: 8, background:'rgba(242, 242, 242, 1)', borderRadius:8, margin:8, marginRight:16, flex:1 }}>
                       {gameweek.playerOfTheMatch && (
                         <div style={{ marginBottom: 8 }}>
+                          <TrophyTwoTone twoToneColor={'#00b96b'} style={{margin:8, fontSize:20}}/>
                           <strong>Player(s) of the Match:</strong>{" "}
                           {Array.isArray(gameweek.playerOfTheMatch)
                             ? gameweek.playerOfTheMatch.join(", ")
@@ -531,15 +532,15 @@ const GameweekManager = () => {
                         <span>
                           {isVotingOpen(gameweek) ? (
                             <>
-                              <strong>Voting closes:</strong>
-                              {`${formatTime(gameweek.votingCloseTime)}`}
+                              <small><strong>Voting closes:</strong>
+                              {`${formatTime(gameweek.votingCloseTime)}`}</small>
                             </>
                           ) : (
                             <strong>Voting closed</strong>
                           )}
                         </span>
                       </div>
-                    </>
+                    </div>
                   )}
                   {!resultExists && (
                     <div>
@@ -613,7 +614,7 @@ const GameweekManager = () => {
                         justifyContent: "space-between",
                       }}
                     >
-                      <div style={{ flex: 1, marginRight: 16 }}>
+                      <div style={{padding: 8, background:'rgba(242, 242, 242, 1)', borderRadius:8, margin:8, marginRight:16, flex:1 }}>
                         <Title style={{ marginTop: 0 }} level={5} marginTop={0}>
                           Team A
                         </Title>
@@ -655,6 +656,32 @@ const GameweekManager = () => {
                                 />
                               )}
                               <span>
+                              {teams[gameweek.id] &&
+                                currentUserId &&
+                                teams[gameweek.id].teamA
+                                  .concat(teams[gameweek.id].teamB)
+                                  .some(
+                                    (player) => player.id === currentUserId
+                                  ) &&
+                                isVotingOpen(gameweek) && // Check if voting is open
+                                !hasVoted[gameweek.id] && // Check if user hasn't voted yet
+                                player.id !== currentUserId && ( // Hide vote button for yourself
+                                  <Button
+                                    type="primary"
+                                    className="voteBtn"
+                                    style={{marginRight: 4}}
+                                    size="small"
+                                    onClick={() =>
+                                      castVote(
+                                        gameweek.id,
+                                        player.id,
+                                        currentUserId
+                                      )
+                                    }
+                                  >
+                                    Vote
+                                  </Button>
+                                )}
                                 {player.name}{" "}
                                 {player.auth0Id && (
                                   <Tooltip title="Player linked to user">
@@ -667,26 +694,12 @@ const GameweekManager = () => {
                                   </Tooltip>
                                 )}
                               </span>
-                              {teams[gameweek.id] &&
-  currentUserId &&
-  teams[gameweek.id].teamA
-    .concat(teams[gameweek.id].teamB)
-    .some((player) => player.id === currentUserId) &&
-  isVotingOpen(gameweek) && // Check if voting is open
-  !hasVoted[gameweek.id] && // Check if user hasn't voted yet
-  player.id !== currentUserId && ( // Hide vote button for yourself
-    <Button
-      size="small"
-      onClick={() => castVote(gameweek.id, player.id, currentUserId)}
-    >
-      Vote
-    </Button>
-)}
+                          
                             </li>
                           ))}
                         </ul>
                       </div>
-                      <div style={{ flex: 1 }}>
+                      <div style={{padding: 8, background:'rgba(242, 242, 242, 1)', borderRadius:8, margin:8, flex:1 }}>
                         <Title style={{ marginTop: 0 }} level={5}>
                           Team B
                         </Title>
@@ -740,21 +753,31 @@ const GameweekManager = () => {
                                   }
                                 />
                               )}
-                             {teams[gameweek.id] &&
-  currentUserId &&
-  teams[gameweek.id].teamA
-    .concat(teams[gameweek.id].teamB)
-    .some((player) => player.id === currentUserId) &&
-  isVotingOpen(gameweek) && // Check if voting is open
-  !hasVoted[gameweek.id] && // Check if user hasn't voted yet
-  player.id !== currentUserId && ( // Hide vote button for yourself
-    <Button
-      size="small"
-      onClick={() => castVote(gameweek.id, player.id, currentUserId)}
-    >
-      Vote
-    </Button>
-)}
+                              {teams[gameweek.id] &&
+                                currentUserId &&
+                                teams[gameweek.id].teamA
+                                  .concat(teams[gameweek.id].teamB)
+                                  .some(
+                                    (player) => player.id === currentUserId
+                                  ) &&
+                                isVotingOpen(gameweek) && // Check if voting is open
+                                !hasVoted[gameweek.id] && // Check if user hasn't voted yet
+                                player.id !== currentUserId && ( // Hide vote button for yourself
+                                  <Button
+                                    type="primary"
+                                    className="voteBtn"
+                                    size="small"
+                                    onClick={() =>
+                                      castVote(
+                                        gameweek.id,
+                                        player.id,
+                                        currentUserId
+                                      )
+                                    }
+                                  >
+                                    Vote
+                                  </Button>
+                                )}
                             </li>
                           ))}
                         </ul>
