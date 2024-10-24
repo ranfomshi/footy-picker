@@ -41,6 +41,7 @@ const PlayerStats = () => {
             title: 'Name',
             dataIndex: 'name',
             key: 'name',
+            fixed: 'left',
             sorter: (a, b) => a.name.localeCompare(b.name),
             width: 100,
             render: (text, record) => (
