@@ -43,18 +43,28 @@ const PlayerStats = () => {
             key: 'name',
             fixed: 'left',
             sorter: (a, b) => a.name.localeCompare(b.name),
-            width: 100,
-            render: (text, record) => (
-                <div style={{whiteSpace:'nowrap'}}>
-                    {text}{" "}
-                    {record.auth0Id && (
-                        <Tooltip title="Player linked to user">
-                            <CheckCircleOutlined style={{ color: "green", marginLeft: 5 }} />
-                        </Tooltip>
-                    )}
+            width: 80,
+            render: (text, record) => {
+              // Check if the name is longer than 15 characters
+              const isLongName = text.length > 15;
+              // Truncate the name if necessary
+              const displayName = isLongName ? `${text.slice(0, 15)}...` : text;
+          
+              return (
+                <div style={{ whiteSpace: 'nowrap' }}>
+                  <Tooltip title={text}>
+                    <span style={{fontSize:'small'}}>{displayName}</span>
+                  </Tooltip>
+                  {record.auth0Id && (
+                    <Tooltip title="Player linked to user">
+                      <CheckCircleOutlined style={{ color: 'green', marginLeft: 5 }} />
+                    </Tooltip>
+                  )}
                 </div>
-            ),
-        },
+              );
+            },
+          },
+          
         {
             title: 'Ws',
             dataIndex: 'wins',
