@@ -45,15 +45,31 @@ const PlayerStats = () => {
             sorter: (a, b) => a.name.localeCompare(b.name),
             width: 80,
             render: (text, record) => {
-              // Check if the name is longer than 15 characters
-              const isLongName = text.length > 15;
-              // Truncate the name if necessary
-              const displayName = isLongName ? `${text.slice(0, 15)}...` : text;
+              // Split the name into words
+              const words = text.split(' ');
+          
+              // Truncate words longer than 15 characters
+              const processedWords = words.map((word) => {
+                if (word.length > 15) {
+                  return word.slice(0, 15) + '...';
+                }
+                return word;
+              });
+          
+              // Join the processed words back into a string
+              const displayName = processedWords.join(' ');
           
               return (
-                <div style={{ whiteSpace: 'nowrap' }}>
+                <div style={{ whiteSpace: 'normal' }}>
                   <Tooltip title={text}>
-                    <span style={{fontSize:'small'}}>{displayName}</span>
+                    <span
+                      style={{
+                        fontSize: 'small',
+                        wordBreak: 'break-word',
+                      }}
+                    >
+                      {displayName}
+                    </span>
                   </Tooltip>
                   {record.auth0Id && (
                     <Tooltip title="Player linked to user">
@@ -64,6 +80,7 @@ const PlayerStats = () => {
               );
             },
           },
+          
           
         {
             title: 'Ws',
