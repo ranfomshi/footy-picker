@@ -14,7 +14,7 @@ const BottomNav = ({ activeKey, onChange }) => {
     };
 
     return (isAuthenticated && hasJoinedRoom ?
-        <TabBar activeKey={activeKey} onChange={onChange}>
+        <TabBar style={{zIndex:9}} activeKey={activeKey} onChange={onChange}>
             <TabBar.Item 
                 key="players" 
                 icon={<UserOutline />} 
