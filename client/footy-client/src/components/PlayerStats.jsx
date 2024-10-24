@@ -123,6 +123,13 @@ const PlayerStats = () => {
             sorter: (a, b) => a.goalsAgainst - b.goalsAgainst,
             width: 50,
         },
+        {
+            title: 'PoM',
+            dataIndex: 'playerOfTheMatchCount',
+            key: 'playerOfTheMatchCount',
+            sorter: (a, b) => a.playerOfTheMatchCount - b.playerOfTheMatchCount,
+            width: 50,
+        },
     ];
 
     return (

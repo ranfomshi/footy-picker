@@ -374,6 +374,73 @@ router.get('/players', protect, async (req, res) => {
       ],
     });
 
+    // Fetch all gameweeks in the room
+    const gameweeks = await Gameweek.findAll({
+      where: { roomId },
+    });
+
+    // Fetch all votes for gameweeks in the room
+    const votes = await Vote.findAll({
+      where: {
+        gameweek_id: {
+          [Op.in]: gameweeks.map((gw) => gw.id),
+        },
+      },
+      attributes: [
+        'gameweek_id',
+        'voted_player_id',
+        [sequelize.fn('COUNT', sequelize.col('voted_player_id')), 'vote_count'],
+      ],
+      group: ['gameweek_id', 'voted_player_id'],
+      order: [
+        ['gameweek_id', 'ASC'],
+        [sequelize.literal('vote_count'), 'DESC'],
+      ],
+    });
+
+    // Build a mapping of gameweekId to player(s) of the match
+    const playerOfTheMatchMap = {};
+
+    // Group votes by gameweek
+    const votesByGameweek = votes.reduce((acc, vote) => {
+      const gameweekId = vote.gameweek_id;
+      if (!acc[gameweekId]) {
+        acc[gameweekId] = [];
+      }
+      acc[gameweekId].push(vote);
+      return acc;
+    }, {});
+
+    // Determine player(s) of the match for each gameweek
+    for (const gameweekId in votesByGameweek) {
+      const gameweekVotes = votesByGameweek[gameweekId];
+      const topVoteCount = gameweekVotes[0].dataValues.vote_count;
+
+      // Find all players tied for the top vote count
+      const topVotes = gameweekVotes.filter(
+        (vote) => vote.dataValues.vote_count === topVoteCount
+      );
+
+      // Store the player IDs in the map
+      playerOfTheMatchMap[gameweekId] = topVotes.map(
+        (vote) => vote.voted_player_id
+      );
+    }
+
+    // Calculate total "Player of the Match" counts per player
+    const playerOfTheMatchCounts = {};
+
+    for (const gameweekId in playerOfTheMatchMap) {
+      const playerIds = playerOfTheMatchMap[gameweekId];
+
+      for (const playerId of playerIds) {
+        if (!playerOfTheMatchCounts[playerId]) {
+          playerOfTheMatchCounts[playerId] = 0;
+        }
+        playerOfTheMatchCounts[playerId] += 1;
+      }
+    }
+
     const playerStats = await Promise.all(
       players.map(async (player) => {
         const teamAssignments = player.TeamAssignments;
@@ -386,14 +453,12 @@ router.get('/players', protect, async (req, res) => {
         let totalPoints = 0; // For the player
         let teammateStats = {};
 
-
         // Iterate through each team assignment for the player
         for (const assignment of teamAssignments) {
           const gameResult = assignment.Gameweek.GameResult;
 
           // Skip if there is no result for the gameweek (i.e., player didn't play or result wasn't recorded)
           if (!gameResult) {
-            //console.log(`Skipping gameweek ${assignment.gameweekId} (no result)`);
             continue;
           }
 
@@ -462,7 +527,7 @@ router.get('/players', protect, async (req, res) => {
                 wins: 0,
                 points: 0,
                 goalsFor: 0,
-                goalsAgainst: 0, // Add goalsAgainst tracking for teammates
+                goalsAgainst: 0,
               };
             }
 
@@ -471,16 +536,16 @@ router.get('/players', protect, async (req, res) => {
               teammateStats[teammate.playerId].wins += 1;
             }
 
-            teammateStats[teammate.playerId].points += totalGameweekPoints; // Points from this game
-            teammateStats[teammate.playerId].goalsFor += teamScore; // Goals scored together
-            teammateStats[teammate.playerId].goalsAgainst += opponentScore; // Goals conceded together
+            teammateStats[teammate.playerId].points += totalGameweekPoints;
+            teammateStats[teammate.playerId].goalsFor += teamScore;
+            teammateStats[teammate.playerId].goalsAgainst += opponentScore;
           });
         }
 
         // Determine favorite teammate(s) based on wins, points, and goals
         let favoriteTeammateIds = [];
-        let bestStat = { wins: 0, points: 0, goalsFor: 0, goalsAgainst: 0 }; // Add goalsAgainst for comparison
-        let favoriteReasons = {}; // Store reasons for favorite
+        let bestStat = { wins: 0, points: 0, goalsFor: 0, goalsAgainst: 0 };
+        let favoriteReasons = {};
 
         for (const teammateId in teammateStats) {
           const stats = teammateStats[teammateId];
@@ -496,7 +561,7 @@ router.get('/players', protect, async (req, res) => {
               winsTogether: stats.wins,
               pointsTogether: stats.points,
               goalsForTogether: stats.goalsFor,
-              goalsAgainstTogether: stats.goalsAgainst, // Include goalsAgainst in the reasons
+              goalsAgainstTogether: stats.goalsAgainst,
             };
           } else if (
             stats.wins === bestStat.wins &&
@@ -508,7 +573,7 @@ router.get('/players', protect, async (req, res) => {
               winsTogether: stats.wins,
               pointsTogether: stats.points,
               goalsForTogether: stats.goalsFor,
-              goalsAgainstTogether: stats.goalsAgainst, // Include goalsAgainst in the reasons
+              goalsAgainstTogether: stats.goalsAgainst,
             };
           }
         }
@@ -524,16 +589,20 @@ router.get('/players', protect, async (req, res) => {
         player.dataValues.losses = losses;
         player.dataValues.goalsFor = goalsFor;
         player.dataValues.goalsAgainst = goalsAgainst;
-        player.dataValues.goalDifference = goalsFor - goalsAgainst; // Calculate goal difference
+        player.dataValues.goalDifference = goalsFor - goalsAgainst;
         player.dataValues.points = totalPoints;
 
         // Attach favorite teammates along with reasons
         player.dataValues.favoriteTeammates = favoriteTeammates.length > 0
           ? favoriteTeammates.map(teammate => ({
-              ...teammate.toJSON(), // Convert Sequelize instance to JSON
-              reason: favoriteReasons[teammate.id], // Attach the reason for being the favorite
+              ...teammate.toJSON(),
+              reason: favoriteReasons[teammate.id],
             }))
           : null;
+
+        // Attach Player of the Match count
+        player.dataValues.playerOfTheMatchCount =
+          playerOfTheMatchCounts[player.id] || 0;
 
         return player;
       })
@@ -546,6 +615,7 @@ router.get('/players', protect, async (req, res) => {
     res.status(500).json({ error: 'Internal Server Error' });
   }
 });
+
 
 
 
