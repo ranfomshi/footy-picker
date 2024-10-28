@@ -84,7 +84,7 @@ const protect = async (req, res, next) => {
           next();
         } else {
           // If player not found, respond with 404
-          return res.status(404).json({ error: 'Player not found' });
+          return res.status(404).json({ error: 'Player not found - middleware protection' });
         }
       }
     );
@@ -123,7 +123,7 @@ router.get('/current-player', protect, async (req, res) => {
     const playerId = req.user.playerId;  // This is set in the `protect` middleware
 
     if (!playerId) {
-      return res.status(404).json({ error: 'Player not found 1' });
+      return res.status(404).json({ error: 'Player not found' });
     }
 
     // Fetch the player information using the internal `id`
@@ -132,7 +132,7 @@ router.get('/current-player', protect, async (req, res) => {
     });
 
     if (!player) {
-      return res.status(404).json({ error: 'Player not found 2' });
+      return res.status(404).json({ error: 'Player not found' });
     }
 
     // Return the player's information
