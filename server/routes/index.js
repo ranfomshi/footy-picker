@@ -84,7 +84,7 @@ const protect = async (req, res, next) => {
           next();
         } else {
           // If player not found, respond with 404
-          return res.status(404).json({ error: 'Player not found - middleware protection'+req.user.sub });
+          return res.status(404).json({ error: 'Player not found' });
         }
       }
     );
@@ -649,7 +649,7 @@ router.put('/players/:id/link', protect, async (req, res) => {
   }
 });
 
-router.post('/players', protect, async (req, res) => {
+router.post('/players', async (req, res) => {
   const { name } = req.body;
   const auth0Id = req.user.sub;
 
