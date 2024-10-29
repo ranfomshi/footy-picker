@@ -319,7 +319,7 @@ router.get('/pick-teams', protect, async (req, res) => {
   }
 });
 
-router.get('/check-room-membership', protect, async (req, res) => {
+router.get('/check-room-membership', async (req, res) => {
   const auth0Id = req.user.sub;
 
   try {
