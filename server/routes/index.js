@@ -84,7 +84,7 @@ const protect = async (req, res, next) => {
           next();
         } else {
           // If player not found, respond with 404
-          return res.status(404).json({ error: 'Player not found - middleware protection' });
+          return res.status(404).json({ error: 'Player not found - middleware protection'+req.user.sub });
         }
       }
     );
