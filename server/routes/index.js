@@ -176,7 +176,7 @@ router.post('/create-room', protect, async (req, res) => {
   }
 });
 
-router.post('/join-room', async (req, res) => {
+router.post('/join-room', protect, async (req, res) => {
   const { code } = req.body;
   const auth0Id = req.user.sub;
 
@@ -323,7 +323,7 @@ router.get('/pick-teams', protect, async (req, res) => {
   }
 });
 
-router.get('/check-room-membership', async (req, res) => {
+router.get('/check-room-membership', protect, async (req, res) => {
   const auth0Id = req.user.sub;
 
   try {
@@ -653,7 +653,7 @@ router.put('/players/:id/link', protect, async (req, res) => {
   }
 });
 
-router.post('/players', async (req, res) => {
+router.post('/players', protect, async (req, res) => {
   const { name } = req.body;
   const auth0Id = req.user.sub;
 
