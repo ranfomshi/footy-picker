@@ -32,6 +32,7 @@ const client = jwksRsa({
 });
 
 // Middleware to protect routes, verify token, and set playerId and roomId
+// Middleware to protect routes, verify token, and set playerId and roomId
 const protect = async (req, res, next) => {
   const token = req.headers.authorization?.split(' ')[1];
   if (!token) {
@@ -81,11 +82,13 @@ const protect = async (req, res, next) => {
           if (membership) {
             req.user.roomId = membership.roomId;
           }
-          next();
         } else {
-          // If player not found, respond with 404
-          return res.status(404).json({ error: 'Player not found' });
+          // Player not found, proceed without playerId and roomId
+          console.log('Player not found for auth0Id:', req.user.sub);
+          // You can set req.user.playerId = null; or omit it
         }
+
+        next();
       }
     );
   } catch (error) {
@@ -93,6 +96,7 @@ const protect = async (req, res, next) => {
     return res.status(401).json({ error: 'Token verification failed' });
   }
 };
+
 
 // Helper function to generate a 5-character alphanumeric room code
 const generateRoomCode = () => {
