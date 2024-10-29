@@ -172,7 +172,7 @@ router.post('/create-room', protect, async (req, res) => {
   }
 });
 
-router.post('/join-room', protect, async (req, res) => {
+router.post('/join-room', async (req, res) => {
   const { code } = req.body;
   const auth0Id = req.user.sub;
 
