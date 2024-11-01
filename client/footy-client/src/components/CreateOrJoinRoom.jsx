@@ -258,7 +258,7 @@ const CreateOrJoinRoom = ({ onRoomJoined }) => {
                     <Radio.Group
                         onChange={handleRadioChange}
                         value={selectedUnlinkedPlayer}
-                        style={{ display: 'block', marginBottom: '1em' }}
+                        style={{ display: 'block', marginBottom: '1em', maxHeight: '40vh', overflowY: 'auto' }}
                     >
                         {unlinkedPlayers.map((player) => (
                             <Radio key={player.id} value={player.id} style={{ display: 'block' }}>
