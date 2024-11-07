@@ -1153,7 +1153,7 @@ router.get('/gameweeks', protect, async (req, res) => {
 
         return {
           ...gameweek.toJSON(),
-          playerOfTheMatch: playerOfTheMatch.length > 0 ? playerOfTheMatch : 'No votes yet', // Return array or message
+          playerOfTheMatch: playerOfTheMatch.length > 0 ? playerOfTheMatch : 'No votes', // Return array or message
           votingCloseTime, // Dynamically calculated
         };
       })
