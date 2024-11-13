@@ -26,6 +26,7 @@ const PlayerStats = () => {
             setLoading(false);
         }
     };
+    
 
     useEffect(() => {
         fetchPlayerStats();
