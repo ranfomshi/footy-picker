@@ -469,8 +469,6 @@ router.get('/players', protect, async (req, res) => {
           const team = assignment.team;
           const teamScore = team === 'A' ? gameResult.teamA_score : gameResult.teamB_score;
           const opponentScore = team === 'A' ? gameResult.teamB_score : gameResult.teamA_score;
-          const teamPlayerCount = team === 'A' ? gameResult.teamA_player_count : gameResult.teamB_player_count;
-          const opponentPlayerCount = team === 'A' ? gameResult.teamB_player_count : gameResult.teamA_player_count;
 
           // Update goals stats for the player
           goalsFor += teamScore;
@@ -489,28 +487,8 @@ router.get('/players', protect, async (req, res) => {
             gamePoints = 1;
           }
 
-          // Calculate goal-based points
-          let goalPoints = 0;
-          const isHandicapped = teamPlayerCount !== opponentPlayerCount;
-
-          if (isHandicapped) {
-            if (teamPlayerCount > opponentPlayerCount) {
-              // Team has more players
-              goalPoints += teamScore * 0.1; // Goals scored
-              goalPoints -= opponentScore * 0.1; // Goals conceded
-            } else {
-              // Team has fewer players
-              goalPoints += teamScore * 0.2; // Goals scored
-              goalPoints -= opponentScore * 0.1; // Goals conceded
-            }
-          } else {
-            // Balanced game
-            goalPoints += teamScore * 0.2; // Goals scored
-            goalPoints -= opponentScore * 0.1; // Goals conceded
-          }
-
           // Total points for this gameweek for the player
-          const totalGameweekPoints = gamePoints + goalPoints;
+          const totalGameweekPoints = gamePoints;
           totalPoints += totalGameweekPoints;
 
           // Fetch all teammates (players on the same team in the same gameweek)
@@ -529,23 +507,19 @@ router.get('/players', protect, async (req, res) => {
             if (!teammateStats[teammate.playerId]) {
               teammateStats[teammate.playerId] = {
                 wins: 0,
-                points: 0,
-                goalsFor: 0,
-                goalsAgainst: 0,
-                matchesPlayed: 0, // Track matches played together
+                matchesPlayed: 0,
+                goalDifference: 0, // Track goal difference
               };
             }
 
             // Increment match count for each teammate
             teammateStats[teammate.playerId].matchesPlayed += 1;
 
-            // Update stats for this teammate
+            // Update win and goal difference stats
             if (teamScore > opponentScore) {
               teammateStats[teammate.playerId].wins += 1;
             }
-            teammateStats[teammate.playerId].points += totalGameweekPoints;
-            teammateStats[teammate.playerId].goalsFor += teamScore;
-            teammateStats[teammate.playerId].goalsAgainst += opponentScore;
+            teammateStats[teammate.playerId].goalDifference += (teamScore - opponentScore);
           });
         }
 
@@ -554,68 +528,47 @@ router.get('/players', protect, async (req, res) => {
           ([_, stats]) => stats.matchesPlayed >= 3
         );
 
-        // Check if there are at least 2 eligible teammates
-        if (eligibleTeammates.length < 2) {
+        // If there are no eligible teammates, return null
+        if (eligibleTeammates.length === 0) {
           player.dataValues.favoriteTeammates = null;
         } else {
-          // Determine favorite teammate(s) based on average stats
-          let favoriteTeammateIds = [];
-          let bestStat = { avgWins: 0, avgPoints: 0, avgGoalsFor: 0, avgGoalsAgainst: 0 };
-          let favoriteReasons = {};
-
-          for (const [teammateId, stats] of eligibleTeammates) {
-            const matchesPlayed = stats.matchesPlayed;
-
-            // Calculate averages
-            const avgWins = stats.wins / matchesPlayed;
-            const avgPoints = stats.points / matchesPlayed;
-            const avgGoalsFor = stats.goalsFor / matchesPlayed;
-            const avgGoalsAgainst = stats.goalsAgainst / matchesPlayed;
-
-            // Determine if this teammate should be considered a favorite
-            if (
-              avgWins > bestStat.avgWins ||
-              (avgWins === bestStat.avgWins && avgPoints > bestStat.avgPoints) ||
-              (avgWins === bestStat.avgWins && avgPoints === bestStat.avgPoints && avgGoalsFor > bestStat.avgGoalsFor)
-            ) {
-              bestStat = { avgWins, avgPoints, avgGoalsFor, avgGoalsAgainst };
-              favoriteTeammateIds = [teammateId]; // Reset to new best teammate
-              favoriteReasons[teammateId] = {
-                avgWinsTogether: avgWins,
-                avgPointsTogether: avgPoints,
-                avgGoalsForTogether: avgGoalsFor,
-                avgGoalsAgainstTogether: avgGoalsAgainst,
-              };
-            } else if (
-              avgWins === bestStat.avgWins &&
-              avgPoints === bestStat.avgPoints &&
-              avgGoalsFor === bestStat.avgGoalsFor
-            ) {
-              favoriteTeammateIds.push(teammateId); // Add tied teammate
-              favoriteReasons[teammateId] = {
-                avgWinsTogether: avgWins,
-                avgPointsTogether: avgPoints,
-                avgGoalsForTogether: avgGoalsFor,
-                avgGoalsAgainstTogether: avgGoalsAgainst,
-              };
-            }
-          }
-
-          // Fetch the favorite teammates from the database
-          const favoriteTeammates = await Player.findAll({
-            where: { id: favoriteTeammateIds },
+          // Calculate the win rate for each eligible teammate and round to 2 decimal places
+          eligibleTeammates.forEach(([teammateId, stats]) => {
+            stats.winRate = parseFloat((stats.wins / stats.matchesPlayed).toFixed(2));
           });
 
-          // Attach favorite teammates along with reasons
-          player.dataValues.favoriteTeammates = favoriteTeammates.length > 0
-            ? favoriteTeammates.map(teammate => ({
-                ...teammate.toJSON(),
-                reason: favoriteReasons[teammate.id],
-              }))
-            : null;
+          // Sort teammates by win rate, total wins, and goal difference
+          eligibleTeammates.sort((a, b) => {
+            const [_, statsA] = a;
+            const [__, statsB] = b;
+
+            if (statsB.winRate !== statsA.winRate) {
+              return statsB.winRate - statsA.winRate;
+            }
+            if (statsB.wins !== statsA.wins) {
+              return statsB.wins - statsA.wins;
+            }
+            return statsB.goalDifference - statsA.goalDifference;
+          });
+
+          // Select the top teammate as the favorite
+          const [topTeammateId, topStats] = eligibleTeammates[0];
+
+          // Fetch the favorite teammate's details from the database
+          const favoriteTeammate = await Player.findOne({
+            where: { id: topTeammateId },
+          });
+
+          // Attach the favorite teammate and their stats to the player's data
+          player.dataValues.favoriteTeammates = {
+            ...favoriteTeammate.toJSON(),
+            winRate: topStats.winRate,
+            matchesPlayedTogether: topStats.matchesPlayed,
+            goalDifferenceTogether: topStats.goalDifference,
+          };
         }
 
-        // Attach Player of the Match count
+        // Attach Player of the Match count and general stats
         player.dataValues.wins = wins;
         player.dataValues.draws = draws;
         player.dataValues.losses = losses;
@@ -637,9 +590,6 @@ router.get('/players', protect, async (req, res) => {
     res.status(500).json({ error: 'Internal Server Error' });
   }
 });
-
-
-
 
 
 
