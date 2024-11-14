@@ -530,7 +530,7 @@ router.get('/players', protect, async (req, res) => {
 
         // If there are no eligible teammates, return null
         if (eligibleTeammates.length === 0) {
-          player.dataValues.favoriteTeammates = null;
+          player.dataValues.favoriteTeammates = [];
         } else {
           // Calculate the win rate for each eligible teammate and round to 2 decimal places
           eligibleTeammates.forEach(([teammateId, stats]) => {
@@ -559,13 +559,15 @@ router.get('/players', protect, async (req, res) => {
             where: { id: topTeammateId },
           });
 
-          // Attach the favorite teammate and their stats to the player's data
-          player.dataValues.favoriteTeammates = {
+          // Attach the favorite teammate and their stats to the player's data as an array
+          player.dataValues.favoriteTeammates = favoriteTeammate ? [{
             ...favoriteTeammate.toJSON(),
-            winRate: topStats.winRate,
-            matchesPlayedTogether: topStats.matchesPlayed,
-            goalDifferenceTogether: topStats.goalDifference,
-          };
+            reason: {
+              winRate: topStats.winRate,
+              matchesPlayedTogether: topStats.matchesPlayed,
+              goalDifferenceTogether: topStats.goalDifference,
+            },
+          }] : [];
         }
 
         // Attach Player of the Match count and general stats
@@ -590,6 +592,9 @@ router.get('/players', protect, async (req, res) => {
     res.status(500).json({ error: 'Internal Server Error' });
   }
 });
+
+
+
 
 
 
