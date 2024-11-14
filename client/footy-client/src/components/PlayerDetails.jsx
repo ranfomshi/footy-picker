@@ -1,6 +1,6 @@
 import React from "react";
-import { Card, Row, Col, Typography, Divider, List, Statistic, Avatar } from "antd";
-import { TrophyOutlined, TeamOutlined, MinusCircleOutlined, PlusCircleOutlined, UserOutlined } from "@ant-design/icons";
+import { Card, Row, Col, Typography, Divider, List, Statistic, Avatar, Tooltip, Modal, Button } from "antd";
+import { TrophyOutlined, TeamOutlined, MinusCircleOutlined, PlusCircleOutlined, UserOutlined, InfoCircleOutlined } from "@ant-design/icons";
 
 const { Title, Text } = Typography;
 
@@ -12,6 +12,28 @@ const PlayerDetails = ({ player, onClose }) => {
 
   // Helper function to calculate goal difference
   const calculateGoalDifference = (goalsFor, goalsAgainst) => goalsFor - goalsAgainst;
+
+  // Modal for explanation
+  const showExplanation = () => {
+    Modal.info({
+      title: 'Explanation of Favorite Teammate',
+      content: (
+        <div>
+          <p>
+            The "Favorite Teammate" is determined based on the following criteria:
+            <ul>
+              <li><strong>Minimum Match Requirement:</strong> To be considered, you must have played at least 3 matches with a teammate.</li>
+              <li><strong>Eligibility Check:</strong> The analysis requires at least 2 teammates to have played at least 3 matches with you.</li>
+              <li><strong>Win Rate Calculation:</strong> The win rate is calculated as the number of wins when playing with the teammate divided by the total matches played together.</li>
+              <li><strong>Tiebreakers:</strong> If two or more teammates have the same win rate, the teammate with the highest total wins is considered first. If the win rate and total wins are tied, the final tiebreaker is the highest goal difference when playing together.</li>
+            </ul>
+            This system ensures that your favorite teammate represents a consistent and successful partnership.
+          </p>
+        </div>
+      ),
+      onOk() {},
+    });
+  };
 
   return (
     <div>
@@ -27,9 +49,9 @@ const PlayerDetails = ({ player, onClose }) => {
             }}
           >
             <Statistic
-              title={<Text style={{ color: '#007a4a', fontSize: 'small' }}>Wins</Text>} // Darker green for text
+              title={<Text style={{ color: '#007a4a', fontSize: 'small' }}>Wins</Text>}
               value={player.wins}
-              valueStyle={{ fontSize: '1.5rem', color: coreColor }} // Core green for value
+              valueStyle={{ fontSize: '1.5rem', color: coreColor }}
               prefix={<TrophyOutlined />}
             />
           </Card>
@@ -63,7 +85,7 @@ const PlayerDetails = ({ player, onClose }) => {
             <Statistic
               title={<Text style={{ color: '#007a4a', fontSize: 'small' }}>Losses</Text>}
               value={player.losses}
-              valueStyle={{ fontSize: '1.5rem', color: '#cf1322' }} // Red for losses
+              valueStyle={{ fontSize: '1.5rem', color: '#cf1322' }}
               prefix={<MinusCircleOutlined />}
             />
           </Card>
@@ -99,7 +121,7 @@ const PlayerDetails = ({ player, onClose }) => {
             <Statistic
               title={<Text style={{ color: '#007a4a', fontSize: 'small' }}>Team Goals -</Text>}
               value={player.goalsAgainst}
-              valueStyle={{ fontSize: '1.5rem', color: '#cf1322' }} // Red for goals against
+              valueStyle={{ fontSize: '1.5rem', color: '#cf1322' }}
               prefix={<MinusCircleOutlined />}
             />
           </Card>
@@ -143,21 +165,23 @@ const PlayerDetails = ({ player, onClose }) => {
           </Card>
         </Col>
 
-        {/* Favorite Teammates Section with Core Color */}
+        {/* Favorite Teammates Section with Core Color and Explanation Icon */}
         {player.favoriteTeammates && player.favoriteTeammates.length > 0 && (
           <Col span={24}>
             <Divider />
-            {player.favoriteTeammates.length === 1 ? (
-              <>
-                <Title level={4} style={{ color: coreColor }}>Favorite Teammate</Title>
-                <Title level={5} style={{ color: '#333' }}>Stats when Playing Together</Title>
-              </>
-            ) : (
-              <>
-                <Title level={4} style={{ color: coreColor }}>Favorite Teammates</Title>
-                <Title level={5} style={{ color: '#333' }}>Stats when Playing Together</Title>
-              </>
-            )}
+            <Row align="middle" justify="space-between">
+              <Title level={4} style={{ color: coreColor }}>
+                {player.favoriteTeammates.length === 1 ? 'Favorite Teammate' : 'Favorite Teammates'}
+              </Title>
+              <Tooltip title="Click to see explanation">
+                <Button
+                  type="link"
+                  icon={<InfoCircleOutlined style={{ fontSize: '1.2rem', color: coreColor }} />}
+                  onClick={showExplanation}
+                />
+              </Tooltip>
+            </Row>
+            <Title level={5} style={{ color: '#333' }}>Stats when Playing Together</Title>
             <div className="scroll-list" style={{ maxHeight: 250, overflowY: 'auto', paddingRight: 8 }}>
               <List
                 itemLayout="horizontal"
