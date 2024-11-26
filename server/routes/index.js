@@ -327,25 +327,68 @@ router.get('/check-room-membership', protect, async (req, res) => {
   const auth0Id = req.user.sub;
 
   try {
-    const membership = await RoomMembership.findOne({
+    // Fetch all room memberships for the user
+    const memberships = await RoomMembership.findAll({
       where: { auth0Id },
       include: Room,
     });
 
-    if (membership) {
-      res.status(200).json({
-        hasJoinedRoom: true,
-        roomCode: membership.Room.code,
-        roomName: membership.Room.name,
-      });
-    } else {
-      res.status(200).json({ hasJoinedRoom: false });
-    }
+    // Ensure the response structure is always consistent
+    const joinedRooms = memberships.map((membership) => ({
+      id: membership.Room.id,
+      name: membership.Room.name,
+      code: membership.Room.code,
+    }));
+
+    // Get the active room
+    const activeMembership = memberships.find((membership) => membership.isActive);
+    const activeRoom = activeMembership
+      ? {
+          id: activeMembership.Room.id,
+          name: activeMembership.Room.name,
+          code: activeMembership.Room.code,
+        }
+      : null;
+
+    res.status(200).json({
+      activeRoom,
+      joinedRooms,
+    });
   } catch (error) {
     console.error('Error checking room membership:', error);
     res.status(500).json({ error: 'Internal Server Error' });
   }
 });
+
+
+router.post('/set-active-room', protect, async (req, res) => {
+  const auth0Id = req.user.sub;
+  const { roomId } = req.body;
+
+  try {
+    // Deactivate any currently active room for the user
+    await RoomMembership.update(
+      { isActive: false },
+      { where: { auth0Id } }
+    );
+
+    // Activate the selected room
+    const result = await RoomMembership.update(
+      { isActive: true },
+      { where: { auth0Id, roomId } }
+    );
+
+    if (result[0] > 0) {
+      res.status(200).json({ success: true });
+    } else {
+      res.status(404).json({ error: 'Room not found or not joined by the user.' });
+    }
+  } catch (error) {
+    console.error('Error setting active room:', error);
+    res.status(500).json({ error: 'Internal Server Error' });
+  }
+});
+
 
 router.get('/players', protect, async (req, res) => {
   try {
