@@ -32,7 +32,6 @@ const client = jwksRsa({
 });
 
 // Middleware to protect routes, verify token, and set playerId and roomId
-// Middleware to protect routes, verify token, and set playerId and roomId
 const protect = async (req, res, next) => {
   const token = req.headers.authorization?.split(' ')[1];
   if (!token) {
@@ -77,8 +76,10 @@ const protect = async (req, res, next) => {
           // Store playerId for further use
           req.user.playerId = player.id;
 
-          // Check if the player is a member of any room and store roomId
-          const membership = await RoomMembership.findOne({ where: { auth0Id: req.user.sub } });
+          // Fetch the active room membership
+          const membership = await RoomMembership.findOne({
+            where: { playerId: player.id, isActive: true },
+          });
           if (membership) {
             req.user.roomId = membership.roomId;
           }
@@ -96,7 +97,6 @@ const protect = async (req, res, next) => {
     return res.status(401).json({ error: 'Token verification failed' });
   }
 };
-
 
 // Helper function to generate a 5-character alphanumeric room code
 const generateRoomCode = () => {
@@ -124,7 +124,7 @@ router.get('/check-player-existence', protect, async (req, res) => {
 
 router.get('/current-player', protect, async (req, res) => {
   try {
-    const playerId = req.user.playerId;  // This is set in the `protect` middleware
+    const playerId = req.user.playerId; // This is set in the `protect` middleware
 
     if (!playerId) {
       return res.status(404).json({ error: 'Player not found' });
@@ -147,7 +147,6 @@ router.get('/current-player', protect, async (req, res) => {
   }
 });
 
-
 router.post('/create-room', protect, async (req, res) => {
   const { name } = req.body;
   const auth0Id = req.user.sub;
@@ -167,7 +166,7 @@ router.post('/create-room', protect, async (req, res) => {
     }
 
     const room = await Room.create({ name, code });
-    await RoomMembership.create({ playerId: player.id, auth0Id, roomId: room.id });
+    await RoomMembership.create({ playerId: player.id, roomId: room.id });
 
     res.status(201).json(room);
   } catch (error) {
@@ -190,13 +189,13 @@ router.post('/join-room', protect, async (req, res) => {
 
     if (player) {
       const existingMembership = await RoomMembership.findOne({
-        where: { auth0Id, roomId: room.id },
+        where: { playerId: player.id, roomId: room.id },
       });
       if (existingMembership) {
         return res.status(400).json({ message: 'Already a member of this room' });
       }
 
-      await RoomMembership.create({ playerId: player.id, auth0Id, roomId: room.id });
+      await RoomMembership.create({ playerId: player.id, roomId: room.id });
       return res.status(200).json({ message: 'Joined room successfully' });
     } else {
       const unlinkedPlayers = await Player.findAll({
@@ -232,10 +231,10 @@ router.post('/finalize-join-room', protect, async (req, res) => {
       player.auth0Id = auth0Id;
       await player.save();
 
-      await RoomMembership.update({ auth0Id }, { where: { playerId, roomId: room.id } });
+      await RoomMembership.update({ auth0Id: auth0Id }, { where: { playerId, roomId: room.id } });
     } else if (newPlayerName !== null) {
       const newPlayer = await Player.create({ auth0Id, name: newPlayerName });
-      await RoomMembership.create({ playerId: newPlayer.id, auth0Id, roomId: room.id });
+      await RoomMembership.create({ playerId: newPlayer.id, roomId: room.id });
     } else {
       const accessToken = req.headers.authorization.split(' ')[1];
       const userInfoResponse = await axios.get(`https://${auth0Domain}/userinfo`, {
@@ -245,7 +244,7 @@ router.post('/finalize-join-room', protect, async (req, res) => {
       const username = userInfoResponse.data.name;
 
       const newPlayer = await Player.create({ auth0Id, name: username });
-      await RoomMembership.create({ playerId: newPlayer.id, auth0Id, roomId: room.id });
+      await RoomMembership.create({ playerId: newPlayer.id, roomId: room.id });
     }
 
     res.status(200).json({ message: 'Joined room successfully' });
@@ -267,7 +266,7 @@ router.post('/unlink-player', protect, async (req, res) => {
     player.auth0Id = null;
     await player.save();
 
-    await RoomMembership.update({ auth0Id: null }, { where: { auth0Id } });
+    await RoomMembership.update({ auth0Id: null }, { where: { playerId: player.id } });
 
     res.status(200).json({ message: 'Player unlinked successfully' });
   } catch (error) {
@@ -324,12 +323,12 @@ router.get('/pick-teams', protect, async (req, res) => {
 });
 
 router.get('/check-room-membership', protect, async (req, res) => {
-  const auth0Id = req.user.sub;
+  const playerId = req.user.playerId;
 
   try {
     // Fetch all room memberships for the user
     const memberships = await RoomMembership.findAll({
-      where: { auth0Id },
+      where: { playerId },
       include: Room,
     });
 
@@ -359,7 +358,6 @@ router.get('/check-room-membership', protect, async (req, res) => {
     res.status(500).json({ error: 'Internal Server Error' });
   }
 });
-
 
 router.post('/set-active-room', protect, async (req, res) => {
   const auth0Id = req.user.sub;
@@ -412,9 +410,6 @@ router.post('/set-active-room', protect, async (req, res) => {
     res.status(500).json({ error: 'Internal Server Error' });
   }
 });
-
-
-
 
 router.get('/players', protect, async (req, res) => {
   try {
@@ -588,7 +583,7 @@ router.get('/players', protect, async (req, res) => {
             if (teamScore > opponentScore) {
               teammateStats[teammate.playerId].wins += 1;
             }
-            teammateStats[teammate.playerId].goalDifference += (teamScore - opponentScore);
+            teammateStats[teammate.playerId].goalDifference += teamScore - opponentScore;
           });
         }
 
@@ -629,14 +624,18 @@ router.get('/players', protect, async (req, res) => {
           });
 
           // Attach the favorite teammate and their stats to the player's data as an array
-          player.dataValues.favoriteTeammates = favoriteTeammate ? [{
-            ...favoriteTeammate.toJSON(),
-            reason: {
-              winRate: topStats.winRate,
-              matchesPlayedTogether: topStats.matchesPlayed,
-              goalDifferenceTogether: topStats.goalDifference,
-            },
-          }] : [];
+          player.dataValues.favoriteTeammates = favoriteTeammate
+            ? [
+                {
+                  ...favoriteTeammate.toJSON(),
+                  reason: {
+                    winRate: topStats.winRate,
+                    matchesPlayedTogether: topStats.matchesPlayed,
+                    goalDifferenceTogether: topStats.goalDifference,
+                  },
+                },
+              ]
+            : [];
         }
 
         // Attach Player of the Match count and general stats
@@ -647,8 +646,7 @@ router.get('/players', protect, async (req, res) => {
         player.dataValues.goalsAgainst = goalsAgainst;
         player.dataValues.goalDifference = goalsFor - goalsAgainst;
         player.dataValues.points = totalPoints;
-        player.dataValues.playerOfTheMatchCount =
-          playerOfTheMatchCounts[player.id] || 0;
+        player.dataValues.playerOfTheMatchCount = playerOfTheMatchCounts[player.id] || 0;
 
         return player;
       })
@@ -661,12 +659,6 @@ router.get('/players', protect, async (req, res) => {
     res.status(500).json({ error: 'Internal Server Error' });
   }
 });
-
-
-
-
-
-
 
 router.put('/players/:id/link', protect, async (req, res) => {
   const { id } = req.params;
@@ -699,7 +691,7 @@ router.put('/players/:id/link', protect, async (req, res) => {
 
 router.post('/players', protect, async (req, res) => {
   const { name } = req.body;
-  const auth0Id = req.user.sub;
+  const playerId = req.user.playerId;
 
   if (!name) {
     return res.status(400).json({ error: 'Player name is required' });
@@ -711,7 +703,10 @@ router.post('/players', protect, async (req, res) => {
       return res.status(400).json({ error: 'Player name already exists' });
     }
 
-    const currentUserMembership = await RoomMembership.findOne({ where: { auth0Id } });
+    const currentUserMembership = await RoomMembership.findOne({
+      where: { playerId },
+      include: [Room],
+    });
 
     if (!currentUserMembership) {
       return res.status(400).json({ error: 'User is not a member of any room' });
@@ -726,7 +721,10 @@ router.post('/players', protect, async (req, res) => {
       },
     });
 
-    const totalRating = existingPlayers.reduce((sum, player) => sum + parseFloat(player.rating || 0), 0);
+    const totalRating = existingPlayers.reduce(
+      (sum, player) => sum + parseFloat(player.rating || 0),
+      0
+    );
     const averageRating = existingPlayers.length > 0 ? totalRating / existingPlayers.length : 0;
 
     const newPlayer = await Player.create({ name, rating: averageRating });
@@ -740,7 +738,6 @@ router.post('/players', protect, async (req, res) => {
 
     await RoomMembership.create({
       playerId: newPlayer.id,
-      auth0Id: null,
       roomId,
     });
 
@@ -842,9 +839,7 @@ router.post('/gameresults', protect, async (req, res) => {
   }
 });
 
-
-
-const updatePlayerRatings = async (gameweekId) => {
+const updatePlayerRatings = async (gameweekId, roomId) => {
   try {
     const gameResult = await GameResult.findOne({
       where: { gameweekId },
@@ -1005,7 +1000,6 @@ router.post('/manual-teamassignment', protect, async (req, res) => {
     res.status(500).json({ error: 'Internal Server Error' });
   }
 });
-
 
 router.post('/teamassignments', protect, async (req, res) => {
   try {
@@ -1180,9 +1174,9 @@ router.get('/gameweeks', protect, async (req, res) => {
 
         if (votes.length > 0) {
           const topVoteCount = votes[0].dataValues.vote_count;
-          
+
           // Find all players tied for the top vote count
-          const topVotes = votes.filter(vote => vote.dataValues.vote_count === topVoteCount);
+          const topVotes = votes.filter((vote) => vote.dataValues.vote_count === topVoteCount);
 
           // Fetch all players tied for the top spot
           for (const vote of topVotes) {
@@ -1209,7 +1203,6 @@ router.get('/gameweeks', protect, async (req, res) => {
     res.status(500).json({ error: 'Internal Server Error' });
   }
 });
-
 
 router.delete('/gameweeks/:id', protect, async (req, res) => {
   try {
@@ -1253,7 +1246,6 @@ router.get('/teamassignments', protect, async (req, res) => {
   }
 });
 
-
 router.post('/votes', protect, async (req, res) => {
   try {
     const { gameweekId, votedPlayerId, currentUserId } = req.body;
@@ -1269,8 +1261,6 @@ router.post('/votes', protect, async (req, res) => {
     if (!playerAssignment) {
       return res.status(403).json({ error: 'You did not play in this gameweek and cannot vote.' });
     }
-
-    
 
     // Prevent self-voting
     if (currentUserId === votedPlayerId) {
@@ -1300,7 +1290,6 @@ router.post('/votes', protect, async (req, res) => {
   }
 });
 
-
 router.get('/has-voted', protect, async (req, res) => {
   const { gameweekId } = req.query;
   const voting_player_id = req.user.playerId; // Internal player ID
@@ -1323,10 +1312,5 @@ router.get('/has-voted', protect, async (req, res) => {
     res.status(500).json({ error: 'Error checking voting status' });
   }
 });
-
-
-
-
-
 
 module.exports = router;
