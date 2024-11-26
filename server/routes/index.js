@@ -166,7 +166,7 @@ router.post('/create-room', protect, async (req, res) => {
     }
 
     const room = await Room.create({ name, code });
-    await RoomMembership.create({ playerId: player.id, roomId: room.id });
+    await RoomMembership.create({ playerId: player.id, roomId: room.id, isActive: true });
 
     res.status(201).json(room);
   } catch (error) {
@@ -230,8 +230,6 @@ router.post('/finalize-join-room', protect, async (req, res) => {
       }
       player.auth0Id = auth0Id;
       await player.save();
-
-      await RoomMembership.update({ auth0Id: auth0Id }, { where: { playerId, roomId: room.id } });
     } else if (newPlayerName !== null) {
       const newPlayer = await Player.create({ auth0Id, name: newPlayerName });
       await RoomMembership.create({ playerId: newPlayer.id, roomId: room.id });
@@ -284,7 +282,7 @@ router.get('/pick-teams', protect, async (req, res) => {
       include: [
         {
           model: Availability,
-          where: { gameweekId, status: true },
+          where: { gameweekId, status: true, roomId },
         },
         {
           model: RoomMembership,
@@ -308,11 +306,11 @@ router.get('/pick-teams', protect, async (req, res) => {
       }
     });
 
-    await TeamAssignment.destroy({ where: { gameweekId } });
+    await TeamAssignment.destroy({ where: { gameweekId, roomId } });
 
     await TeamAssignment.bulkCreate([
-      ...teamA.map((playerId) => ({ playerId, gameweekId, team: 'A' })),
-      ...teamB.map((playerId) => ({ playerId, gameweekId, team: 'B' })),
+      ...teamA.map((playerId) => ({ playerId, gameweekId, team: 'A', roomId })),
+      ...teamB.map((playerId) => ({ playerId, gameweekId, team: 'B', roomId })),
     ]);
 
     res.json({ message: 'Teams assigned successfully' });
@@ -392,17 +390,15 @@ router.post('/set-active-room', protect, async (req, res) => {
     }
 
     // Update isActive field in RoomMemberships
-    const deactivateResult = await RoomMembership.update(
+    await RoomMembership.update(
       { isActive: false },
       { where: { playerId } } // Deactivate other memberships
     );
-    console.log('Deactivated memberships:', deactivateResult);
 
-    const activateResult = await RoomMembership.update(
+    await RoomMembership.update(
       { isActive: true },
       { where: { playerId, roomId } } // Activate the current room
     );
-    console.log('Activated membership:', activateResult);
 
     res.status(200).json({ success: true, activeRoom: room });
   } catch (error) {
@@ -428,12 +424,15 @@ router.get('/players', protect, async (req, res) => {
         },
         {
           model: TeamAssignment,
+          where: { roomId },
           include: [
             {
               model: Gameweek,
+              where: { roomId },
               include: [
                 {
                   model: GameResult,
+                  where: { roomId },
                 },
               ],
             },
@@ -453,6 +452,7 @@ router.get('/players', protect, async (req, res) => {
         gameweek_id: {
           [Op.in]: gameweeks.map((gw) => gw.id),
         },
+        roomId,
       },
       attributes: [
         'gameweek_id',
@@ -563,6 +563,7 @@ router.get('/players', protect, async (req, res) => {
               playerId: {
                 [Op.ne]: player.id, // Exclude the current player
               },
+              roomId,
             },
           });
 
@@ -621,6 +622,10 @@ router.get('/players', protect, async (req, res) => {
           // Fetch the favorite teammate's details from the database
           const favoriteTeammate = await Player.findOne({
             where: { id: topTeammateId },
+            include: {
+              model: RoomMembership,
+              where: { roomId },
+            },
           });
 
           // Attach the favorite teammate and their stats to the player's data as an array
@@ -698,21 +703,19 @@ router.post('/players', protect, async (req, res) => {
   }
 
   try {
-    const duplicateName = await Player.findOne({ where: { name } });
-    if (duplicateName) {
-      return res.status(400).json({ error: 'Player name already exists' });
-    }
+    const { roomId } = req.user;
 
-    const currentUserMembership = await RoomMembership.findOne({
-      where: { playerId },
-      include: [Room],
+    // Check for duplicate name in the same room
+    const duplicateName = await Player.findOne({
+      where: { name },
+      include: {
+        model: RoomMembership,
+        where: { roomId },
+      },
     });
-
-    if (!currentUserMembership) {
-      return res.status(400).json({ error: 'User is not a member of any room' });
+    if (duplicateName) {
+      return res.status(400).json({ error: 'Player name already exists in this room' });
     }
-
-    const roomId = currentUserMembership.roomId;
 
     const existingPlayers = await Player.findAll({
       include: {
@@ -734,6 +737,7 @@ router.post('/players', protect, async (req, res) => {
       date: new Date(),
       rating: averageRating,
       raterId: null,
+      roomId,
     });
 
     await RoomMembership.create({
@@ -754,11 +758,11 @@ router.delete('/players/:id', protect, async (req, res) => {
     const { roomId } = req.user;
 
     const player = await Player.findOne({
+      where: { id },
       include: {
         model: RoomMembership,
         where: { roomId },
       },
-      where: { id },
     });
 
     if (!player) {
@@ -780,11 +784,11 @@ router.put('/players/:id', protect, async (req, res) => {
     const { roomId } = req.user;
 
     const player = await Player.findOne({
+      where: { id },
       include: {
         model: RoomMembership,
         where: { roomId },
       },
-      where: { id },
     });
 
     if (!player) {
@@ -806,10 +810,10 @@ router.post('/gameresults', protect, async (req, res) => {
     const { roomId } = req.user;
 
     const teamA_player_count = await TeamAssignment.count({
-      where: { gameweekId, team: 'A' },
+      where: { gameweekId, team: 'A', roomId },
     });
     const teamB_player_count = await TeamAssignment.count({
-      where: { gameweekId, team: 'B' },
+      where: { gameweekId, team: 'B', roomId },
     });
 
     const [gameResult, created] = await GameResult.upsert(
@@ -819,6 +823,7 @@ router.post('/gameresults', protect, async (req, res) => {
         teamB_score,
         teamA_player_count,
         teamB_player_count,
+        roomId,
       },
       {
         returning: true,
@@ -828,7 +833,7 @@ router.post('/gameresults', protect, async (req, res) => {
     // Set the voting close time to 48 hours after the game result is recorded
     await Gameweek.update(
       { voting_close_time: sequelize.literal("NOW() + INTERVAL '48 HOURS'") },
-      { where: { id: gameweekId } }
+      { where: { id: gameweekId, roomId } }
     );
 
     await updatePlayerRatings(gameweekId, roomId);
@@ -842,17 +847,17 @@ router.post('/gameresults', protect, async (req, res) => {
 const updatePlayerRatings = async (gameweekId, roomId) => {
   try {
     const gameResult = await GameResult.findOne({
-      where: { gameweekId },
+      where: { gameweekId, roomId },
       include: [Gameweek],
     });
 
     if (!gameResult) {
-      console.error(`No game result found for gameweek ${gameweekId}`);
+      console.error(`No game result found for gameweek ${gameweekId} in room ${roomId}`);
       return;
     }
 
     const teamAssignments = await TeamAssignment.findAll({
-      where: { gameweekId },
+      where: { gameweekId, roomId },
       include: [Player],
     });
 
@@ -893,10 +898,11 @@ const updatePlayerRatings = async (gameweekId, roomId) => {
         date: gameResult.Gameweek.date,
         rating: points,
         raterId: null,
+        roomId,
       });
 
       const ratings = await Rating.findAll({
-        where: { playerId: assignment.playerId },
+        where: { playerId: assignment.playerId, roomId },
         limit: 5,
         order: [['date', 'DESC']],
       });
@@ -918,6 +924,7 @@ router.get('/gameresults', protect, async (req, res) => {
   try {
     const { roomId } = req.user;
     const gameResults = await GameResult.findAll({
+      where: { roomId },
       include: [
         {
           model: Gameweek,
@@ -954,7 +961,7 @@ router.post('/availability', protect, async (req, res) => {
         if (!player) {
           throw new Error(`Player not found: ${playerId}`);
         }
-        return Availability.upsert({ gameweekId, playerId, status });
+        return Availability.upsert({ gameweekId, playerId, status, roomId });
       })
     );
 
@@ -982,7 +989,9 @@ router.post('/manual-teamassignment', protect, async (req, res) => {
       return res.status(404).json({ error: 'Player not found' });
     }
 
-    const gameweek = await Gameweek.findByPk(gameweekId);
+    const gameweek = await Gameweek.findOne({
+      where: { id: gameweekId, roomId },
+    });
     if (!gameweek) {
       return res.status(404).json({ error: 'Gameweek not found' });
     }
@@ -992,6 +1001,7 @@ router.post('/manual-teamassignment', protect, async (req, res) => {
       gameweekId,
       playerId,
       team,
+      roomId,
     });
 
     res.status(200).json({ message: 'Player assigned to team successfully' });
@@ -1023,7 +1033,7 @@ router.post('/teamassignments', protect, async (req, res) => {
         if (!player) {
           throw new Error(`Player not found: ${playerId}`);
         }
-        return TeamAssignment.upsert({ gameweekId, playerId, team });
+        return TeamAssignment.upsert({ gameweekId, playerId, team, roomId });
       })
     );
 
@@ -1040,7 +1050,7 @@ router.get('/availability', protect, async (req, res) => {
     const { roomId } = req.user;
 
     const availability = await Availability.findAll({
-      where: { gameweekId },
+      where: { gameweekId, roomId },
       include: [
         {
           model: Player,
@@ -1049,7 +1059,10 @@ router.get('/availability', protect, async (req, res) => {
             where: { roomId },
           },
         },
-        Gameweek,
+        {
+          model: Gameweek,
+          where: { roomId },
+        },
       ],
     });
     res.json(availability);
@@ -1081,6 +1094,7 @@ router.post('/ratings', protect, async (req, res) => {
           playerId: rating.playerId,
           rating: rating.rating,
           raterId: rating.raterId,
+          roomId,
         });
       })
     );
@@ -1097,7 +1111,7 @@ router.get('/ratings', protect, async (req, res) => {
     const { roomId } = req.user;
 
     const ratings = await Rating.findAll({
-      where: { date },
+      where: { date, roomId },
       include: [
         {
           model: Player,
@@ -1139,6 +1153,7 @@ router.get('/gameweeks', protect, async (req, res) => {
       include: [
         {
           model: GameResult,
+          where: { roomId },
           attributes: ['teamA_score', 'teamB_score', 'createdAt'], // Ensure createdAt is included
         },
       ],
@@ -1161,7 +1176,7 @@ router.get('/gameweeks', protect, async (req, res) => {
         }
 
         const votes = await Vote.findAll({
-          where: { gameweek_id: gameweekId },
+          where: { gameweek_id: gameweekId, roomId },
           attributes: [
             'voted_player_id',
             [sequelize.fn('COUNT', sequelize.col('voted_player_id')), 'vote_count'],
@@ -1228,7 +1243,7 @@ router.get('/teamassignments', protect, async (req, res) => {
     const { roomId } = req.user;
 
     const assignments = await TeamAssignment.findAll({
-      where: { gameweekId },
+      where: { gameweekId, roomId },
       include: [
         {
           model: Player,
@@ -1248,13 +1263,15 @@ router.get('/teamassignments', protect, async (req, res) => {
 
 router.post('/votes', protect, async (req, res) => {
   try {
-    const { gameweekId, votedPlayerId, currentUserId } = req.body;
+    const { gameweekId, votedPlayerId } = req.body;
+    const { roomId, playerId: currentUserId } = req.user;
 
     // Fetch the gameweek assignments to check if the user played in this gameweek
     const playerAssignment = await TeamAssignment.findOne({
       where: {
-        gameweekId: gameweekId,
-        playerId: currentUserId, // Check if the user was assigned to a team
+        gameweekId,
+        playerId: currentUserId,
+        roomId,
       },
     });
 
@@ -1269,7 +1286,7 @@ router.post('/votes', protect, async (req, res) => {
 
     // Check if the user has already voted in this gameweek
     const existingVote = await Vote.findOne({
-      where: { gameweek_id: gameweekId, voting_player_id: currentUserId },
+      where: { gameweek_id: gameweekId, voting_player_id: currentUserId, roomId },
     });
 
     if (existingVote) {
@@ -1281,6 +1298,7 @@ router.post('/votes', protect, async (req, res) => {
       gameweek_id: gameweekId,
       voted_player_id: votedPlayerId,
       voting_player_id: currentUserId,
+      roomId,
     });
 
     return res.status(201).json({ message: 'Vote cast successfully!', vote });
@@ -1292,13 +1310,14 @@ router.post('/votes', protect, async (req, res) => {
 
 router.get('/has-voted', protect, async (req, res) => {
   const { gameweekId } = req.query;
-  const voting_player_id = req.user.playerId; // Internal player ID
+  const { playerId: voting_player_id, roomId } = req.user;
 
   try {
     const vote = await Vote.findOne({
       where: {
         gameweek_id: gameweekId,
-        voting_player_id, // Internal player ID to check if they have voted
+        voting_player_id,
+        roomId,
       },
     });
 
