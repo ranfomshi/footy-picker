@@ -64,8 +64,14 @@ const RoomMembership = sequelize.define('RoomMembership', {
             key: 'id'
         },
         allowNull: false
+    },
+    isActive: {
+        type: DataTypes.BOOLEAN,
+        allowNull: false,
+        defaultValue: false // Default value for new entries
     }
 });
+
 
 const Gameweek = sequelize.define('Gameweek', {
     date: {

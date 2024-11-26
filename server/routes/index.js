@@ -376,8 +376,17 @@ router.post('/set-active-room', protect, async (req, res) => {
     // Use the room's id to update RoomMembership
     const roomId = room.id;
 
+    // Find the playerId associated with this auth0Id
+    const player = await Player.findOne({ where: { auth0Id } });
+
+    if (!player) {
+      return res.status(404).json({ error: 'Player not found' });
+    }
+
+    const playerId = player.id;
+
     const membership = await RoomMembership.findOne({
-      where: { auth0Id, roomId },
+      where: { playerId, roomId },
     });
 
     if (!membership) {
@@ -385,15 +394,17 @@ router.post('/set-active-room', protect, async (req, res) => {
     }
 
     // Update isActive field in RoomMemberships
-    await RoomMembership.update(
+    const deactivateResult = await RoomMembership.update(
       { isActive: false },
-      { where: { auth0Id } } // Deactivate other memberships
+      { where: { playerId } } // Deactivate other memberships
     );
+    console.log('Deactivated memberships:', deactivateResult);
 
-    await RoomMembership.update(
+    const activateResult = await RoomMembership.update(
       { isActive: true },
-      { where: { auth0Id, roomId } } // Activate the current room
+      { where: { playerId, roomId } } // Activate the current room
     );
+    console.log('Activated membership:', activateResult);
 
     res.status(200).json({ success: true, activeRoom: room });
   } catch (error) {
@@ -401,6 +412,7 @@ router.post('/set-active-room', protect, async (req, res) => {
     res.status(500).json({ error: 'Internal Server Error' });
   }
 });
+
 
 
 
