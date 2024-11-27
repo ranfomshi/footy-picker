@@ -819,6 +819,8 @@ router.put('/players/:id', protect, async (req, res) => {
   }
 });
 
+
+
 router.post('/gameresults', protect, async (req, res) => {
   try {
     const { gameweekId, teamA_score, teamB_score } = req.body;
@@ -1168,8 +1170,7 @@ router.get('/gameweeks', protect, async (req, res) => {
       include: [
         {
           model: GameResult,
-          where: { roomId },
-          required: false, // Changed to false for LEFT JOIN
+          required: false, // LEFT JOIN to include gameweeks without results
           attributes: ['teamA_score', 'teamB_score', 'createdAt'],
         },
       ],
