@@ -410,29 +410,34 @@ router.post('/set-active-room', protect, async (req, res) => {
 router.get('/players', protect, async (req, res) => {
   try {
     const { roomId } = req.user;
-    console.log(roomId, req.user)
+    console.log('Fetching players for roomId:', roomId, 'User:', req.user);
+
     if (!roomId) {
       return res.status(400).json({ error: 'User is not associated with any room' });
     }
 
-    // Fetch all players in the room
+    // 1. Fetch all players in the room with LEFT JOINs to include optional associations
     const players = await Player.findAll({
       include: [
         {
           model: RoomMembership,
           where: { roomId },
+          required: true, // Ensures the player is a member of the room
         },
         {
           model: TeamAssignment,
           where: { roomId },
+          required: false, // Allows players without team assignments to be included
           include: [
             {
               model: Gameweek,
               where: { roomId },
+              required: false, // Allows team assignments without gameweeks
               include: [
                 {
                   model: GameResult,
                   where: { roomId },
+                  required: false, // Allows gameweeks without results
                 },
               ],
             },
@@ -441,16 +446,19 @@ router.get('/players', protect, async (req, res) => {
       ],
     });
 
-    // Fetch all gameweeks in the room
+    // 2. Fetch all gameweeks in the room
     const gameweeks = await Gameweek.findAll({
       where: { roomId },
     });
 
-    // Fetch all votes for gameweeks in the room
-    const votes = await Vote.findAll({
+    // Extract gameweek IDs, handling cases where there are no gameweeks
+    const gameweekIds = gameweeks.length > 0 ? gameweeks.map((gw) => gw.id) : [];
+
+    // 3. Fetch all votes for gameweeks in the room, only if there are gameweeks
+    const votes = gameweekIds.length > 0 ? await Vote.findAll({
       where: {
         gameweek_id: {
-          [Op.in]: gameweeks.map((gw) => gw.id),
+          [Op.in]: gameweekIds,
         },
         roomId,
       },
@@ -464,9 +472,9 @@ router.get('/players', protect, async (req, res) => {
         ['gameweek_id', 'ASC'],
         [sequelize.literal('vote_count'), 'DESC'],
       ],
-    });
+    }) : [];
 
-    // Build a mapping of gameweekId to player(s) of the match
+    // 4. Build a mapping of gameweekId to player(s) of the match
     const playerOfTheMatchMap = {};
 
     // Group votes by gameweek
@@ -482,6 +490,8 @@ router.get('/players', protect, async (req, res) => {
     // Determine player(s) of the match for each gameweek
     for (const gameweekId in votesByGameweek) {
       const gameweekVotes = votesByGameweek[gameweekId];
+      if (gameweekVotes.length === 0) continue; // Skip if no votes
+
       const topVoteCount = gameweekVotes[0].dataValues.vote_count;
 
       // Find all players tied for the top vote count
@@ -495,7 +505,7 @@ router.get('/players', protect, async (req, res) => {
       );
     }
 
-    // Calculate total "Player of the Match" counts per player
+    // 5. Calculate total "Player of the Match" counts per player
     const playerOfTheMatchCounts = {};
 
     for (const gameweekId in playerOfTheMatchMap) {
@@ -509,10 +519,12 @@ router.get('/players', protect, async (req, res) => {
       }
     }
 
+    // 6. Process each player to calculate their stats
     const playerStats = await Promise.all(
       players.map(async (player) => {
-        const teamAssignments = player.TeamAssignments;
+        const teamAssignments = player.TeamAssignments || [];
 
+        // Initialize stats with default values
         let wins = 0;
         let draws = 0;
         let losses = 0;
@@ -523,9 +535,9 @@ router.get('/players', protect, async (req, res) => {
 
         // Iterate through each team assignment for the player
         for (const assignment of teamAssignments) {
-          const gameResult = assignment.Gameweek.GameResult;
+          const gameResult = assignment.Gameweek?.GameResult || null;
 
-          // Skip if there is no result for the gameweek (i.e., player didn't play or result wasn't recorded)
+          // If there's no game result, skip processing this assignment
           if (!gameResult) {
             continue;
           }
@@ -593,7 +605,7 @@ router.get('/players', protect, async (req, res) => {
           ([_, stats]) => stats.matchesPlayed >= 3
         );
 
-        // If there are no eligible teammates, return null
+        // If there are no eligible teammates, return an empty array
         if (eligibleTeammates.length === 0) {
           player.dataValues.favoriteTeammates = [];
         } else {
@@ -656,6 +668,9 @@ router.get('/players', protect, async (req, res) => {
         return player;
       })
     );
+
+    // 7. If there are no gameweeks, set all stats to 0
+    // This is implicitly handled by initializing stats with 0 and only updating them if data exists
 
     // Return the final response
     res.json(playerStats);
