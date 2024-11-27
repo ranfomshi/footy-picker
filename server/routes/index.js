@@ -1169,9 +1169,11 @@ router.get('/gameweeks', protect, async (req, res) => {
         {
           model: GameResult,
           where: { roomId },
-          attributes: ['teamA_score', 'teamB_score', 'createdAt'], // Ensure createdAt is included
+          required: false, // Changed to false for LEFT JOIN
+          attributes: ['teamA_score', 'teamB_score', 'createdAt'],
         },
       ],
+      order: [['date', 'DESC']], // Optional: Order by date descending
     });
 
     const gameweekData = await Promise.all(
