@@ -410,7 +410,7 @@ router.post('/set-active-room', protect, async (req, res) => {
 router.get('/players', protect, async (req, res) => {
   try {
     const { roomId } = req.user;
-    print(roomId, req.user)
+    console.log(roomId, req.user)
     if (!roomId) {
       return res.status(400).json({ error: 'User is not associated with any room' });
     }
