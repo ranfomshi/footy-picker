@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
+import { BrowserRouter as Router, Route, Routes } from "react-router-dom"; // Import updated routing components
 import "./App.css";
-import { BrowserRouter as Router, Route, Switch } from "react-router-dom"; // Import routing components
 import AddPlayer from "./components/AddPlayer";
 import axios from "axios";
 import GameweekManager from "./components/GameweekManager";
@@ -184,11 +184,11 @@ function App() {
               </Space>
             )}
           </div>
-          <Switch>
-            <Route exact path="/privacy" component={PrivacyPolicy} />
+          <Routes>
+            <Route path="/privacy" element={<PrivacyPolicy />} />
             <Route
               path="/"
-              render={() => (
+              element={
                 <div className="content scroll-list">
                   <div
                     style={{
@@ -226,9 +226,9 @@ function App() {
                     <Paragraph>Please log in</Paragraph>
                   )}
                 </div>
-              )}
+              }
             />
-          </Switch>
+          </Routes>
           <div className="bottom-nav">
             <BottomNav activeKey={activeKey} onChange={setActiveKey} />
           </div>
