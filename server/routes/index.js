@@ -1237,6 +1237,81 @@ router.get('/gameweeks', protect, async (req, res) => {
   }
 });
 
+// **New Route: GET /gameweeks/:id**
+router.get('/gameweeks/:id', protect, async (req, res) => {
+  const { id } = req.params;
+  const { roomId } = req.user;
+
+  try {
+    const gameweek = await Gameweek.findOne({
+      where: { id, roomId },
+      include: [
+        {
+          model: GameResult,
+          required: false,
+          attributes: ['teamA_score', 'teamB_score', 'createdAt'],
+        },
+      ],
+    });
+
+    if (!gameweek) {
+      return res.status(404).json({ error: 'Gameweek not found' });
+    }
+
+    const gameweekId = gameweek.id;
+    const gameResult = gameweek.GameResult;
+
+    // Calculate voting close time dynamically based on the GameResult's createdAt timestamp
+    let votingCloseTime = null;
+
+    if (gameResult) {
+      // Use Date.parse() to correctly parse the GameResult's createdAt date including the timezone offset
+      const parsedCreatedAt = new Date(Date.parse(gameResult.createdAt));
+
+      // Calculate voting close time by adding 48 hours to the GameResult's createdAt
+      votingCloseTime = new Date(parsedCreatedAt.getTime() + 48 * 60 * 60 * 1000);
+    }
+
+    const votes = await Vote.findAll({
+      where: { gameweek_id: gameweekId, roomId },
+      attributes: [
+        'voted_player_id',
+        [sequelize.fn('COUNT', sequelize.col('voted_player_id')), 'vote_count'],
+      ],
+      group: ['voted_player_id'],
+      order: [[sequelize.literal('vote_count'), 'DESC']],
+    });
+
+    let playerOfTheMatch = [];
+
+    if (votes.length > 0) {
+      const topVoteCount = votes[0].dataValues.vote_count;
+
+      // Find all players tied for the top vote count
+      const topVotes = votes.filter((vote) => vote.dataValues.vote_count === topVoteCount);
+
+      // Fetch all players tied for the top spot
+      for (const vote of topVotes) {
+        const player = await Player.findByPk(vote.voted_player_id, {
+          attributes: ['id', 'name'],
+        });
+        if (player) {
+          playerOfTheMatch.push(player.name); // Add player name to array
+        }
+      }
+    }
+
+    res.json({
+      ...gameweek.toJSON(),
+      playerOfTheMatch: playerOfTheMatch.length > 0 ? playerOfTheMatch : ['No votes'],
+      votingCloseTime,
+    });
+  } catch (error) {
+    console.error(`Error fetching gameweek with ID ${id}:`, error);
+    res.status(500).json({ error: 'Internal Server Error' });
+  }
+});
+
 router.delete('/gameweeks/:id', protect, async (req, res) => {
   try {
     const { id } = req.params;
