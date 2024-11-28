@@ -7,7 +7,7 @@ const PrivacyPolicy = () => (
   <div style={{ padding: "20px" }}>
     <Title level={2}>Privacy Policy</Title>
     <Paragraph>
-      Effective Date: <Text strong>[Insert Date]</Text>
+      Effective Date: <Text strong>28th November 2024</Text>
     </Paragraph>
     <Paragraph>
       At Footy Picker, we prioritize your privacy and are committed to safeguarding your data. This policy outlines how we collect, use, and protect your information.
