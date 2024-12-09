@@ -254,6 +254,7 @@ router.post('/finalize-join-room', protect, async (req, res) => {
 
 router.post('/unlink-player', protect, async (req, res) => {
   const auth0Id = req.user.sub;
+  const { roomCode } = req.body; // Get the roomCode from the request body
 
   try {
     const player = await Player.findOne({ where: { auth0Id } });
@@ -261,12 +262,17 @@ router.post('/unlink-player', protect, async (req, res) => {
       return res.status(404).json({ error: 'Player not found' });
     }
 
-    player.auth0Id = null;
-    await player.save();
+    // Unlink from the specific room based on the roomCode
+    const roomMembership = await RoomMembership.findOne({ 
+      where: { playerId: player.id, roomCode: roomCode }
+    });
 
-    await RoomMembership.update({ auth0Id: null }, { where: { playerId: player.id } });
-
-    res.status(200).json({ message: 'Player unlinked successfully' });
+    if (roomMembership) {
+      await roomMembership.update({ auth0Id: null });
+      res.status(200).json({ message: 'Player unlinked successfully from the room' });
+    } else {
+      res.status(404).json({ error: 'Player not found in this room' });
+    }
   } catch (error) {
     console.error('Error unlinking player:', error);
     res.status(500).json({ error: 'Internal Server Error' });
