@@ -262,9 +262,17 @@ router.post('/unlink-player', protect, async (req, res) => {
       return res.status(404).json({ error: 'Player not found' });
     }
 
-    // Unlink from the specific room based on the roomCode
-    const roomMembership = await RoomMembership.findOne({ 
-      where: { playerId: player.id, roomId: roomCode } // Change roomCode to roomId
+    // Fetch the roomId using the roomCode (which is a string)
+    const room = await Room.findOne({ where: { code: roomCode } });
+    if (!room) {
+      return res.status(404).json({ error: 'Room not found' });
+    }
+
+    const roomId = room.id;
+
+    // Now, use the roomId (which is an integer) to find the RoomMembership
+    const roomMembership = await RoomMembership.findOne({
+      where: { playerId: player.id, roomId: roomId } // Use roomId here
     });
 
     if (roomMembership) {
@@ -278,6 +286,7 @@ router.post('/unlink-player', protect, async (req, res) => {
     res.status(500).json({ error: 'Internal Server Error' });
   }
 });
+
 
 
 router.get('/pick-teams', protect, async (req, res) => {
