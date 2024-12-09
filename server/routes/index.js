@@ -342,7 +342,7 @@ router.get('/check-room-membership', protect, async (req, res) => {
   try {
     // Fetch all room memberships for the user
     const memberships = await RoomMembership.findAll({
-      where: { playerId}, // Filter out linked players
+      where: { playerId, auth0Id}, // Filter out linked players
       include: Room,
     });
 
