@@ -264,7 +264,7 @@ router.post('/unlink-player', protect, async (req, res) => {
 
     // Unlink from the specific room based on the roomCode
     const roomMembership = await RoomMembership.findOne({ 
-      where: { playerId: player.id, roomCode: roomCode }
+      where: { playerId: player.id, roomId: roomCode } // Change roomCode to roomId
     });
 
     if (roomMembership) {
@@ -278,6 +278,7 @@ router.post('/unlink-player', protect, async (req, res) => {
     res.status(500).json({ error: 'Internal Server Error' });
   }
 });
+
 
 router.get('/pick-teams', protect, async (req, res) => {
   const { gameweekId } = req.query;
