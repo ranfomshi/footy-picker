@@ -276,7 +276,7 @@ router.post('/unlink-player', protect, async (req, res) => {
     });
 
     if (roomMembership) {
-      await roomMembership.update({ auth0Id: null });
+      await roomMembership.update({ auth0Id: null, isActive: false });
       res.status(200).json({ message: 'Player unlinked successfully from the room' });
     } else {
       res.status(404).json({ error: 'Player not found in this room' });
