@@ -153,20 +153,42 @@ router.post('/create-room', protect, async (req, res) => {
   const code = generateRoomCode();
 
   try {
+    // Get the access token from the Authorization header
     const accessToken = req.headers.authorization.split(' ')[1];
     const userInfoResponse = await axios.get(`https://${auth0Domain}/userinfo`, {
       headers: { Authorization: `Bearer ${accessToken}` },
     });
 
+    // Extract the username from the Auth0 user info
     const username = userInfoResponse.data.name;
 
+    // Find or create the player using auth0Id
     let player = await Player.findOne({ where: { auth0Id } });
     if (!player) {
       player = await Player.create({ auth0Id, name: username });
     }
 
+    // Create the new room
     const room = await Room.create({ name, code });
-    await RoomMembership.create({ playerId: player.id, roomId: room.id, isActive: true });
+
+    // Create the room membership and set it as active
+    await RoomMembership.create({
+      playerId: player.id,
+      roomId: room.id,
+      auth0Id: auth0Id, // Add auth0Id to the RoomMembership
+      isActive: true,   // Set the room as active
+    });
+
+    // Deactivate other room memberships for the player
+    await RoomMembership.update(
+      { isActive: false },
+      {
+        where: {
+          playerId: player.id,
+          roomId: { [Op.ne]: room.id },
+        },
+      }
+    );
 
     res.status(201).json(room);
   } catch (error) {
@@ -174,6 +196,7 @@ router.post('/create-room', protect, async (req, res) => {
     res.status(500).json({ error: 'Internal Server Error' });
   }
 });
+
 
 router.post('/join-room', protect, async (req, res) => {
   const { code } = req.body;
