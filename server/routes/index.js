@@ -41,19 +41,16 @@ const protect = async (req, res, next) => {
   }
 
   try {
-    // Decode the JWT token
     const decoded = jwt.decode(token, { complete: true });
     if (!decoded) {
       console.error('Failed to decode token');
       return res.status(401).json({ error: 'Invalid token' });
     }
 
-    // Get signing key
     const kid = decoded.header.kid;
     const key = await client.getSigningKey(kid);
     const signingKey = key.getPublicKey();
 
-    // Verify token
     jwt.verify(
       token,
       signingKey,
@@ -62,23 +59,33 @@ const protect = async (req, res, next) => {
         issuer: `https://${auth0Domain}/`,
         algorithms: ['RS256'],
       },
-      (err, decodedToken) => {
+      async (err, decodedToken) => {
         if (err) {
           console.error('Token verification failed:', err);
           return res.status(401).json({ error: 'Token verification failed' });
         }
 
-        // Attach the decoded token
+        // Attach the decoded token to the request object
         req.user = decodedToken;
 
-        // (No longer searching for a global Player record)
-        // Optionally, you can fetch the user's "active" membership here if desired,
-        // e.g.:
-        //   const activeMembership = await RoomMembership.findOne({ where: { auth0Id: req.user.sub, isActive: true } });
-        //   if (activeMembership) req.user.roomId = activeMembership.roomId;
-        // ...But only if you want this convenience.
+        // 1) Find the user's "active" membership row
+        const activeMembership = await RoomMembership.findOne({
+          where: {
+            auth0Id: decodedToken.sub,   // match user sub
+            isActive: true,             // only the active membership
+          },
+        });
 
-        return next();
+        // 2) If found, attach roomId to req.user
+        if (activeMembership) {
+          req.user.roomId = activeMembership.roomId;
+        } else {
+          // If you want to handle the case where there's no active membership,
+          // you can log it or leave it as is, so req.user.roomId remains undefined.
+          console.log('No active membership found for user:', decodedToken.sub);
+        }
+
+        next();
       }
     );
   } catch (error) {
