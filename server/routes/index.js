@@ -246,29 +246,110 @@ router.post('/finalize-join-room', protect, async (req, res) => {
       return res.status(404).json({ error: 'Room not found' });
     }
 
-    if (playerId) {
-      const player = await Player.findOne({ where: { id: playerId, auth0Id: null } });
-      if (!player) {
-        return res.status(400).json({ error: 'Invalid player selection' });
-      }
-      player.auth0Id = auth0Id;
-      await player.save();
-    } else if (newPlayerName !== null) {
-      const newPlayer = await Player.create({ auth0Id, name: newPlayerName });
-      await RoomMembership.create({ playerId: newPlayer.id, roomId: room.id });
-    } else {
-      const accessToken = req.headers.authorization.split(' ')[1];
-      const userInfoResponse = await axios.get(`https://${auth0Domain}/userinfo`, {
-        headers: { Authorization: `Bearer ${accessToken}` },
+    // Check if user already has a linked player
+    const existingLinkedPlayer = await Player.findOne({ where: { auth0Id } });
+
+    if (existingLinkedPlayer) {
+      // The user is already linked to a player. They should not link or create another.
+      // Check if this player is already in this room
+      const existingMembership = await RoomMembership.findOne({
+        where: { playerId: existingLinkedPlayer.id, roomId: room.id }
       });
 
-      const username = userInfoResponse.data.name;
+      if (existingMembership) {
+        // If already a member of this room
+        if (existingMembership.isActive) {
+          // Already active in this room
+          return res.status(400).json({ error: 'You are already active in this room.' });
+        } else {
+          // Membership exists but inactive, reactivate it
+          await RoomMembership.update(
+            { isActive: true },
+            { where: { playerId: existingLinkedPlayer.id, roomId: room.id } }
+          );
+          return res.status(200).json({ message: 'Reactivated existing membership in this room.' });
+        }
+      } else {
+        // Player linked to user is not in this room yet, create membership
+        await RoomMembership.create({ playerId: existingLinkedPlayer.id, roomId: room.id, auth0Id });
+        return res.status(200).json({ message: 'Joined room with your existing linked player.' });
+      }
 
-      const newPlayer = await Player.create({ auth0Id, name: username });
-      await RoomMembership.create({ playerId: newPlayer.id, roomId: room.id });
+    } else {
+      // User does not have a linked player yet.
+      // They can either link to an existing unlinked player in the room,
+      // create a new player with provided name,
+      // or create a new player using Auth0 profile name if none provided.
+
+      if (playerId) {
+        // Linking to an existing unlinked player in the room
+        const targetPlayer = await Player.findOne({ where: { id: playerId, auth0Id: null } });
+        if (!targetPlayer) {
+          return res.status(400).json({ error: 'Invalid player selection or player already linked.' });
+        }
+
+        // Check if this player belongs to the room and is unlinked
+        const membership = await RoomMembership.findOne({
+          where: { playerId: targetPlayer.id, roomId: room.id, auth0Id: null }
+        });
+
+        if (!membership) {
+          return res.status(400).json({ error: 'Selected player is not unlinked in this room.' });
+        }
+
+        // Link the target player to the user's auth0Id
+        targetPlayer.auth0Id = auth0Id;
+        await targetPlayer.save();
+        await membership.update({ auth0Id });
+
+        return res.status(200).json({ message: 'Joined room successfully by linking existing player.' });
+
+      } else if (newPlayerName !== null && newPlayerName !== undefined) {
+        // Create a new player with the given name
+        // (Optional: check if name already exists in this room)
+        const nameExists = await Player.findOne({
+          where: { name: newPlayerName },
+          include: {
+            model: RoomMembership,
+            where: { roomId: room.id },
+          },
+        });
+        if (nameExists) {
+          return res.status(400).json({ error: 'Player name already exists in this room.' });
+        }
+
+        const newPlayer = await Player.create({ auth0Id, name: newPlayerName });
+        await RoomMembership.create({ playerId: newPlayer.id, roomId: room.id, auth0Id });
+        return res.status(200).json({ message: 'Joined room successfully by creating a new player.' });
+
+      } else {
+        // No playerId or newPlayerName provided, use the Auth0 profile name
+        const accessToken = req.headers.authorization.split(' ')[1];
+        const userInfoResponse = await axios.get(`https://${auth0Domain}/userinfo`, {
+          headers: { Authorization: `Bearer ${accessToken}` },
+        });
+
+        const username = userInfoResponse.data.name || 'Unnamed Player';
+
+        // Check if username exists in this room
+        const nameExists = await Player.findOne({
+          where: { name: username },
+          include: {
+            model: RoomMembership,
+            where: { roomId: room.id },
+          },
+        });
+        if (nameExists) {
+          return res.status(400).json({ error: 'A player with this name already exists in this room. Please provide a unique name.' });
+        }
+
+        const newPlayer = await Player.create({ auth0Id, name: username });
+        await RoomMembership.create({ playerId: newPlayer.id, roomId: room.id, auth0Id });
+
+        return res.status(200).json({ message: 'Joined room successfully by creating a new player from your Auth0 profile.' });
+      }
     }
 
-    res.status(200).json({ message: 'Joined room successfully' });
   } catch (error) {
     console.error('Error finalizing room join:', error);
     res.status(500).json({ error: 'Internal Server Error' });
