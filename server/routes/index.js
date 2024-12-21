@@ -340,20 +340,23 @@ router.get('/check-room-membership', protect, async (req, res) => {
   const auth0Id = req.user.sub;
 
   try {
+    // Find all memberships for this user based on auth0Id in RoomMembership
     const memberships = await RoomMembership.findAll({
-      where: {
-        auth0Id,
-      },
-      include: Room,
+      where: { auth0Id },
+      include: Room, // Eager-load the associated Room details
     });
 
+    // Build an array of "joinedRooms" from the membership data
     const joinedRooms = memberships.map((membership) => ({
       id: membership.Room.id,
       name: membership.Room.name,
       code: membership.Room.code,
     }));
 
+    // Identify if there's an active membership
     const activeMembership = memberships.find((m) => m.isActive);
+
+    // Build the "activeRoom" object (or null if none)
     const activeRoom = activeMembership
       ? {
           id: activeMembership.Room.id,
@@ -362,15 +365,16 @@ router.get('/check-room-membership', protect, async (req, res) => {
         }
       : null;
 
-    res.status(200).json({
+    return res.status(200).json({
       activeRoom,
       joinedRooms,
     });
   } catch (error) {
     console.error('Error checking room membership:', error);
-    res.status(500).json({ error: 'Internal Server Error' });
+    return res.status(500).json({ error: 'Internal Server Error' });
   }
 });
+
 
 
 router.post('/set-active-room', protect, async (req, res) => {
