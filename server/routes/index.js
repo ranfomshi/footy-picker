@@ -148,16 +148,39 @@ router.get('/current-player', protect, async (req, res) => {
 });
 
 router.post('/create-room', protect, async (req, res) => {
-  const { name } = req.body;
+  const { name, playerName } = req.body; // Accept playerName in the request body
   const auth0Id = req.user.sub;
   const code = generateRoomCode();
 
   try {
+    // Get the user's name from Auth0 profile if playerName is not provided
+    let finalPlayerName = playerName;
+    if (!finalPlayerName) {
+      const accessToken = req.headers.authorization.split(' ')[1];
+      const userInfoResponse = await axios.get(`https://${auth0Domain}/userinfo`, {
+        headers: { Authorization: `Bearer ${accessToken}` },
+      });
+      finalPlayerName = userInfoResponse.data.name || 'Unnamed Player';
+    }
+
     // Create the room
     const room = await Room.create({ name, code });
 
-    // Create a brand-new Player record (no auth0Id)
-    const newPlayer = await Player.create({ name: 'Unnamed Player' });
+      // Check for duplicate player name in the room
+      const existingPlayer = await Player.findOne({
+        where: { name: finalPlayerName },
+        include: {
+          model: RoomMembership,
+          where: { roomId: room.id },
+        },
+      });
+  
+      if (existingPlayer) {
+        return res.status(400).json({ error: 'Player name already exists in this room' });
+      }
+
+    // Create a new Player record with the resolved name
+    const newPlayer = await Player.create({ name: finalPlayerName });
 
     // Create membership linking that new Player to the user in this room
     await RoomMembership.create({
@@ -173,6 +196,7 @@ router.post('/create-room', protect, async (req, res) => {
     res.status(500).json({ error: 'Internal Server Error' });
   }
 });
+
 
 
 
@@ -220,7 +244,6 @@ router.post('/finalize-join-room', protect, async (req, res) => {
   const auth0Id = req.user.sub;
 
   try {
-    // Step 1: Find the room by its code
     const room = await Room.findOne({ where: { code: roomCode } });
     if (!room) {
       return res.status(404).json({ error: 'Room not found' });
@@ -228,8 +251,8 @@ router.post('/finalize-join-room', protect, async (req, res) => {
 
     let player;
 
-    // Step 2: Link to an existing unlinked player
     if (playerId) {
+      // Link to an existing unlinked player
       player = await Player.findOne({
         where: { id: playerId },
         include: {
@@ -253,7 +276,7 @@ router.post('/finalize-join-room', protect, async (req, res) => {
 
       await membership.update({ auth0Id, isActive: true });
     } else {
-      // Step 3: Create a new player and link
+      // Create a new player
       let finalName = newPlayerName;
       if (!finalName) {
         const accessToken = req.headers.authorization.split(' ')[1];
@@ -261,6 +284,19 @@ router.post('/finalize-join-room', protect, async (req, res) => {
           headers: { Authorization: `Bearer ${accessToken}` },
         });
         finalName = userInfoResponse.data.name || 'Unnamed Player';
+      }
+
+       // Check for duplicate player name in the room
+       const existingPlayer = await Player.findOne({
+        where: { name: finalName },
+        include: {
+          model: RoomMembership,
+          where: { roomId: room.id },
+        },
+      });
+
+      if (existingPlayer) {
+        return res.status(400).json({ error: 'Player name already exists in this room' });
       }
 
       player = await Player.create({ name: finalName });
@@ -273,13 +309,11 @@ router.post('/finalize-join-room', protect, async (req, res) => {
       });
     }
 
-    // Step 4: Deactivate other memberships
     await RoomMembership.update(
       { isActive: false },
       { where: { auth0Id, roomId: { [Op.ne]: room.id } } }
     );
 
-    // Step 5: Fetch and return updated room details
     const updatedRoom = await Room.findOne({ where: { id: room.id } });
 
     return res.status(200).json({
@@ -296,6 +330,7 @@ router.post('/finalize-join-room', protect, async (req, res) => {
     res.status(500).json({ error: 'Internal Server Error' });
   }
 });
+
 
 
 
