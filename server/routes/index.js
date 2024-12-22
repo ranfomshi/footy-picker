@@ -220,6 +220,7 @@ router.post('/finalize-join-room', protect, async (req, res) => {
   const auth0Id = req.user.sub;
 
   try {
+    // Step 1: Find the room by its code
     const room = await Room.findOne({ where: { code: roomCode } });
     if (!room) {
       return res.status(404).json({ error: 'Room not found' });
@@ -227,14 +228,14 @@ router.post('/finalize-join-room', protect, async (req, res) => {
 
     let player;
 
-    // 1. Link to existing unlinked player
+    // Step 2: Link to an existing unlinked player
     if (playerId) {
       player = await Player.findOne({
         where: { id: playerId },
         include: {
           model: RoomMembership,
           where: { roomId: room.id, auth0Id: null },
-          required: true, // Ensures only unlinked players are fetched
+          required: true,
         },
       });
 
@@ -242,7 +243,6 @@ router.post('/finalize-join-room', protect, async (req, res) => {
         return res.status(400).json({ error: 'Invalid or already-linked player.' });
       }
 
-      // Link this membership to the user and set as active
       const membership = await RoomMembership.findOne({
         where: { roomId: room.id, playerId: player.id, auth0Id: null },
       });
@@ -252,9 +252,8 @@ router.post('/finalize-join-room', protect, async (req, res) => {
       }
 
       await membership.update({ auth0Id, isActive: true });
-    }
-    // 2. Create a new player and link
-    else {
+    } else {
+      // Step 3: Create a new player and link
       let finalName = newPlayerName;
       if (!finalName) {
         const accessToken = req.headers.authorization.split(' ')[1];
@@ -262,13 +261,10 @@ router.post('/finalize-join-room', protect, async (req, res) => {
           headers: { Authorization: `Bearer ${accessToken}` },
         });
         finalName = userInfoResponse.data.name || 'Unnamed Player';
-    }
-    
+      }
 
-      // Create a new player
       player = await Player.create({ name: finalName });
 
-      // Create a new membership linking the user to the new player
       await RoomMembership.create({
         playerId: player.id,
         roomId: room.id,
@@ -277,13 +273,13 @@ router.post('/finalize-join-room', protect, async (req, res) => {
       });
     }
 
-    // Optionally, deactivate other memberships
+    // Step 4: Deactivate other memberships
     await RoomMembership.update(
       { isActive: false },
       { where: { auth0Id, roomId: { [Op.ne]: room.id } } }
     );
 
-    // Fetch updated room details
+    // Step 5: Fetch and return updated room details
     const updatedRoom = await Room.findOne({ where: { id: room.id } });
 
     return res.status(200).json({
@@ -295,12 +291,12 @@ router.post('/finalize-join-room', protect, async (req, res) => {
         code: updatedRoom.code,
       },
     });
-
   } catch (error) {
     console.error('Error finalizing room join:', error);
     res.status(500).json({ error: 'Internal Server Error' });
   }
 });
+
 
 
 
