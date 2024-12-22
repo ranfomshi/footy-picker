@@ -257,13 +257,13 @@ router.post('/finalize-join-room', protect, async (req, res) => {
     else {
       let finalName = newPlayerName;
       if (!finalName) {
-        // Fetch user's name from Auth0
         const accessToken = req.headers.authorization.split(' ')[1];
         const userInfoResponse = await axios.get(`https://${auth0Domain}/userinfo`, {
           headers: { Authorization: `Bearer ${accessToken}` },
         });
         finalName = userInfoResponse.data.name || 'Unnamed Player';
-      }
+    }
+    
 
       // Create a new player
       player = await Player.create({ name: finalName });
