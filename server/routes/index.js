@@ -221,41 +221,76 @@ router.post('/finalize-join-room', protect, async (req, res) => {
       return res.status(404).json({ error: 'Room not found' });
     }
 
-    // 1) If playerId is provided, link user to that unlinked player in membership
+    let player;
+
+    // 1. Link to existing unlinked player
     if (playerId) {
-      const membership = await RoomMembership.findOne({
-        where: { roomId: room.id, playerId, auth0Id: null },
+      player = await Player.findOne({
+        where: { id: playerId },
+        include: {
+          model: RoomMembership,
+          where: { roomId: room.id, auth0Id: null },
+          required: true, // Ensures only unlinked players are fetched
+        },
       });
-      if (!membership) {
+
+      if (!player) {
         return res.status(400).json({ error: 'Invalid or already-linked player.' });
       }
-      // Link this membership to the user
-      await membership.update({ auth0Id, isActive: true });
-      return res.status(200).json({ message: 'Joined room by linking existing unlinked player.' });
-    }
 
-    // 2) If newPlayerName, create a new player
-    let finalName = newPlayerName;
-    if (!finalName) {
-      // If not provided, fallback to user’s Auth0 profile
-      const accessToken = req.headers.authorization.split(' ')[1];
-      const userInfoResponse = await axios.get(`https://${auth0Domain}/userinfo`, {
-        headers: { Authorization: `Bearer ${accessToken}` },
+      // Link this membership to the user and set as active
+      const membership = await RoomMembership.findOne({
+        where: { roomId: room.id, playerId: player.id, auth0Id: null },
       });
-      finalName = userInfoResponse.data.name || 'Unnamed Player';
+
+      if (!membership) {
+        return res.status(400).json({ error: 'Invalid membership link attempt.' });
+      }
+
+      await membership.update({ auth0Id, isActive: true });
+    }
+    // 2. Create a new player and link
+    else {
+      let finalName = newPlayerName;
+      if (!finalName) {
+        // Fetch user's name from Auth0
+        const accessToken = req.headers.authorization.split(' ')[1];
+        const userInfoResponse = await axios.get(`https://${auth0Domain}/userinfo`, {
+          headers: { Authorization: `Bearer ${accessToken}` },
+        });
+        finalName = userInfoResponse.data.name || 'Unnamed Player';
+      }
+
+      // Create a new player
+      player = await Player.create({ name: finalName });
+
+      // Create a new membership linking the user to the new player
+      await RoomMembership.create({
+        playerId: player.id,
+        roomId: room.id,
+        auth0Id,
+        isActive: true,
+      });
     }
 
-    // Create a brand new player (without storing auth0Id on the Player itself)
-    const newPlayer = await Player.create({ name: finalName });
-    // Then create membership for that user in this room
-    await RoomMembership.create({
-      playerId: newPlayer.id,
-      roomId: room.id,
-      auth0Id,
-      isActive: true,
-    });
+    // Optionally, deactivate other memberships
+    await RoomMembership.update(
+      { isActive: false },
+      { where: { auth0Id, roomId: { [Op.ne]: room.id } } }
+    );
 
-    return res.status(200).json({ message: 'Joined room successfully!' });
+    // Fetch updated room details
+    const updatedRoom = await Room.findOne({ where: { id: room.id } });
+
+    return res.status(200).json({
+      success: true,
+      message: 'Joined room successfully!',
+      room: {
+        id: updatedRoom.id,
+        name: updatedRoom.name,
+        code: updatedRoom.code,
+      },
+    });
 
   } catch (error) {
     console.error('Error finalizing room join:', error);
