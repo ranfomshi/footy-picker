@@ -176,6 +176,7 @@ router.post('/create-room', protect, async (req, res) => {
 
 
 
+
 router.post('/join-room', protect, async (req, res) => {
   const { code } = req.body;
   const auth0Id = req.user.sub;
@@ -183,7 +184,7 @@ router.post('/join-room', protect, async (req, res) => {
   try {
     const room = await Room.findOne({ where: { code } });
     if (!room) {
-      return res.status(404).json({ message: 'Room not found' });
+      return res.status(404).json({ status: 'error', message: 'Room not found' });
     }
 
     // Check if user is already in this room by membership
@@ -191,10 +192,13 @@ router.post('/join-room', protect, async (req, res) => {
       where: { auth0Id, roomId: room.id },
     });
     if (existingMembership) {
-      return res.status(400).json({ message: 'Already a member of this room' });
+      return res.status(200).json({
+        status: 'success',
+        message: 'Already a member of this room',
+      });
     }
 
-    // Find unlinked players in this room (that have RoomMembership.auth0Id = null)
+    // Find unlinked players in this room (RoomMembership.auth0Id = null)
     const unlinkedPlayers = await Player.findAll({
       include: {
         model: RoomMembership,
@@ -202,11 +206,11 @@ router.post('/join-room', protect, async (req, res) => {
       },
     });
 
-    // Return them so the frontend can finalize the link
-    return res.status(200).json({ unlinkedPlayers });
+    // Return them with status 'unlinked' so the frontend can finalize the link
+    return res.status(200).json({ status: 'unlinked', unlinkedPlayers });
   } catch (error) {
     console.error('Error joining room:', error);
-    res.status(500).json({ error: 'Internal Server Error' });
+    res.status(500).json({ status: 'error', error: 'Internal Server Error' });
   }
 });
 
