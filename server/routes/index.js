@@ -166,18 +166,18 @@ router.post('/create-room', protect, async (req, res) => {
     // Create the room
     const room = await Room.create({ name, code });
 
-      // Check for duplicate player name in the room
-      const existingPlayer = await Player.findOne({
-        where: { name: finalPlayerName },
-        include: {
-          model: RoomMembership,
-          where: { roomId: room.id },
-        },
-      });
-  
-      if (existingPlayer) {
-        return res.status(400).json({ error: 'Player name already exists in this room' });
-      }
+    // Check for duplicate player name in the room
+    const existingPlayer = await Player.findOne({
+      where: { name: finalPlayerName },
+      include: {
+        model: RoomMembership,
+        where: { roomId: room.id },
+      },
+    });
+
+    if (existingPlayer) {
+      return res.status(400).json({ error: 'Player name already exists in this room' });
+    }
 
     // Create a new Player record with the resolved name
     const newPlayer = await Player.create({ name: finalPlayerName });
@@ -286,8 +286,8 @@ router.post('/finalize-join-room', protect, async (req, res) => {
         finalName = userInfoResponse.data.name || 'Unnamed Player';
       }
 
-       // Check for duplicate player name in the room
-       const existingPlayer = await Player.findOne({
+      // Check for duplicate player name in the room
+      const existingPlayer = await Player.findOne({
         where: { name: finalName },
         include: {
           model: RoomMembership,
@@ -436,10 +436,10 @@ router.get('/check-room-membership', protect, async (req, res) => {
     // Build the "activeRoom" object (or null if none)
     const activeRoom = activeMembership
       ? {
-          id: activeMembership.Room.id,
-          name: activeMembership.Room.name,
-          code: activeMembership.Room.code,
-        }
+        id: activeMembership.Room.id,
+        name: activeMembership.Room.name,
+        code: activeMembership.Room.code,
+      }
       : null;
 
     return res.status(200).json({
@@ -725,15 +725,15 @@ router.get('/players', protect, async (req, res) => {
           // Attach the favorite teammate and their stats to the player's data as an array
           player.dataValues.favoriteTeammates = favoriteTeammate
             ? [
-                {
-                  ...favoriteTeammate.toJSON(),
-                  reason: {
-                    winRate: topStats.winRate,
-                    matchesPlayedTogether: topStats.matchesPlayed,
-                    goalDifferenceTogether: topStats.goalDifference,
-                  },
+              {
+                ...favoriteTeammate.toJSON(),
+                reason: {
+                  winRate: topStats.winRate,
+                  matchesPlayedTogether: topStats.matchesPlayed,
+                  goalDifferenceTogether: topStats.goalDifference,
                 },
-              ]
+              },
+            ]
             : [];
         }
 
@@ -850,7 +850,18 @@ router.post('/players', protect, async (req, res) => {
       0
     );
     const averageRating = existingPlayers.length > 0 ? totalRating / existingPlayers.length : 0;
+    // Check for duplicate player name in the room
+    const existingPlayer = await Player.findOne({
+      where: { name },
+      include: {
+        model: RoomMembership,
+        where: { roomId },
+      },
+    });
 
+    if (existingPlayer) {
+      return res.status(400).json({ error: 'Player name already exists in this room' });
+    }
     const newPlayer = await Player.create({ name, rating: averageRating });
 
     await Rating.create({
