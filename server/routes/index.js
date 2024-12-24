@@ -166,26 +166,11 @@ router.post('/create-room', protect, async (req, res) => {
     // Create the room
     const room = await Room.create({ name, code });
 
-    // Check for duplicate player name in the room
-    const existingPlayer = await Player.findOne({
-      where: { name: finalPlayerName },
-      include: {
-        model: RoomMembership,
-        where: { roomId: room.id },
-      },
-    });
-
-    if (existingPlayer) {
-      return res.status(400).json({ error: 'Player name already exists in this room' });
-    }
-
-    // Create a new Player record with the resolved name
-    const newPlayer = await Player.create({ name: finalPlayerName });
-
     // Deactivate other memberships for this user
     await RoomMembership.update({ isActive: false }, { where: { auth0Id } });
 
     // Create membership linking that new Player to the user in this room
+    const newPlayer = await Player.create({ name: finalPlayerName });
     const newMembership = await RoomMembership.create({
       playerId: newPlayer.id,
       roomId: room.id,
@@ -193,7 +178,6 @@ router.post('/create-room', protect, async (req, res) => {
       isActive: true, // Mark as active
     });
 
-    // Return the newly created room details
     res.status(201).json({
       room: {
         id: room.id,
@@ -203,10 +187,11 @@ router.post('/create-room', protect, async (req, res) => {
       membership: newMembership,
     });
   } catch (error) {
-    console.error('Error creating room:', error);
-    res.status(500).json({ error: 'Internal Server Error' });
+    console.error('Error creating room:', error.message);
+    res.status(500).json({ error: error.message || 'Internal Server Error' });
   }
 });
+
 
 
 
