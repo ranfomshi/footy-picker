@@ -182,20 +182,32 @@ router.post('/create-room', protect, async (req, res) => {
     // Create a new Player record with the resolved name
     const newPlayer = await Player.create({ name: finalPlayerName });
 
+    // Deactivate other memberships for this user
+    await RoomMembership.update({ isActive: false }, { where: { auth0Id } });
+
     // Create membership linking that new Player to the user in this room
-    await RoomMembership.create({
+    const newMembership = await RoomMembership.create({
       playerId: newPlayer.id,
       roomId: room.id,
       auth0Id,
-      isActive: true,
+      isActive: true, // Mark as active
     });
 
-    res.status(201).json(room);
+    // Return the newly created room details
+    res.status(201).json({
+      room: {
+        id: room.id,
+        name: room.name,
+        code: room.code,
+      },
+      membership: newMembership,
+    });
   } catch (error) {
     console.error('Error creating room:', error);
     res.status(500).json({ error: 'Internal Server Error' });
   }
 });
+
 
 
 
