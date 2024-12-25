@@ -199,16 +199,17 @@ router.post('/create-room', protect, async (req, res) => {
 
 
 router.post('/join-room', protect, async (req, res) => {
-  const { code } = req.body;
-  const auth0Id = req.user.sub;
+  const { code } = req.body; // Room code from the frontend
+  const auth0Id = req.user.sub; // User's Auth0 ID
 
   try {
+    // Step 1: Find the room by code
     const room = await Room.findOne({ where: { code } });
     if (!room) {
       return res.status(404).json({ status: 'error', message: 'Room not found' });
     }
 
-    // Check if user is already in this room by membership
+    // Step 2: Check if the user is already a member
     const existingMembership = await RoomMembership.findOne({
       where: { auth0Id, roomId: room.id },
     });
@@ -219,7 +220,7 @@ router.post('/join-room', protect, async (req, res) => {
       });
     }
 
-    // Find unlinked players in this room (RoomMembership.auth0Id = null)
+    // Step 3: Find unlinked players in the room
     const unlinkedPlayers = await Player.findAll({
       include: {
         model: RoomMembership,
@@ -227,13 +228,36 @@ router.post('/join-room', protect, async (req, res) => {
       },
     });
 
-    // Return them with status 'unlinked' so the frontend can finalize the link
-    return res.status(200).json({ status: 'unlinked', unlinkedPlayers });
+    // If unlinked players exist, return them
+    if (unlinkedPlayers.length > 0) {
+      return res.status(200).json({ status: 'unlinked', unlinkedPlayers });
+    }
+
+    // Step 4: Create a new player and membership
+    const newPlayer = await Player.create({ name: 'New Player' }); // Customize as needed
+    const newMembership = await RoomMembership.create({
+      playerId: newPlayer.id,
+      roomId: room.id,
+      auth0Id,
+      isActive: true, // Mark as active
+    });
+
+    // Step 5: Return success response
+    return res.status(200).json({
+      status: 'success',
+      message: 'Room joined successfully',
+      activeRoom: {
+        id: room.id,
+        name: room.name,
+        code: room.code,
+      },
+    });
   } catch (error) {
     console.error('Error joining room:', error);
-    res.status(500).json({ status: 'error', error: 'Internal Server Error' });
+    return res.status(500).json({ status: 'error', error: 'Internal Server Error' });
   }
 });
+
 
 
 router.post('/finalize-join-room', protect, async (req, res) => {
