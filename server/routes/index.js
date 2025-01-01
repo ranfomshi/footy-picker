@@ -528,35 +528,34 @@ router.post('/set-active-room', protect, async (req, res) => {
 router.get('/players', protect, async (req, res) => {
   try {
     const { roomId } = req.user;
-    console.log('Fetching players for roomId:', roomId, 'User:', req.user);
 
     if (!roomId) {
       return res.status(400).json({ error: 'User is not associated with any room' });
     }
 
-    // 1. Fetch all players in the room with LEFT JOINs to include optional associations
+    // Fetch all players in the room
     const players = await Player.findAll({
       include: [
         {
           model: RoomMembership,
           where: { roomId },
-          required: true, // Ensures the player is a member of the room
+          required: true,
           attributes: ['auth0Id'],
         },
         {
           model: TeamAssignment,
           where: { roomId },
-          required: false, // Allows players without team assignments to be included
+          required: false,
           include: [
             {
               model: Gameweek,
               where: { roomId },
-              required: false, // Allows team assignments without gameweeks
+              required: false,
               include: [
                 {
                   model: GameResult,
                   where: { roomId },
-                  required: false, // Allows gameweeks without results
+                  required: false,
                 },
               ],
             },
@@ -565,85 +564,53 @@ router.get('/players', protect, async (req, res) => {
       ],
     });
 
-    // 2. Fetch all gameweeks in the room
+    // Fetch all gameweeks in the room
     const gameweeks = await Gameweek.findAll({
       where: { roomId },
     });
 
-    // Extract gameweek IDs, handling cases where there are no gameweeks
-    const gameweekIds = gameweeks.length > 0 ? gameweeks.map((gw) => gw.id) : [];
+    const gameweekIds = gameweeks.map((gw) => gw.id);
 
-    // 3. Fetch all votes for gameweeks in the room, only if there are gameweeks
-    const votes = gameweekIds.length > 0 ? await Vote.findAll({
-      where: {
-        gameweek_id: {
-          [Op.in]: gameweekIds,
-        },
-        roomId,
-      },
-      attributes: [
-        'gameweek_id',
-        'voted_player_id',
-        [sequelize.fn('COUNT', sequelize.col('voted_player_id')), 'vote_count'],
-      ],
-      group: ['gameweek_id', 'voted_player_id'],
-      order: [['gameweek_id', 'ASC'], [sequelize.literal('vote_count'), 'DESC']],
-    }) : [];
+    // Fetch votes for players of the match
+    const votes = gameweekIds.length
+      ? await Vote.findAll({
+          where: {
+            gameweek_id: { [Op.in]: gameweekIds },
+            roomId,
+          },
+          attributes: [
+            'gameweek_id',
+            'voted_player_id',
+            [sequelize.fn('COUNT', sequelize.col('voted_player_id')), 'vote_count'],
+          ],
+          group: ['gameweek_id', 'voted_player_id'],
+          order: [['gameweek_id', 'ASC'], [sequelize.literal('vote_count'), 'DESC']],
+        })
+      : [];
 
-    // 4. Build a mapping of gameweekId to player(s) of the match
-    const playerOfTheMatchMap = {};
-
-    // Group votes by gameweek
-    const votesByGameweek = votes.reduce((acc, vote) => {
-      const gameweekId = vote.gameweek_id;
-      if (!acc[gameweekId]) {
-        acc[gameweekId] = [];
-      }
-      acc[gameweekId].push(vote);
+    const playerOfTheMatchCounts = votes.reduce((acc, vote) => {
+      const playerId = vote.voted_player_id;
+      acc[playerId] = (acc[playerId] || 0) + 1;
       return acc;
     }, {});
 
-    // Determine player(s) of the match for each gameweek
-    for (const gameweekId in votesByGameweek) {
-      const gameweekVotes = votesByGameweek[gameweekId];
-      if (gameweekVotes.length === 0) continue; // Skip if no votes
-
-      const topVoteCount = gameweekVotes[0].dataValues.vote_count;
-
-      // Find all players tied for the top vote count
-      const topVotes = gameweekVotes.filter(
-        (vote) => vote.dataValues.vote_count === topVoteCount
-      );
-
-      // Store the player IDs in the map
-      playerOfTheMatchMap[gameweekId] = topVotes.map((vote) => vote.voted_player_id);
-    }
-
-    // 5. Calculate total "Player of the Match" counts per player
-    const playerOfTheMatchCounts = {};
-
-    for (const gameweekId in playerOfTheMatchMap) {
-      const playerIds = playerOfTheMatchMap[gameweekId];
-
-      for (const playerId of playerIds) {
-        if (!playerOfTheMatchCounts[playerId]) {
-          playerOfTheMatchCounts[playerId] = 0;
-        }
-        playerOfTheMatchCounts[playerId] += 1;
-      }
-    }
-
-    // 6. Process each player to calculate their stats
+    // Calculate player stats
     const playerStats = await Promise.all(
       players.map(async (player) => {
         const auth0Id = player.RoomMemberships?.[0]?.auth0Id || null;
         const teamAssignments = player.TeamAssignments || [];
-        let wins = 0, draws = 0, losses = 0, goalsFor = 0, goalsAgainst = 0, totalPoints = 0;
-        let teammateStats = {};
 
-        // Calculate stats for each team assignment
+        let wins = 0,
+          draws = 0,
+          losses = 0,
+          goalsFor = 0,
+          goalsAgainst = 0,
+          totalPoints = 0;
+
+        const teammateStats = {};
+
         for (const assignment of teamAssignments) {
-          const gameResult = assignment.Gameweek?.GameResult || null;
+          const gameResult = assignment.Gameweek?.GameResult;
 
           if (gameResult) {
             const teamScore = assignment.team === 'A' ? gameResult.teamA_score : gameResult.teamB_score;
@@ -680,8 +647,8 @@ router.get('/players', protect, async (req, res) => {
                   goalDifference: 0,
                 };
               }
-
               teammateStats[teammate.playerId].matchesPlayed += 1;
+
               if (teamScore > opponentScore) {
                 teammateStats[teammate.playerId].wins += 1;
               }
@@ -690,25 +657,14 @@ router.get('/players', protect, async (req, res) => {
           }
         }
 
-        // Calculate favorite teammates
-        const eligibleTeammates = Object.entries(teammateStats).filter(
-          ([_, stats]) => stats.matchesPlayed >= 3
-        );
-
-        const favoriteTeammates = eligibleTeammates.length
-          ? eligibleTeammates.map(([id, stats]) => ({
-            id,
+        const favoriteTeammates = Object.entries(teammateStats)
+          .filter(([, stats]) => stats.matchesPlayed >= 3)
+          .map(([id, stats]) => ({
+            id: parseInt(id, 10), // Ensure IDs are integers
             winRate: parseFloat((stats.wins / stats.matchesPlayed).toFixed(2)),
             matchesPlayedTogether: stats.matchesPlayed,
             goalDifferenceTogether: stats.goalDifference,
-          }))
-          : [];
-
-        // Ensure favoriteTeammates IDs are integers
-        player.favoriteTeammates = player.favoriteTeammates.map(teammate => ({
-          ...teammate,
-          id: parseInt(teammate.id, 10), // Convert id to integer
-        }));
+          }));
 
         return {
           ...player.toJSON(),
