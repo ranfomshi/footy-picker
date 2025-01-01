@@ -541,6 +541,7 @@ router.get('/players', protect, async (req, res) => {
           model: RoomMembership,
           where: { roomId },
           required: true, // Ensures the player is a member of the room
+          attributes: ['auth0Id']
         },
         {
           model: TeamAssignment,
