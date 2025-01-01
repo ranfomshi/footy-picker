@@ -534,29 +534,29 @@ router.get('/players', protect, async (req, res) => {
       return res.status(400).json({ error: 'User is not associated with any room' });
     }
 
-    // 1. Fetch all players in the room with LEFT JOINs to include optional associations
+    // Fetch all players in the room
     const players = await Player.findAll({
       include: [
         {
           model: RoomMembership,
           where: { roomId },
-          required: true, // Ensures the player is a member of the room
-          attributes: ['auth0Id']
+          required: true, // Ensure players are members of the room
+          attributes: ['auth0Id'], // Fetch the `auth0Id` for each membership
         },
         {
           model: TeamAssignment,
           where: { roomId },
-          required: false, // Allows players without team assignments to be included
+          required: false, // Include players even if they have no team assignments
           include: [
             {
               model: Gameweek,
               where: { roomId },
-              required: false, // Allows team assignments without gameweeks
+              required: false, // Include team assignments even if there are no gameweeks
               include: [
                 {
                   model: GameResult,
                   where: { roomId },
-                  required: false, // Allows gameweeks without results
+                  required: false, // Include gameweeks even if there are no results
                 },
               ],
             },
@@ -565,234 +565,58 @@ router.get('/players', protect, async (req, res) => {
       ],
     });
 
-    // 2. Fetch all gameweeks in the room
-    const gameweeks = await Gameweek.findAll({
-      where: { roomId },
+    // Add `auth0Id` at the top level for each player
+    const playerStats = players.map((player) => {
+      const auth0Id = player.RoomMemberships?.[0]?.auth0Id || null; // Extract `auth0Id` from RoomMembership
+      return {
+        ...player.toJSON(),
+        auth0Id, // Include `auth0Id` at the top level
+      };
     });
 
-    // Extract gameweek IDs, handling cases where there are no gameweeks
-    const gameweekIds = gameweeks.length > 0 ? gameweeks.map((gw) => gw.id) : [];
+    // Additional processing for player stats
+    const processedStats = await Promise.all(
+      playerStats.map(async (player) => {
+        // Initialize default stats
+        let wins = 0, draws = 0, losses = 0, goalsFor = 0, goalsAgainst = 0, totalPoints = 0;
 
-    // 3. Fetch all votes for gameweeks in the room, only if there are gameweeks
-    const votes = gameweekIds.length > 0 ? await Vote.findAll({
-      where: {
-        gameweek_id: {
-          [Op.in]: gameweekIds,
-        },
-        roomId,
-      },
-      attributes: [
-        'gameweek_id',
-        'voted_player_id',
-        [sequelize.fn('COUNT', sequelize.col('voted_player_id')), 'vote_count'],
-      ],
-      group: ['gameweek_id', 'voted_player_id'],
-      order: [
-        ['gameweek_id', 'ASC'],
-        [sequelize.literal('vote_count'), 'DESC'],
-      ],
-    }) : [];
-
-    // 4. Build a mapping of gameweekId to player(s) of the match
-    const playerOfTheMatchMap = {};
-
-    // Group votes by gameweek
-    const votesByGameweek = votes.reduce((acc, vote) => {
-      const gameweekId = vote.gameweek_id;
-      if (!acc[gameweekId]) {
-        acc[gameweekId] = [];
-      }
-      acc[gameweekId].push(vote);
-      return acc;
-    }, {});
-
-    // Determine player(s) of the match for each gameweek
-    for (const gameweekId in votesByGameweek) {
-      const gameweekVotes = votesByGameweek[gameweekId];
-      if (gameweekVotes.length === 0) continue; // Skip if no votes
-
-      const topVoteCount = gameweekVotes[0].dataValues.vote_count;
-
-      // Find all players tied for the top vote count
-      const topVotes = gameweekVotes.filter(
-        (vote) => vote.dataValues.vote_count === topVoteCount
-      );
-
-      // Store the player IDs in the map
-      playerOfTheMatchMap[gameweekId] = topVotes.map(
-        (vote) => vote.voted_player_id
-      );
-    }
-
-    // 5. Calculate total "Player of the Match" counts per player
-    const playerOfTheMatchCounts = {};
-
-    for (const gameweekId in playerOfTheMatchMap) {
-      const playerIds = playerOfTheMatchMap[gameweekId];
-
-      for (const playerId of playerIds) {
-        if (!playerOfTheMatchCounts[playerId]) {
-          playerOfTheMatchCounts[playerId] = 0;
-        }
-        playerOfTheMatchCounts[playerId] += 1;
-      }
-    }
-
-    // 6. Process each player to calculate their stats
-    const playerStats = await Promise.all(
-      players.map(async (player) => {
         const teamAssignments = player.TeamAssignments || [];
-
-        // Initialize stats with default values
-        let wins = 0;
-        let draws = 0;
-        let losses = 0;
-        let goalsFor = 0;
-        let goalsAgainst = 0;
-        let totalPoints = 0; // For the player
-        let teammateStats = {};
-
-        // Iterate through each team assignment for the player
         for (const assignment of teamAssignments) {
           const gameResult = assignment.Gameweek?.GameResult || null;
 
-          // If there's no game result, skip processing this assignment
-          if (!gameResult) {
-            continue;
-          }
+          if (gameResult) {
+            const teamScore = assignment.team === 'A' ? gameResult.teamA_score : gameResult.teamB_score;
+            const opponentScore = assignment.team === 'A' ? gameResult.teamB_score : gameResult.teamA_score;
 
-          const team = assignment.team;
-          const teamScore = team === 'A' ? gameResult.teamA_score : gameResult.teamB_score;
-          const opponentScore = team === 'A' ? gameResult.teamB_score : gameResult.teamA_score;
+            goalsFor += teamScore;
+            goalsAgainst += opponentScore;
 
-          // Update goals stats for the player
-          goalsFor += teamScore;
-          goalsAgainst += opponentScore;
-
-          // Calculate game result points (basic points)
-          let gamePoints = 0;
-          if (teamScore > opponentScore) {
-            wins += 1;
-            gamePoints = 3;
-          } else if (teamScore < opponentScore) {
-            losses += 1;
-            gamePoints = 0;
-          } else {
-            draws += 1;
-            gamePoints = 1;
-          }
-
-          // Total points for this gameweek for the player
-          const totalGameweekPoints = gamePoints;
-          totalPoints += totalGameweekPoints;
-
-          // Fetch all teammates (players on the same team in the same gameweek)
-          const teammates = await TeamAssignment.findAll({
-            where: {
-              gameweekId: assignment.gameweekId,
-              team: assignment.team,
-              playerId: {
-                [Op.ne]: player.id, // Exclude the current player
-              },
-              roomId,
-            },
-          });
-
-          // Update teammate stats
-          teammates.forEach((teammate) => {
-            if (!teammateStats[teammate.playerId]) {
-              teammateStats[teammate.playerId] = {
-                wins: 0,
-                matchesPlayed: 0,
-                goalDifference: 0, // Track goal difference
-              };
-            }
-
-            // Increment match count for each teammate
-            teammateStats[teammate.playerId].matchesPlayed += 1;
-
-            // Update win and goal difference stats
             if (teamScore > opponentScore) {
-              teammateStats[teammate.playerId].wins += 1;
+              wins++;
+              totalPoints += 3;
+            } else if (teamScore === opponentScore) {
+              draws++;
+              totalPoints += 1;
+            } else {
+              losses++;
             }
-            teammateStats[teammate.playerId].goalDifference += teamScore - opponentScore;
-          });
+          }
         }
 
-        // Count teammates with at least 3 matches
-        const eligibleTeammates = Object.entries(teammateStats).filter(
-          ([_, stats]) => stats.matchesPlayed >= 3
-        );
-
-        // If there are no eligible teammates, return an empty array
-        if (eligibleTeammates.length === 0) {
-          player.dataValues.favoriteTeammates = [];
-        } else {
-          // Calculate the win rate for each eligible teammate and round to 2 decimal places
-          eligibleTeammates.forEach(([teammateId, stats]) => {
-            stats.winRate = parseFloat((stats.wins / stats.matchesPlayed).toFixed(2));
-          });
-
-          // Sort teammates by win rate, total wins, and goal difference
-          eligibleTeammates.sort((a, b) => {
-            const [_, statsA] = a;
-            const [__, statsB] = b;
-
-            if (statsB.winRate !== statsA.winRate) {
-              return statsB.winRate - statsA.winRate;
-            }
-            if (statsB.wins !== statsA.wins) {
-              return statsB.wins - statsA.wins;
-            }
-            return statsB.goalDifference - statsA.goalDifference;
-          });
-
-          // Select the top teammate as the favorite
-          const [topTeammateId, topStats] = eligibleTeammates[0];
-
-          // Fetch the favorite teammate's details from the database
-          const favoriteTeammate = await Player.findOne({
-            where: { id: topTeammateId },
-            include: {
-              model: RoomMembership,
-              where: { roomId },
-            },
-          });
-
-          // Attach the favorite teammate and their stats to the player's data as an array
-          player.dataValues.favoriteTeammates = favoriteTeammate
-            ? [
-              {
-                ...favoriteTeammate.toJSON(),
-                reason: {
-                  winRate: topStats.winRate,
-                  matchesPlayedTogether: topStats.matchesPlayed,
-                  goalDifferenceTogether: topStats.goalDifference,
-                },
-              },
-            ]
-            : [];
-        }
-
-        // Attach Player of the Match count and general stats
-        player.dataValues.wins = wins;
-        player.dataValues.draws = draws;
-        player.dataValues.losses = losses;
-        player.dataValues.goalsFor = goalsFor;
-        player.dataValues.goalsAgainst = goalsAgainst;
-        player.dataValues.goalDifference = goalsFor - goalsAgainst;
-        player.dataValues.points = totalPoints;
-        player.dataValues.playerOfTheMatchCount = playerOfTheMatchCounts[player.id] || 0;
-
-        return player;
+        return {
+          ...player,
+          wins,
+          draws,
+          losses,
+          goalsFor,
+          goalsAgainst,
+          goalDifference: goalsFor - goalsAgainst,
+          totalPoints,
+        };
       })
     );
 
-    // 7. If there are no gameweeks, set all stats to 0
-    // This is implicitly handled by initializing stats with 0 and only updating them if data exists
-
-    // Return the final response
-    res.json(playerStats);
+    res.json(processedStats); // Return the final processed player stats
   } catch (error) {
     console.error('Error fetching players:', error);
     res.status(500).json({ error: 'Internal Server Error' });
