@@ -318,21 +318,24 @@ router.post('/finalize-join-room', protect, async (req, res) => {
         finalName = userInfoResponse.data.name || 'Unnamed Player';
       }
 
-      // Check for duplicate player name in the room
-      const existingPlayer = await Player.findOne({
-        where: { name: finalName },
+      // Calculate the average rating for players in the room
+      const existingPlayers = await Player.findAll({
         include: {
           model: RoomMembership,
           where: { roomId: room.id },
         },
       });
 
-      if (existingPlayer) {
-        return res.status(400).json({ error: 'Player name already exists in this room' });
-      }
+      const totalRating = existingPlayers.reduce(
+        (sum, player) => sum + parseFloat(player.rating || 0),
+        0
+      );
+      const averageRating = existingPlayers.length > 0 ? totalRating / existingPlayers.length : 0;
 
-      player = await Player.create({ name: finalName });
+      // Create the new player with the calculated average rating
+      player = await Player.create({ name: finalName, rating: averageRating });
 
+      // Create the room membership linking the new player
       await RoomMembership.create({
         playerId: player.id,
         roomId: room.id,
@@ -341,6 +344,7 @@ router.post('/finalize-join-room', protect, async (req, res) => {
       });
     }
 
+    // Deactivate other memberships for the user
     await RoomMembership.update(
       { isActive: false },
       { where: { auth0Id, roomId: { [Op.ne]: room.id } } }
