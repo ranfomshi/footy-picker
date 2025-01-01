@@ -234,7 +234,18 @@ router.post('/join-room', protect, async (req, res) => {
     }
 
     // Step 4: Create a new player and membership
-    const newPlayer = await Player.create({ name: 'New Player' }); // Customize as needed
+    const existingPlayers = await Player.findAll({
+      include: {
+        model: RoomMembership,
+        where: { roomId: room.id },
+      },
+    });
+
+    // Calculate the average rating of players in the room
+    const totalRating = existingPlayers.reduce((sum, player) => sum + parseFloat(player.rating || 0), 0);
+    const averageRating = existingPlayers.length > 0 ? totalRating / existingPlayers.length : 0;
+
+    const newPlayer = await Player.create({ name: 'New Player', rating: averageRating }); // Assign average rating
     const newMembership = await RoomMembership.create({
       playerId: newPlayer.id,
       roomId: room.id,
