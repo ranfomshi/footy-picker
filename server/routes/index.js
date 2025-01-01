@@ -534,29 +534,29 @@ router.get('/players', protect, async (req, res) => {
       return res.status(400).json({ error: 'User is not associated with any room' });
     }
 
-    // Fetch all players in the room
+    // 1. Fetch all players in the room with LEFT JOINs to include optional associations
     const players = await Player.findAll({
       include: [
         {
           model: RoomMembership,
           where: { roomId },
-          required: true, // Ensure players are members of the room
-          attributes: ['auth0Id'], // Fetch the `auth0Id` for each membership
+          required: true, // Ensures the player is a member of the room
+          attributes: ['auth0Id'],
         },
         {
           model: TeamAssignment,
           where: { roomId },
-          required: false, // Include players even if they have no team assignments
+          required: false, // Allows players without team assignments to be included
           include: [
             {
               model: Gameweek,
               where: { roomId },
-              required: false, // Include team assignments even if there are no gameweeks
+              required: false, // Allows team assignments without gameweeks
               include: [
                 {
                   model: GameResult,
                   where: { roomId },
-                  required: false, // Include gameweeks even if there are no results
+                  required: false, // Allows gameweeks without results
                 },
               ],
             },
@@ -565,22 +565,83 @@ router.get('/players', protect, async (req, res) => {
       ],
     });
 
-    // Add `auth0Id` at the top level for each player
-    const playerStats = players.map((player) => {
-      const auth0Id = player.RoomMemberships?.[0]?.auth0Id || null; // Extract `auth0Id` from RoomMembership
-      return {
-        ...player.toJSON(),
-        auth0Id, // Include `auth0Id` at the top level
-      };
+    // 2. Fetch all gameweeks in the room
+    const gameweeks = await Gameweek.findAll({
+      where: { roomId },
     });
 
-    // Additional processing for player stats
-    const processedStats = await Promise.all(
-      playerStats.map(async (player) => {
-        // Initialize default stats
-        let wins = 0, draws = 0, losses = 0, goalsFor = 0, goalsAgainst = 0, totalPoints = 0;
+    // Extract gameweek IDs, handling cases where there are no gameweeks
+    const gameweekIds = gameweeks.length > 0 ? gameweeks.map((gw) => gw.id) : [];
 
+    // 3. Fetch all votes for gameweeks in the room, only if there are gameweeks
+    const votes = gameweekIds.length > 0 ? await Vote.findAll({
+      where: {
+        gameweek_id: {
+          [Op.in]: gameweekIds,
+        },
+        roomId,
+      },
+      attributes: [
+        'gameweek_id',
+        'voted_player_id',
+        [sequelize.fn('COUNT', sequelize.col('voted_player_id')), 'vote_count'],
+      ],
+      group: ['gameweek_id', 'voted_player_id'],
+      order: [['gameweek_id', 'ASC'], [sequelize.literal('vote_count'), 'DESC']],
+    }) : [];
+
+    // 4. Build a mapping of gameweekId to player(s) of the match
+    const playerOfTheMatchMap = {};
+
+    // Group votes by gameweek
+    const votesByGameweek = votes.reduce((acc, vote) => {
+      const gameweekId = vote.gameweek_id;
+      if (!acc[gameweekId]) {
+        acc[gameweekId] = [];
+      }
+      acc[gameweekId].push(vote);
+      return acc;
+    }, {});
+
+    // Determine player(s) of the match for each gameweek
+    for (const gameweekId in votesByGameweek) {
+      const gameweekVotes = votesByGameweek[gameweekId];
+      if (gameweekVotes.length === 0) continue; // Skip if no votes
+
+      const topVoteCount = gameweekVotes[0].dataValues.vote_count;
+
+      // Find all players tied for the top vote count
+      const topVotes = gameweekVotes.filter(
+        (vote) => vote.dataValues.vote_count === topVoteCount
+      );
+
+      // Store the player IDs in the map
+      playerOfTheMatchMap[gameweekId] = topVotes.map((vote) => vote.voted_player_id);
+    }
+
+    // 5. Calculate total "Player of the Match" counts per player
+    const playerOfTheMatchCounts = {};
+
+    for (const gameweekId in playerOfTheMatchMap) {
+      const playerIds = playerOfTheMatchMap[gameweekId];
+
+      for (const playerId of playerIds) {
+        if (!playerOfTheMatchCounts[playerId]) {
+          playerOfTheMatchCounts[playerId] = 0;
+        }
+        playerOfTheMatchCounts[playerId] += 1;
+      }
+    }
+
+    // 6. Process each player to calculate their stats
+    const playerStats = await Promise.all(
+      players.map(async (player) => {
+        const auth0Id = player.RoomMemberships?.[0]?.auth0Id || null;
         const teamAssignments = player.TeamAssignments || [];
+        let wins = 0, draws = 0, losses = 0, goalsFor = 0, goalsAgainst = 0, totalPoints = 0;
+        let teammateStats = {};
+
+        // Calculate stats for each team assignment
         for (const assignment of teamAssignments) {
           const gameResult = assignment.Gameweek?.GameResult || null;
 
@@ -592,19 +653,60 @@ router.get('/players', protect, async (req, res) => {
             goalsAgainst += opponentScore;
 
             if (teamScore > opponentScore) {
-              wins++;
+              wins += 1;
               totalPoints += 3;
             } else if (teamScore === opponentScore) {
-              draws++;
+              draws += 1;
               totalPoints += 1;
             } else {
-              losses++;
+              losses += 1;
             }
+
+            // Track teammate stats
+            const teammates = await TeamAssignment.findAll({
+              where: {
+                gameweekId: assignment.gameweekId,
+                team: assignment.team,
+                playerId: { [Op.ne]: player.id },
+                roomId,
+              },
+            });
+
+            teammates.forEach((teammate) => {
+              if (!teammateStats[teammate.playerId]) {
+                teammateStats[teammate.playerId] = {
+                  wins: 0,
+                  matchesPlayed: 0,
+                  goalDifference: 0,
+                };
+              }
+
+              teammateStats[teammate.playerId].matchesPlayed += 1;
+              if (teamScore > opponentScore) {
+                teammateStats[teammate.playerId].wins += 1;
+              }
+              teammateStats[teammate.playerId].goalDifference += teamScore - opponentScore;
+            });
           }
         }
 
+        // Calculate favorite teammates
+        const eligibleTeammates = Object.entries(teammateStats).filter(
+          ([_, stats]) => stats.matchesPlayed >= 3
+        );
+
+        const favoriteTeammates = eligibleTeammates.length
+          ? eligibleTeammates.map(([id, stats]) => ({
+              id,
+              winRate: parseFloat((stats.wins / stats.matchesPlayed).toFixed(2)),
+              matchesPlayedTogether: stats.matchesPlayed,
+              goalDifferenceTogether: stats.goalDifference,
+            }))
+          : [];
+
         return {
-          ...player,
+          ...player.toJSON(),
+          auth0Id,
           wins,
           draws,
           losses,
@@ -612,16 +714,20 @@ router.get('/players', protect, async (req, res) => {
           goalsAgainst,
           goalDifference: goalsFor - goalsAgainst,
           totalPoints,
+          playerOfTheMatchCount: playerOfTheMatchCounts[player.id] || 0,
+          favoriteTeammates,
         };
       })
     );
 
-    res.json(processedStats); // Return the final processed player stats
+    res.json(playerStats);
   } catch (error) {
     console.error('Error fetching players:', error);
     res.status(500).json({ error: 'Internal Server Error' });
   }
 });
+
+
 
 /**
  * PUT /players/:id/link
