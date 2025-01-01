@@ -697,12 +697,18 @@ router.get('/players', protect, async (req, res) => {
 
         const favoriteTeammates = eligibleTeammates.length
           ? eligibleTeammates.map(([id, stats]) => ({
-              id,
-              winRate: parseFloat((stats.wins / stats.matchesPlayed).toFixed(2)),
-              matchesPlayedTogether: stats.matchesPlayed,
-              goalDifferenceTogether: stats.goalDifference,
-            }))
+            id,
+            winRate: parseFloat((stats.wins / stats.matchesPlayed).toFixed(2)),
+            matchesPlayedTogether: stats.matchesPlayed,
+            goalDifferenceTogether: stats.goalDifference,
+          }))
           : [];
+
+        // Ensure favoriteTeammates IDs are integers
+        player.favoriteTeammates = player.favoriteTeammates.map(teammate => ({
+          ...teammate,
+          id: parseInt(teammate.id, 10), // Convert id to integer
+        }));
 
         return {
           ...player.toJSON(),
