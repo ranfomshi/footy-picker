@@ -657,15 +657,25 @@ router.get('/players', protect, async (req, res) => {
           }
         }
 
-        const favoriteTeammates = Object.entries(teammateStats)
-          .filter(([, stats]) => stats.matchesPlayed >= 3)
-          .map(([id, stats]) => ({
-            id: parseInt(id, 10), // Ensure IDs are integers
-            name: teammate?.name || 'Unknown',
-            winRate: parseFloat((stats.wins / stats.matchesPlayed).toFixed(2)),
-            matchesPlayedTogether: stats.matchesPlayed,
-            goalDifferenceTogether: stats.goalDifference,
-          }));
+        const favoriteTeammates = await Promise.all(
+          Object.entries(teammateStats)
+            .filter(([, stats]) => stats.matchesPlayed >= 3)
+            .map(async ([id, stats]) => {
+              // Fetch the player's name from the Player model
+              const teammate = await Player.findOne({
+                where: { id: parseInt(id, 10) },
+                attributes: ['name'],
+              });
+
+              return {
+                id: parseInt(id, 10), // Ensure IDs are integers
+                name: teammate?.name || 'Unknown', // Add name or fallback to 'Unknown'
+                winRate: parseFloat((stats.wins / stats.matchesPlayed).toFixed(2)),
+                matchesPlayedTogether: stats.matchesPlayed,
+                goalDifferenceTogether: stats.goalDifference,
+              };
+            })
+        );
 
         return {
           ...player.toJSON(),
