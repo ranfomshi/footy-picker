@@ -661,6 +661,7 @@ router.get('/players', protect, async (req, res) => {
           .filter(([, stats]) => stats.matchesPlayed >= 3)
           .map(([id, stats]) => ({
             id: parseInt(id, 10), // Ensure IDs are integers
+            name: teammate?.name || 'Unknown',
             winRate: parseFloat((stats.wins / stats.matchesPlayed).toFixed(2)),
             matchesPlayedTogether: stats.matchesPlayed,
             goalDifferenceTogether: stats.goalDifference,
