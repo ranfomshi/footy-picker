@@ -1228,10 +1228,10 @@ router.get('/ratings', protect, async (req, res) => {
 
 router.post('/gameweeks', protect, async (req, res) => {
   try {
-    const { date } = req.body;
+    const { date, location, startTime } = req.body;
     const { roomId } = req.user;
 
-    const gameweek = await Gameweek.create({ date, roomId });
+    const gameweek = await Gameweek.create({ date, location, startTime, roomId });
     res.json(gameweek);
   } catch (error) {
     console.error('Error creating gameweek:', error);
@@ -1252,6 +1252,7 @@ router.get('/gameweeks', protect, async (req, res) => {
           attributes: ['teamA_score', 'teamB_score', 'createdAt'],
         },
       ],
+      attributes: ['id', 'date', 'location', 'startTime'], // Include location and startTime
       order: [['date', 'DESC']], // Optional: Order by date descending
     });
 
@@ -1301,9 +1302,13 @@ router.get('/gameweeks', protect, async (req, res) => {
         }
 
         return {
-          ...gameweek.toJSON(),
+          id: gameweek.id,
+          date: gameweek.date,
+          location: gameweek.location, // Include location
+          startTime: gameweek.startTime, // Include start time
           playerOfTheMatch: playerOfTheMatch.length > 0 ? playerOfTheMatch : ['No votes'], // Return array or message
           votingCloseTime, // Dynamically calculated
+          gameResult: gameResult ? gameResult.toJSON() : null, // Include existing game result
         };
       })
     );
@@ -1314,6 +1319,7 @@ router.get('/gameweeks', protect, async (req, res) => {
     res.status(500).json({ error: 'Internal Server Error' });
   }
 });
+
 
 // **New Route: GET /gameweeks/:id**
 router.get('/gameweeks/:id', protect, async (req, res) => {
