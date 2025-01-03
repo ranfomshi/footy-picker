@@ -68,21 +68,19 @@ const protect = async (req, res, next) => {
         // Attach the decoded token to the request object
         req.user = decodedToken;
 
-        // 1) Find the user's "active" membership row
+        // Fetch active room membership
         const activeMembership = await RoomMembership.findOne({
           where: {
-            auth0Id: decodedToken.sub,   // match user sub
-            isActive: true,             // only the active membership
+            auth0Id: decodedToken.sub,
+            isActive: true,
           },
         });
 
-        // 2) If found, attach roomId to req.user
         if (activeMembership) {
           req.user.roomId = activeMembership.roomId;
+          req.user.playerId = activeMembership.playerId; // Set playerId
         } else {
-          // If you want to handle the case where there's no active membership,
-          // you can log it or leave it as is, so req.user.roomId remains undefined.
-          console.log('No active membership found for user:', decodedToken.sub);
+          console.error('No active membership found for user:', decodedToken.sub);
         }
 
         next();
@@ -93,6 +91,7 @@ const protect = async (req, res, next) => {
     return res.status(401).json({ error: 'Token verification failed' });
   }
 };
+
 
 
 // Helper function to generate a 5-character alphanumeric room code
@@ -1508,26 +1507,27 @@ router.post('/votes', protect, async (req, res) => {
 
 router.get('/has-voted', protect, async (req, res) => {
   const { gameweekId } = req.query;
-  const { playerId: voting_player_id, roomId } = req.user;
+  const { playerId, roomId } = req.user; // Use playerId from the middleware
 
   try {
     const vote = await Vote.findOne({
       where: {
         gameweek_id: gameweekId,
-        voting_player_id,
+        voting_player_id: playerId, // Query using playerId
         roomId,
       },
     });
 
     if (vote) {
-      return res.json({ hasVoted: true, player_id: voting_player_id });
+      return res.json({ hasVoted: true, player_id: playerId });
     } else {
-      return res.json({ hasVoted: false, player_id: voting_player_id });
+      return res.json({ hasVoted: false, player_id: playerId });
     }
   } catch (error) {
     console.error('Error checking voting status:', error);
     res.status(500).json({ error: 'Error checking voting status' });
   }
 });
+
 
 module.exports = router;
