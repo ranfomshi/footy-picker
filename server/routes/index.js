@@ -1272,7 +1272,7 @@ router.get('/gameweeks', protect, async (req, res) => {
           attributes: ['teamA_score', 'teamB_score', 'createdAt'],
         },
       ],
-      attributes: ['id', 'date', 'location', 'startTime'], // Include location and startTime
+      attributes: ['id', 'date', 'location', 'startTime', 'maxPlayers'], // Include location and startTime
       order: [['date', 'DESC']], // Optional: Order by date descending
     });
 
@@ -1329,6 +1329,7 @@ router.get('/gameweeks', protect, async (req, res) => {
           playerOfTheMatch: playerOfTheMatch.length > 0 ? playerOfTheMatch : ['No votes'], // Return array or message
           votingCloseTime, // Dynamically calculated
           gameResult: gameResult ? gameResult.toJSON() : null, // Include existing game result
+          maxPlayers: gameweek.maxPlayers ? gameweek.maxPlayers : null // Include maxPlayers
         };
       })
     );
