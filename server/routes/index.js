@@ -574,18 +574,18 @@ router.get('/players', protect, async (req, res) => {
     // Fetch votes for players of the match
     const votes = gameweekIds.length
       ? await Vote.findAll({
-          where: {
-            gameweek_id: { [Op.in]: gameweekIds },
-            roomId,
-          },
-          attributes: [
-            'gameweek_id',
-            'voted_player_id',
-            [sequelize.fn('COUNT', sequelize.col('voted_player_id')), 'vote_count'],
-          ],
-          group: ['gameweek_id', 'voted_player_id'],
-          order: [['gameweek_id', 'ASC'], [sequelize.literal('vote_count'), 'DESC']],
-        })
+        where: {
+          gameweek_id: { [Op.in]: gameweekIds },
+          roomId,
+        },
+        attributes: [
+          'gameweek_id',
+          'voted_player_id',
+          [sequelize.fn('COUNT', sequelize.col('voted_player_id')), 'vote_count'],
+        ],
+        group: ['gameweek_id', 'voted_player_id'],
+        order: [['gameweek_id', 'ASC'], [sequelize.literal('vote_count'), 'DESC']],
+      })
       : [];
 
     const playerOfTheMatchCounts = votes.reduce((acc, vote) => {
@@ -595,124 +595,124 @@ router.get('/players', protect, async (req, res) => {
     }, {});
 
     // Calculate player stats
-// Calculate player stats
-const playerStats = await Promise.all(
-  players.map(async (player) => {
-    const auth0Id = player.RoomMemberships?.[0]?.auth0Id || null;
-    const teamAssignments = player.TeamAssignments || [];
+    // Calculate player stats
+    const playerStats = await Promise.all(
+      players.map(async (player) => {
+        const auth0Id = player.RoomMemberships?.[0]?.auth0Id || null;
+        const teamAssignments = player.TeamAssignments || [];
 
-    let wins = 0,
-      draws = 0,
-      losses = 0,
-      goalsFor = 0,
-      goalsAgainst = 0,
-      totalPoints = 0;
+        let wins = 0,
+          draws = 0,
+          losses = 0,
+          goalsFor = 0,
+          goalsAgainst = 0,
+          totalPoints = 0;
 
-    const teammateStats = {};
-    let lastFiveGames = [];
+        const teammateStats = {};
+        let lastFiveGames = [];
 
-    // Sort team assignments by gameweek timestamp in descending order
-    const sortedAssignments = teamAssignments.sort((a, b) => {
-      const dateA = new Date(a.Gameweek.date).getTime();
-      const dateB = new Date(b.Gameweek.date).getTime();
-      return dateB - dateA; // Most recent first
-    });
-
-    for (const assignment of sortedAssignments) {
-      const gameResult = assignment.Gameweek?.GameResult;
-
-      if (gameResult) {
-        const teamScore =
-          assignment.team === 'A' ? gameResult.teamA_score : gameResult.teamB_score;
-        const opponentScore =
-          assignment.team === 'A' ? gameResult.teamB_score : gameResult.teamA_score;
-
-        goalsFor += teamScore;
-        goalsAgainst += opponentScore;
-
-        if (teamScore > opponentScore) {
-          wins += 1;
-          totalPoints += 3;
-          lastFiveGames.push('win');
-        } else if (teamScore === opponentScore) {
-          draws += 1;
-          totalPoints += 1;
-          lastFiveGames.push('draw');
-        } else {
-          losses += 1;
-          lastFiveGames.push('loss');
-        }
-
-        // Limit lastFiveGames to 5 entries
-        if (lastFiveGames.length > 5) {
-          lastFiveGames = lastFiveGames.slice(0, 5); // Keep only the first 5 entries
-        }
-
-        // Track teammate stats
-        const teammates = await TeamAssignment.findAll({
-          where: {
-            gameweekId: assignment.gameweekId,
-            team: assignment.team,
-            playerId: { [Op.ne]: player.id },
-            roomId,
-          },
+        // Sort team assignments by gameweek timestamp in descending order
+        const sortedAssignments = teamAssignments.sort((a, b) => {
+          const dateA = new Date(a.Gameweek.date).getTime();
+          const dateB = new Date(b.Gameweek.date).getTime();
+          return dateB - dateA; // Most recent first
         });
 
-        teammates.forEach((teammate) => {
-          if (!teammateStats[teammate.playerId]) {
-            teammateStats[teammate.playerId] = {
-              wins: 0,
-              matchesPlayed: 0,
-              goalDifference: 0,
-            };
+        for (const assignment of sortedAssignments) {
+          const gameResult = assignment.Gameweek?.GameResult;
+
+          if (gameResult) {
+            const teamScore =
+              assignment.team === 'A' ? gameResult.teamA_score : gameResult.teamB_score;
+            const opponentScore =
+              assignment.team === 'A' ? gameResult.teamB_score : gameResult.teamA_score;
+
+            goalsFor += teamScore;
+            goalsAgainst += opponentScore;
+
+            if (teamScore > opponentScore) {
+              wins += 1;
+              totalPoints += 3;
+              lastFiveGames.push('win');
+            } else if (teamScore === opponentScore) {
+              draws += 1;
+              totalPoints += 1;
+              lastFiveGames.push('draw');
+            } else {
+              losses += 1;
+              lastFiveGames.push('loss');
+            }
+
+            // Limit lastFiveGames to 5 entries
+            if (lastFiveGames.length > 5) {
+              lastFiveGames = lastFiveGames.slice(0, 5); // Keep only the first 5 entries
+            }
+
+            // Track teammate stats
+            const teammates = await TeamAssignment.findAll({
+              where: {
+                gameweekId: assignment.gameweekId,
+                team: assignment.team,
+                playerId: { [Op.ne]: player.id },
+                roomId,
+              },
+            });
+
+            teammates.forEach((teammate) => {
+              if (!teammateStats[teammate.playerId]) {
+                teammateStats[teammate.playerId] = {
+                  wins: 0,
+                  matchesPlayed: 0,
+                  goalDifference: 0,
+                };
+              }
+              teammateStats[teammate.playerId].matchesPlayed += 1;
+
+              if (teamScore > opponentScore) {
+                teammateStats[teammate.playerId].wins += 1;
+              }
+              teammateStats[teammate.playerId].goalDifference += teamScore - opponentScore;
+            });
           }
-          teammateStats[teammate.playerId].matchesPlayed += 1;
+        }
 
-          if (teamScore > opponentScore) {
-            teammateStats[teammate.playerId].wins += 1;
-          }
-          teammateStats[teammate.playerId].goalDifference += teamScore - opponentScore;
-        });
-      }
-    }
+        const favoriteTeammates = await Promise.all(
+          Object.entries(teammateStats)
+            .filter(([, stats]) => stats.matchesPlayed >= 3)
+            .map(async ([id, stats]) => {
+              const teammate = await Player.findOne({
+                where: { id: parseInt(id, 10) },
+                attributes: ['name'],
+              });
 
-    const favoriteTeammates = await Promise.all(
-      Object.entries(teammateStats)
-        .filter(([, stats]) => stats.matchesPlayed >= 3)
-        .map(async ([id, stats]) => {
-          const teammate = await Player.findOne({
-            where: { id: parseInt(id, 10) },
-            attributes: ['name'],
-          });
+              return {
+                id: parseInt(id, 10),
+                name: teammate?.name || 'Unknown',
+                winRate: parseFloat((stats.wins / stats.matchesPlayed).toFixed(2)),
+                matchesPlayedTogether: stats.matchesPlayed,
+                goalDifferenceTogether: stats.goalDifference,
+              };
+            })
+        );
 
-          return {
-            id: parseInt(id, 10),
-            name: teammate?.name || 'Unknown',
-            winRate: parseFloat((stats.wins / stats.matchesPlayed).toFixed(2)),
-            matchesPlayedTogether: stats.matchesPlayed,
-            goalDifferenceTogether: stats.goalDifference,
-          };
-        })
+        return {
+          ...player.toJSON(),
+          auth0Id,
+          wins,
+          draws,
+          losses,
+          goalsFor,
+          goalsAgainst,
+          goalDifference: goalsFor - goalsAgainst,
+          totalPoints,
+          playerOfTheMatchCount: playerOfTheMatchCounts[player.id] || 0,
+          favoriteTeammates,
+          lastFiveGames, // Include last five games in the response
+        };
+      })
     );
 
-    return {
-      ...player.toJSON(),
-      auth0Id,
-      wins,
-      draws,
-      losses,
-      goalsFor,
-      goalsAgainst,
-      goalDifference: goalsFor - goalsAgainst,
-      totalPoints,
-      playerOfTheMatchCount: playerOfTheMatchCounts[player.id] || 0,
-      favoriteTeammates,
-      lastFiveGames, // Include last five games in the response
-    };
-  })
-);
 
-    
 
     res.json(playerStats);
   } catch (error) {
@@ -1039,33 +1039,39 @@ router.post('/availability', protect, async (req, res) => {
     const { gameweekId, playerIds, status } = req.body;
     const { roomId } = req.user;
 
-    if (!gameweekId || !playerIds || playerIds.length === 0) {
-      res.status(400).json({ error: 'gameweekId and playerIds are required' });
-      return;
+    const gameweek = await Gameweek.findOne({ where: { id: gameweekId, roomId } });
+    if (!gameweek) {
+      return res.status(404).json({ error: 'Gameweek not found' });
+    }
+
+    // Count current available players
+    const currentAvailability = await Availability.count({
+      where: { gameweekId, status: true, roomId },
+    });
+
+    if (status && gameweek.maxPlayers && currentAvailability + playerIds.length > gameweek.maxPlayers) {
+      return res.status(400).json({ error: `Max players (${gameweek.maxPlayers}) exceeded.` });
     }
 
     const availability = await Promise.all(
       playerIds.map(async (playerId) => {
         const player = await Player.findOne({
-          include: {
-            model: RoomMembership,
-            where: { roomId },
-          },
+          include: { model: RoomMembership, where: { roomId } },
           where: { id: playerId },
         });
-        if (!player) {
-          throw new Error(`Player not found: ${playerId}`);
-        }
+        if (!player) throw new Error(`Player not found: ${playerId}`);
+
         return Availability.upsert({ gameweekId, playerId, status, roomId });
       })
     );
 
     res.json(availability);
   } catch (error) {
-    console.error('Error recording availability', error);
+    console.error('Error recording availability:', error);
     res.status(500).json({ error: 'Internal Server Error' });
   }
 });
+
 
 router.post('/manual-teamassignment', protect, async (req, res) => {
   const { gameweekId, playerId, team } = req.body;
@@ -1228,16 +1234,24 @@ router.get('/ratings', protect, async (req, res) => {
 
 router.post('/gameweeks', protect, async (req, res) => {
   try {
-    const { date, location, startTime } = req.body;
+    const { date, location, startTime, maxPlayers } = req.body;
     const { roomId } = req.user;
 
-    const gameweek = await Gameweek.create({ date, location, startTime, roomId });
+    const gameweek = await Gameweek.create({
+      date,
+      location,
+      startTime,
+      maxPlayers: maxPlayers && maxPlayers % 2 === 0 ? maxPlayers : null, // Ensure it's even
+      roomId,
+    });
+
     res.json(gameweek);
   } catch (error) {
     console.error('Error creating gameweek:', error);
     res.status(500).json({ error: 'Internal Server Error' });
   }
 });
+
 
 router.get('/gameweeks', protect, async (req, res) => {
   try {

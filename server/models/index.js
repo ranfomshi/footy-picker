@@ -73,31 +73,35 @@ const RoomMembership = sequelize.define('RoomMembership', {
 });
 
 const Gameweek = sequelize.define('Gameweek', {
+    maxPlayers: {
+        type: DataTypes.INTEGER,
+        allowNull: true,
+    },
     date: {
-      type: DataTypes.DATE,
-      allowNull: false,
+        type: DataTypes.DATE,
+        allowNull: false,
     },
     roomId: {
-      type: DataTypes.INTEGER,
-      references: {
-        model: Room,
-        key: 'id',
-      },
-      allowNull: false,
+        type: DataTypes.INTEGER,
+        references: {
+            model: Room,
+            key: 'id',
+        },
+        allowNull: false,
     },
     location: {
-      type: DataTypes.STRING, // Storing an address string
-      allowNull: true, // Optional
+        type: DataTypes.STRING, // Storing an address string
+        allowNull: true, // Optional
     },
     startTime: {
-      type: DataTypes.TIME, // Storing time only
-      allowNull: true, // Optional
+        type: DataTypes.TIME, // Storing time only
+        allowNull: true, // Optional
     },
-  }, {
+}, {
     tableName: 'Gameweeks',
     timestamps: true,
-  });
-  
+});
+
 
 const GameResult = sequelize.define('GameResult', {
     gameweekId: {
