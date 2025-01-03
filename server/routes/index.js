@@ -1237,10 +1237,15 @@ router.post('/gameweeks', protect, async (req, res) => {
     const { date, location, startTime, maxPlayers } = req.body;
     const { roomId } = req.user;
 
+    // Convert startTime to TIME format if it exists
+    const formattedStartTime = startTime
+      ? new Date(startTime).toISOString().slice(11, 19) // Extract HH:mm:ss
+      : null;
+
     const gameweek = await Gameweek.create({
       date,
       location,
-      startTime,
+      startTime: formattedStartTime, // Save as TIME format
       maxPlayers: maxPlayers && maxPlayers % 2 === 0 ? maxPlayers : null, // Ensure it's even
       roomId,
     });
@@ -1251,6 +1256,7 @@ router.post('/gameweeks', protect, async (req, res) => {
     res.status(500).json({ error: 'Internal Server Error' });
   }
 });
+
 
 
 router.get('/gameweeks', protect, async (req, res) => {
