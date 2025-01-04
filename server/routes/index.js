@@ -10,7 +10,8 @@ const {
   Room,
   Vote,
   sequelize,
-  Sport
+  Sport,
+  Achievement
 } = require('../models');
 const router = express.Router();
 const { Op } = require('sequelize');
@@ -1549,6 +1550,21 @@ router.get('/has-voted', protect, async (req, res) => {
   } catch (error) {
     console.error('Error checking voting status:', error);
     res.status(500).json({ error: 'Error checking voting status' });
+  }
+});
+
+// Get all achievements
+router.get('/achievements', async (req, res) => {
+  try {
+    const achievements = await Achievement.findAll({
+      attributes: ['id', 'title', 'description', 'isActive', 'createdAt', 'updatedAt'],
+      order: [['createdAt', 'DESC']],
+    });
+
+    res.json(achievements);
+  } catch (error) {
+    console.error('Error fetching achievements:', error);
+    res.status(500).json({ error: 'Internal Server Error' });
   }
 });
 
