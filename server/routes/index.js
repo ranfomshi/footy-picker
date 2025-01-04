@@ -147,11 +147,17 @@ router.get('/current-player', protect, async (req, res) => {
 });
 
 router.post('/create-room', protect, async (req, res) => {
-  const { name, playerName } = req.body; // Accept playerName in the request body
+  const { name, playerName, sportId } = req.body; // Accept sportId and playerName in the request body
   const auth0Id = req.user.sub;
   const code = generateRoomCode();
 
   try {
+    // Validate the sportId
+    const sport = await Sport.findByPk(sportId);
+    if (!sport) {
+      return res.status(400).json({ error: 'Invalid sport ID' });
+    }
+
     // Get the user's name from Auth0 profile if playerName is not provided
     let finalPlayerName = playerName;
     if (!finalPlayerName) {
@@ -162,13 +168,13 @@ router.post('/create-room', protect, async (req, res) => {
       finalPlayerName = userInfoResponse.data.name || 'Unnamed Player';
     }
 
-    // Create the room
-    const room = await Room.create({ name, code });
+    // Create the room with the sportId
+    const room = await Room.create({ name, code, sportId });
 
     // Deactivate other memberships for this user
     await RoomMembership.update({ isActive: false }, { where: { auth0Id } });
 
-    // Create membership linking that new Player to the user in this room
+    // Create a new player and link them to the user in this room
     const newPlayer = await Player.create({ name: finalPlayerName });
     const newMembership = await RoomMembership.create({
       playerId: newPlayer.id,
@@ -182,6 +188,7 @@ router.post('/create-room', protect, async (req, res) => {
         id: room.id,
         name: room.name,
         code: room.code,
+        sport: sport.name, // Include the sport name for clarity
       },
       membership: newMembership,
     });
@@ -190,11 +197,6 @@ router.post('/create-room', protect, async (req, res) => {
     res.status(500).json({ error: error.message || 'Internal Server Error' });
   }
 });
-
-
-
-
-
 
 
 router.post('/join-room', protect, async (req, res) => {
@@ -1504,6 +1506,17 @@ router.post('/votes', protect, async (req, res) => {
     res.status(500).json({ error: 'Internal Server Error' });
   }
 });
+
+router.get('/sports', async (req, res) => {
+  try {
+    const sports = await Sport.findAll({ attributes: ['id', 'name'] });
+    res.json(sports);
+  } catch (error) {
+    console.error('Error fetching sports:', error);
+    res.status(500).json({ error: 'Internal Server Error' });
+  }
+});
+
 
 router.get('/has-voted', protect, async (req, res) => {
   const { gameweekId } = req.query;

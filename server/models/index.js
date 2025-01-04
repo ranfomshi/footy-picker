@@ -143,6 +143,15 @@ const GameResult = sequelize.define('GameResult', {
     timestamps: true
 });
 
+const Sport = sequelize.define('Sport', {
+    name: {
+        type: DataTypes.STRING,
+        allowNull: false,
+        unique: true,
+    },
+});
+
+
 const Availability = sequelize.define('Availability', {
     status: {
         type: DataTypes.BOOLEAN,
@@ -350,5 +359,9 @@ Room.hasMany(RoomMembership, { foreignKey: 'roomId' });
 
 Gameweek.belongsTo(Room, { foreignKey: 'roomId' });
 Room.hasMany(Gameweek, { foreignKey: 'roomId' });
+
+
+Room.belongsTo(Sport, { foreignKey: 'sportId' });
+Sport.hasMany(Room, { foreignKey: 'sportId' });
 
 module.exports = { Player, Gameweek, GameResult, Availability, Rating, TeamAssignment, Room, RoomMembership, Vote, sequelize };
