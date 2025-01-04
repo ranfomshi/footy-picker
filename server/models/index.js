@@ -364,4 +364,4 @@ Room.hasMany(Gameweek, { foreignKey: 'roomId' });
 Room.belongsTo(Sport, { foreignKey: 'sportId' });
 Sport.hasMany(Room, { foreignKey: 'sportId' });
 
-module.exports = { Player, Gameweek, GameResult, Availability, Rating, TeamAssignment, Room, RoomMembership, Vote, sequelize };
+module.exports = { Player, Gameweek, GameResult, Availability, Rating, TeamAssignment, Room, RoomMembership, Vote, Sport, sequelize };
