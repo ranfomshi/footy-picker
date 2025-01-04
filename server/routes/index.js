@@ -1553,20 +1553,42 @@ router.get('/has-voted', protect, async (req, res) => {
   }
 });
 
-// Get all achievements
-router.get('/achievements', async (req, res) => {
+// Get achievements for the current player in their active room
+router.get('/player-achievements', protect, async (req, res) => {
   try {
-    const achievements = await Achievement.findAll({
-      attributes: ['id', 'title', 'description', 'isActive', 'createdAt', 'updatedAt'],
-      order: [['createdAt', 'DESC']],
+    const { playerId, roomId } = req.user;
+
+    if (!playerId || !roomId) {
+      return res.status(400).json({ error: 'Player or room information is missing' });
+    }
+
+    // Fetch achievements linked to the player in the active room
+    const playerAchievements = await PlayerAchievement.findAll({
+      where: { playerId, roomId },
+      include: [
+        {
+          model: Achievement,
+          attributes: ['id', 'title', 'description', 'isActive'],
+        },
+      ],
     });
 
-    res.json(achievements);
+    // Format the response
+    const response = playerAchievements.map((entry) => ({
+      id: entry.Achievement.id,
+      title: entry.Achievement.title,
+      description: entry.Achievement.description,
+      isCompleted: !!entry.earnedAt, // Completed if the earnedAt timestamp exists
+      earnedAt: entry.earnedAt,
+    }));
+
+    res.json(response);
   } catch (error) {
-    console.error('Error fetching achievements:', error);
+    console.error('Error fetching player achievements:', error);
     res.status(500).json({ error: 'Internal Server Error' });
   }
 });
+
 
 
 module.exports = router;
