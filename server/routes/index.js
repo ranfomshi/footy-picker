@@ -458,7 +458,13 @@ router.get('/check-room-membership', protect, async (req, res) => {
     // Find all memberships for this user based on auth0Id in RoomMembership
     const memberships = await RoomMembership.findAll({
       where: { auth0Id },
-      include: Room, // Eager-load the associated Room details
+      include: {
+        model: Room,
+        include: {
+          model: Sport, // Include the Sport model
+          attributes: ['id', 'name'], // Only fetch id and name of the sport
+        },
+      },
     });
 
     // Build an array of "joinedRooms" from the membership data
@@ -466,6 +472,7 @@ router.get('/check-room-membership', protect, async (req, res) => {
       id: membership.Room.id,
       name: membership.Room.name,
       code: membership.Room.code,
+      sport: membership.Room.Sport?.name || 'Unknown', // Include sport name
     }));
 
     // Identify if there's an active membership
@@ -477,6 +484,7 @@ router.get('/check-room-membership', protect, async (req, res) => {
         id: activeMembership.Room.id,
         name: activeMembership.Room.name,
         code: activeMembership.Room.code,
+        sport: activeMembership.Room.Sport?.name || 'Unknown', // Include sport name
       }
       : null;
 
@@ -489,6 +497,7 @@ router.get('/check-room-membership', protect, async (req, res) => {
     return res.status(500).json({ error: 'Internal Server Error' });
   }
 });
+
 
 
 
