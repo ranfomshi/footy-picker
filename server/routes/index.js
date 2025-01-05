@@ -918,6 +918,7 @@ router.post('/gameresults', protect, async (req, res) => {
     const { gameweekId, teamA_score, teamB_score } = req.body;
     const { roomId } = req.user;
 
+    // Count players in each team
     const teamA_player_count = await TeamAssignment.count({
       where: { gameweekId, team: 'A', roomId },
     });
@@ -925,7 +926,8 @@ router.post('/gameresults', protect, async (req, res) => {
       where: { gameweekId, team: 'B', roomId },
     });
 
-    const [gameResult, created] = await GameResult.upsert(
+    // Upsert game result
+    const [gameResult] = await GameResult.upsert(
       {
         gameweekId,
         teamA_score,
@@ -939,15 +941,31 @@ router.post('/gameresults', protect, async (req, res) => {
       }
     );
 
-    // Set the voting close time to 48 hours after the game result is recorded
+    // Update voting close time to 48 hours after game result
     await Gameweek.update(
       { voting_close_time: sequelize.literal("NOW() + INTERVAL '48 HOURS'") },
       { where: { id: gameweekId, roomId } }
     );
 
+    // Update player ratings
     await updatePlayerRatings(gameweekId, roomId);
-    // Award achievements
-    await checkAndAwardAchievements(gameResult, roomId);
+
+    // Fetch all team assignments
+    const teamAssignments = await TeamAssignment.findAll({
+      where: { gameweekId, roomId },
+    });
+
+    // Award achievements for all players
+    for (const assignment of teamAssignments) {
+      await checkAndAwardAchievements({
+        playerId: assignment.playerId,
+        roomId,
+        assignment,
+        teamA_score,
+        teamB_score,
+      });
+    }
+
     res.json(gameResult);
   } catch (error) {
     console.error('Error recording game result:', error);
@@ -955,9 +973,16 @@ router.post('/gameresults', protect, async (req, res) => {
   }
 });
 
-const checkAndAwardAchievements = async (playerId, roomId, assignment, teamA_score, teamB_score) => {
+const checkAndAwardAchievements = async ({ playerId, roomId, assignment, teamA_score, teamB_score }) => {
   for (const achievement of achievements) {
-    const isEligible = await achievement.condition(playerId, roomId, assignment, teamA_score, teamB_score);
+    const isEligible = await achievement.condition({
+      playerId,
+      roomId,
+      assignment,
+      teamA_score,
+      teamB_score,
+    });
+
     if (isEligible) {
       await PlayerAchievements.upsert({
         playerId,
@@ -968,6 +993,7 @@ const checkAndAwardAchievements = async (playerId, roomId, assignment, teamA_sco
     }
   }
 };
+
 
 
 const updatePlayerRatings = async (gameweekId, roomId) => {
