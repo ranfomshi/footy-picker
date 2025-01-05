@@ -1,5 +1,7 @@
 const { PlayerAchievements, GameResult, TeamAssignment } = require('../models'); // Import required models
 const sequelize = require('sequelize'); // Import sequelize if used for conditions
+const { getTeammates } = require('./teamAssignmentHelpers'); // Adjust path if needed
+
 
 const achievements = [
     {
@@ -64,17 +66,12 @@ const achievements = [
     },
     {
         id: 5,
-        condition: async ({ playerId, roomId }) => {
+        condition: async ({ playerId, roomId, gameweekId, team }) => {
             // Long-time Teammates: Play 5 games in a row with the same teammate.
-            const teammateGames = await TeamAssignment.findAll({
-                where: { playerId, roomId },
-                limit: 5,
-                include: [{ model: TeamAssignment, as: 'teammates' }],
-                order: [['createdAt', 'DESC']],
-            });
-            return teammateGames.every(
-                (game) => game.teammates.length > 0 && game.teammates.every((t) => t.id === playerId)
-            );
+            const teammates = await getTeammates({ playerId, gameweekId, roomId, team });
+
+            // Check if teammates' games meet the condition
+            return teammates.length >= 5;
         },
     },
     {
