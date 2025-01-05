@@ -331,7 +331,7 @@ const Achievement = sequelize.define('Achievement', {
     timestamps: true, // Adds createdAt and updatedAt
 });
 
-const PlayerAchievements = sequelize.define('PlayerAchievement', {
+const PlayerAchievements = sequelize.define('PlayerAchievements', {
     playerId: {
         type: DataTypes.INTEGER,
         references: {
