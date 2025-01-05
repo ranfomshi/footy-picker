@@ -12,7 +12,7 @@ const {
   sequelize,
   Sport,
   Achievement,
-  playerAchievements
+  PlayerAchievements
 } = require('../models');
 const router = express.Router();
 const { Op } = require('sequelize');
@@ -1563,7 +1563,7 @@ router.get('/player-achievements', protect, async (req, res) => {
     }
 
     // Fetch achievements linked to the player in the active room
-    const aplayerAchievements = await playerAchievements.findAll({
+    const playerAchievements = await PlayerAchievements.findAll({
       where: { playerId, roomId },
       include: [
         {
@@ -1574,7 +1574,7 @@ router.get('/player-achievements', protect, async (req, res) => {
     });
 
     // Format the response
-    const response = aplayerAchievements.map((entry) => ({
+    const response = playerAchievements.map((entry) => ({
       id: entry.Achievement.id,
       title: entry.Achievement.title,
       description: entry.Achievement.description,
