@@ -421,24 +421,20 @@ Room.hasMany(Gameweek, { foreignKey: 'roomId' });
 Room.belongsTo(Sport, { foreignKey: 'sportId' });
 Sport.hasMany(Room, { foreignKey: 'sportId' });
 
-Player.belongsToMany(Achievement, { through: 'PlayerAchievements', foreignKey: 'playerId' });
-Achievement.belongsToMany(Player, { through: 'PlayerAchievements', foreignKey: 'achievementId' });
-
-Room.belongsToMany(Achievement, { through: 'RoomAchievements', foreignKey: 'roomId' });
-Achievement.belongsToMany(Room, { through: 'RoomAchievements', foreignKey: 'achievementId' });
-
+// Associations between Player, Achievement, and Room through PlayerAchievements
 Player.belongsToMany(Achievement, { through: PlayerAchievements, foreignKey: 'playerId' });
 Achievement.belongsToMany(Player, { through: PlayerAchievements, foreignKey: 'achievementId' });
-
-Room.belongsToMany(Achievement, { through: 'RoomAchievements', foreignKey: 'roomId' });
-Achievement.belongsToMany(Room, { through: 'RoomAchievements', foreignKey: 'achievementId' });
-
+Room.hasMany(PlayerAchievements, { foreignKey: 'roomId' });
 PlayerAchievements.belongsTo(Player, { foreignKey: 'playerId' });
 PlayerAchievements.belongsTo(Achievement, { foreignKey: 'achievementId' });
 PlayerAchievements.belongsTo(Room, { foreignKey: 'roomId' });
-Player.hasMany(PlayerAchievemenst, { foreignKey: 'playerId' });
+Player.hasMany(PlayerAchievements, { foreignKey: 'playerId' });
 Achievement.hasMany(PlayerAchievements, { foreignKey: 'achievementId' });
-Room.hasMany(PlayerAchievements, { foreignKey: 'roomId' });
+
+// Associations between Room and Achievement through RoomAchievements
+Room.belongsToMany(Achievement, { through: 'RoomAchievements', foreignKey: 'roomId' });
+Achievement.belongsToMany(Room, { through: 'RoomAchievements', foreignKey: 'achievementId' });
+
 
 
 module.exports = { Player, Gameweek, GameResult, Availability, Rating, TeamAssignment, Room, RoomMembership, Vote, Sport, Achievement, PlayerAchievements, sequelize };
