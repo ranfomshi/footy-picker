@@ -26,7 +26,12 @@ const achievements = [
         condition: async ({ roomId }) => {
             // Draw Specialist: Play in 5 games that ended in a draw.
             const draws = await GameResult.count({
-                where: { roomId, teamA_score: sequelize.col('teamB_score') },
+                where: {
+                    roomId,
+                    [sequelize.Op.and]: [
+                        sequelize.literal('"teamA_score" = "teamB_score"'),
+                    ],
+                },
             });
             return draws >= 5;
         },
