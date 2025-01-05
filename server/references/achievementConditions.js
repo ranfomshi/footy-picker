@@ -50,20 +50,42 @@ const achievements = [
     },
     {
         id: 4,
-        condition: async ({ roomId, assignment, teamA_score, teamB_score }) => {
-            // Undefeated Run: Play on a team that remains undefeated for 5 consecutive games.
+        condition: async ({ roomId, playerId, assignment, teamA_score, teamB_score }) => {
+            // Fetch the recent 5 games for the room
             const recentGames = await GameResult.findAll({
                 where: { roomId },
                 limit: 5,
                 order: [['createdAt', 'DESC']],
+                include: {
+                    model: TeamAssignment,
+                    where: { playerId, roomId }, // Ensure the player participated
+                    attributes: ['team'],
+                },
             });
-            return recentGames.every(
-                (game) =>
-                    (assignment.team === 'A' && teamA_score >= teamB_score) ||
-                    (assignment.team === 'B' && teamB_score >= teamA_score)
-            );
+
+            // If the player hasn't participated in at least 5 games, return false
+            if (recentGames.length < 5) {
+                return false;
+            }
+
+            // Check if the player's team remained undefeated in all games
+            return recentGames.every((game) => {
+                const playerTeam = game.TeamAssignments.find(
+                    (assignment) => assignment.playerId === playerId
+                )?.team;
+
+                if (!playerTeam) {
+                    return false;
+                }
+
+                return (
+                    (playerTeam === 'A' && game.teamA_score >= game.teamB_score) ||
+                    (playerTeam === 'B' && game.teamB_score >= game.teamA_score)
+                );
+            });
         },
-    },
+    }
+    
     {
         id: 5,
         condition: async ({ playerId, roomId, gameweekId, team }) => {
