@@ -1558,7 +1558,13 @@ router.get('/player-achievements', protect, async (req, res) => {
   try {
     const { playerId, roomId } = req.user;
 
+    // Log incoming player and room details
+    console.log('Fetching player achievements for:');
+    console.log('Player ID:', playerId);
+    console.log('Room ID:', roomId);
+
     if (!playerId || !roomId) {
+      console.warn('Player or room information is missing');
       return res.status(400).json({ error: 'Player or room information is missing' });
     }
 
@@ -1573,6 +1579,9 @@ router.get('/player-achievements', protect, async (req, res) => {
       ],
     });
 
+    // Log fetched achievements
+    console.log('Fetched player achievements:', JSON.stringify(playerAchievements, null, 2));
+
     // Format the response
     const response = playerAchievements.map((entry) => ({
       id: entry.Achievement.id,
@@ -1582,12 +1591,19 @@ router.get('/player-achievements', protect, async (req, res) => {
       earnedAt: entry.earnedAt,
     }));
 
+    // Log the formatted response
+    console.log('Formatted response:', JSON.stringify(response, null, 2));
+
     res.json(response);
   } catch (error) {
     console.error('Error fetching player achievements:', error);
+
+    // Add more details about the error
+    console.error('Error stack trace:', error.stack);
     res.status(500).json({ error: 'Internal Server Error' });
   }
 });
+
 
 
 
