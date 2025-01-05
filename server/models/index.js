@@ -435,6 +435,12 @@ Achievement.hasMany(PlayerAchievements, { foreignKey: 'achievementId' });
 Room.belongsToMany(Achievement, { through: 'RoomAchievements', foreignKey: 'roomId' });
 Achievement.belongsToMany(Room, { through: 'RoomAchievements', foreignKey: 'achievementId' });
 
+TeamAssignment.belongsToMany(TeamAssignment, {
+    through: 'TeammateAssignments', // Name of the join table
+    as: 'teammates',                // Alias for eager loading
+    foreignKey: 'playerId',
+    otherKey: 'teammateId',
+});
 
 
 module.exports = { Player, Gameweek, GameResult, Availability, Rating, TeamAssignment, Room, RoomMembership, Vote, Sport, Achievement, PlayerAchievements, sequelize };
