@@ -11,7 +11,8 @@ const {
   Vote,
   sequelize,
   Sport,
-  Achievement
+  Achievement,
+  playerAchievements
 } = require('../models');
 const router = express.Router();
 const { Op } = require('sequelize');
@@ -1553,7 +1554,6 @@ router.get('/has-voted', protect, async (req, res) => {
   }
 });
 
-// Get achievements for the current player in their active room
 router.get('/player-achievements', protect, async (req, res) => {
   try {
     const { playerId, roomId } = req.user;
@@ -1563,7 +1563,7 @@ router.get('/player-achievements', protect, async (req, res) => {
     }
 
     // Fetch achievements linked to the player in the active room
-    const playerAchievements = await PlayerAchievement.findAll({
+    const playerAchievements = await playerAchievements.findAll({
       where: { playerId, roomId },
       include: [
         {
@@ -1588,6 +1588,7 @@ router.get('/player-achievements', protect, async (req, res) => {
     res.status(500).json({ error: 'Internal Server Error' });
   }
 });
+
 
 
 
