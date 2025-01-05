@@ -84,8 +84,8 @@ const achievements = [
                 );
             });
         },
-    }
-    
+    },
+
     {
         id: 5,
         condition: async ({ playerId, roomId, gameweekId, team }) => {
