@@ -957,7 +957,14 @@ router.post('/gameresults', protect, async (req, res) => {
 
     // Award achievements for all players
     for (const assignment of teamAssignments) {
-      await checkAndAwardAchievements({ playerId, roomId, assignment, teamA_score, teamB_score });
+      const { playerId, team } = assignment; // Extract playerId and team from assignment
+      await checkAndAwardAchievements({
+        playerId,
+        roomId,
+        assignment: { team }, // Include team in assignment
+        teamA_score,
+        teamB_score,
+      });
     }
 
     res.json(gameResult);
@@ -967,25 +974,32 @@ router.post('/gameresults', protect, async (req, res) => {
   }
 });
 
+
 const checkAndAwardAchievements = async ({ playerId, roomId, assignment, teamA_score, teamB_score }) => {
-  for (const achievement of achievements) {
-    const isEligible = await achievement.condition({
-      playerId,
-      roomId,
-      assignment,
-      teamA_score,
-      teamB_score,
-    });
-    if (isEligible) {
-      await PlayerAchievements.upsert({
+  try {
+    for (const achievement of achievements) {
+      const isEligible = await achievement.condition({
         playerId,
-        achievementId: achievement.id,
         roomId,
-        earnedAt: new Date(),
+        assignment,
+        teamA_score,
+        teamB_score,
       });
+      if (isEligible) {
+        await PlayerAchievements.upsert({
+          playerId,
+          achievementId: achievement.id,
+          roomId,
+          earnedAt: new Date(),
+        });
+      }
     }
+  } catch (error) {
+    console.error('Error checking and awarding achievements:', error);
+    throw error;
   }
 };
+
 
 
 
