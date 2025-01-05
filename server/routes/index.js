@@ -19,7 +19,7 @@ const { Op } = require('sequelize');
 const jwt = require('jsonwebtoken');
 const jwksRsa = require('jwks-rsa');
 const axios = require('axios');
-const achievements = require('..references/achievementConditions');
+const achievements = require('../references/achievementConditions');
 
 // Load environment variables
 require('dotenv').config();
