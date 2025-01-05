@@ -1,7 +1,10 @@
+const { PlayerAchievements, GameResult, TeamAssignment } = require('../models'); // Import required models
+const sequelize = require('sequelize'); // Import sequelize if used for conditions
+
 const achievements = [
     {
         id: 1,
-        condition: async () => {
+        condition: async ({ playerId, roomId, teamA_score, teamB_score }) => {
             // Team Streak: Win 3 games in a row.
             const recentWins = await PlayerAchievements.findAll({
                 where: { playerId, roomId, achievementId: 1 },
@@ -20,7 +23,7 @@ const achievements = [
     },
     {
         id: 2,
-        condition: async () => {
+        condition: async ({ roomId }) => {
             // Draw Specialist: Play in 5 games that ended in a draw.
             const draws = await GameResult.count({
                 where: { roomId, teamA_score: sequelize.col('teamB_score') },
@@ -30,7 +33,7 @@ const achievements = [
     },
     {
         id: 3,
-        condition: async () => {
+        condition: async ({ playerId, roomId }) => {
             // Participation Badge: Participate in 10 games, regardless of results.
             const participationCount = await TeamAssignment.count({
                 where: { playerId, roomId },
@@ -40,7 +43,7 @@ const achievements = [
     },
     {
         id: 4,
-        condition: async () => {
+        condition: async ({ roomId, assignment, teamA_score, teamB_score }) => {
             // Undefeated Run: Play on a team that remains undefeated for 5 consecutive games.
             const recentGames = await GameResult.findAll({
                 where: { roomId },
@@ -56,7 +59,7 @@ const achievements = [
     },
     {
         id: 5,
-        condition: async () => {
+        condition: async ({ playerId, roomId }) => {
             // Long-time Teammates: Play 5 games in a row with the same teammate.
             const teammateGames = await TeamAssignment.findAll({
                 where: { playerId, roomId },
@@ -71,7 +74,7 @@ const achievements = [
     },
     {
         id: 8,
-        condition: async () => {
+        condition: async ({ playerId, roomId }) => {
             // Dedicated Player: Participate in 50 games.
             const participationCount = await TeamAssignment.count({
                 where: { playerId, roomId },
@@ -81,7 +84,7 @@ const achievements = [
     },
     {
         id: 9,
-        condition: async () => {
+        condition: async ({ playerId, roomId }) => {
             // Century Club: Participate in 100 games.
             const participationCount = await TeamAssignment.count({
                 where: { playerId, roomId },
@@ -91,7 +94,7 @@ const achievements = [
     },
     {
         id: 10,
-        condition: async () => {
+        condition: async ({ playerId, roomId }) => {
             // Champion: Win 10 games.
             const wins = await PlayerAchievements.count({
                 where: { playerId, roomId, achievementId: 10 },
@@ -101,7 +104,7 @@ const achievements = [
     },
     {
         id: 11,
-        condition: async () => {
+        condition: async ({ assignment, teamA_score, teamB_score }) => {
             // Dominant Team: Win a game by a margin of 5 or more goals.
             return (
                 (assignment.team === 'A' && teamA_score - teamB_score >= 5) ||
@@ -111,7 +114,7 @@ const achievements = [
     },
     {
         id: 12,
-        condition: async () => {
+        condition: async ({ playerId, roomId }) => {
             // Resilient: Participate in 5 games your team lost.
             const losses = await PlayerAchievements.count({
                 where: { playerId, roomId, achievementId: 12 },
@@ -121,7 +124,7 @@ const achievements = [
     },
     {
         id: 13,
-        condition: async () => {
+        condition: async ({ assignment, teamA_score, teamB_score }) => {
             // Tough Loss: Participate in a game your team loses by a margin of 1 goal.
             return (
                 (assignment.team === 'A' && teamB_score - teamA_score === 1) ||
@@ -131,7 +134,7 @@ const achievements = [
     },
     {
         id: 14,
-        condition: async () => {
+        condition: async ({ roomId, assignment, teamA_score, teamB_score }) => {
             // Bounce Back: Win the next game after a loss.
             const lastGame = await GameResult.findOne({
                 where: { roomId },
@@ -148,7 +151,7 @@ const achievements = [
     },
     {
         id: 15,
-        condition: async () => {
+        condition: async ({ assignment, teamA_score, teamB_score }) => {
             // High Scorer: Play in a game where your team scores 10 or more goals.
             return (
                 (assignment.team === 'A' && teamA_score >= 10) ||
@@ -158,7 +161,7 @@ const achievements = [
     },
     {
         id: 16,
-        condition: async () => {
+        condition: async ({ assignment, teamA_score, teamB_score }) => {
             // Defensive Wall: Play in a game where your team concedes 0 goals.
             return (
                 (assignment.team === 'A' && teamB_score === 0) ||
@@ -168,7 +171,7 @@ const achievements = [
     },
     {
         id: 17,
-        condition: async () => {
+        condition: async ({ teamA_score, teamB_score }) => {
             // Goal Frenzy: Participate in a game where both teams score 5 or more goals.
             return teamA_score >= 5 && teamB_score >= 5;
         },

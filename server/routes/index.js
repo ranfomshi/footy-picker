@@ -957,13 +957,7 @@ router.post('/gameresults', protect, async (req, res) => {
 
     // Award achievements for all players
     for (const assignment of teamAssignments) {
-      await checkAndAwardAchievements({
-        playerId: assignment.playerId,
-        roomId,
-        assignment,
-        teamA_score,
-        teamB_score,
-      });
+      await checkAndAwardAchievements({ playerId, roomId, assignment, teamA_score, teamB_score });
     }
 
     res.json(gameResult);
@@ -982,7 +976,6 @@ const checkAndAwardAchievements = async ({ playerId, roomId, assignment, teamA_s
       teamA_score,
       teamB_score,
     });
-
     if (isEligible) {
       await PlayerAchievements.upsert({
         playerId,
@@ -993,6 +986,7 @@ const checkAndAwardAchievements = async ({ playerId, roomId, assignment, teamA_s
     }
   }
 };
+
 
 
 
