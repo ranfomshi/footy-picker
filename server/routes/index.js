@@ -1558,7 +1558,6 @@ router.get('/player-achievements', protect, async (req, res) => {
   try {
     const { playerId, roomId } = req.user;
 
-    // Log incoming player and room details
     console.log('Fetching player achievements for:');
     console.log('Player ID:', playerId);
     console.log('Room ID:', roomId);
@@ -1568,38 +1567,33 @@ router.get('/player-achievements', protect, async (req, res) => {
       return res.status(400).json({ error: 'Player or room information is missing' });
     }
 
+    // Fetch all achievements
+    const allAchievements = await Achievement.findAll({
+      attributes: ['id', 'title', 'description', 'isActive'],
+    });
+
     // Fetch achievements linked to the player in the active room
     const playerAchievements = await PlayerAchievements.findAll({
       where: { playerId, roomId },
-      include: [
-        {
-          model: Achievement,
-          attributes: ['id', 'title', 'description', 'isActive'],
-        },
-      ],
+      attributes: ['achievementId', 'earnedAt'],
     });
 
-    // Log fetched achievements
-    console.log('Fetched player achievements:', JSON.stringify(playerAchievements, null, 2));
+    // Map player's achievements to a Set for quick lookup
+    const earnedAchievementIds = new Set(playerAchievements.map((pa) => pa.achievementId));
 
-    // Format the response
-    const response = playerAchievements.map((entry) => ({
-      id: entry.Achievement.id,
-      title: entry.Achievement.title,
-      description: entry.Achievement.description,
-      isCompleted: !!entry.earnedAt, // Completed if the earnedAt timestamp exists
-      earnedAt: entry.earnedAt,
+    // Combine all achievements and mark as completed or not
+    const response = allAchievements.map((achievement) => ({
+      id: achievement.id,
+      title: achievement.title,
+      description: achievement.description,
+      isCompleted: earnedAchievementIds.has(achievement.id),
+      earnedAt: playerAchievements.find((pa) => pa.achievementId === achievement.id)?.earnedAt || null,
     }));
 
-    // Log the formatted response
     console.log('Formatted response:', JSON.stringify(response, null, 2));
-
     res.json(response);
   } catch (error) {
     console.error('Error fetching player achievements:', error);
-
-    // Add more details about the error
-    console.error('Error stack trace:', error.stack);
     res.status(500).json({ error: 'Internal Server Error' });
   }
 });
