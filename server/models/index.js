@@ -331,7 +331,7 @@ const Achievement = sequelize.define('Achievement', {
     timestamps: true, // Adds createdAt and updatedAt
 });
 
-const PlayerAchievement = sequelize.define('PlayerAchievement', {
+const PlayerAchievements = sequelize.define('PlayerAchievement', {
     playerId: {
         type: DataTypes.INTEGER,
         references: {
@@ -427,18 +427,18 @@ Achievement.belongsToMany(Player, { through: 'PlayerAchievements', foreignKey: '
 Room.belongsToMany(Achievement, { through: 'RoomAchievements', foreignKey: 'roomId' });
 Achievement.belongsToMany(Room, { through: 'RoomAchievements', foreignKey: 'achievementId' });
 
-Player.belongsToMany(Achievement, { through: PlayerAchievement, foreignKey: 'playerId' });
-Achievement.belongsToMany(Player, { through: PlayerAchievement, foreignKey: 'achievementId' });
+Player.belongsToMany(Achievement, { through: PlayerAchievements, foreignKey: 'playerId' });
+Achievement.belongsToMany(Player, { through: PlayerAchievements, foreignKey: 'achievementId' });
 
 Room.belongsToMany(Achievement, { through: 'RoomAchievements', foreignKey: 'roomId' });
 Achievement.belongsToMany(Room, { through: 'RoomAchievements', foreignKey: 'achievementId' });
 
-PlayerAchievement.belongsTo(Player, { foreignKey: 'playerId' });
-PlayerAchievement.belongsTo(Achievement, { foreignKey: 'achievementId' });
-PlayerAchievement.belongsTo(Room, { foreignKey: 'roomId' });
-Player.hasMany(PlayerAchievement, { foreignKey: 'playerId' });
-Achievement.hasMany(PlayerAchievement, { foreignKey: 'achievementId' });
-Room.hasMany(PlayerAchievement, { foreignKey: 'roomId' });
+PlayerAchievements.belongsTo(Player, { foreignKey: 'playerId' });
+PlayerAchievements.belongsTo(Achievement, { foreignKey: 'achievementId' });
+PlayerAchievements.belongsTo(Room, { foreignKey: 'roomId' });
+Player.hasMany(PlayerAchievemenst, { foreignKey: 'playerId' });
+Achievement.hasMany(PlayerAchievements, { foreignKey: 'achievementId' });
+Room.hasMany(PlayerAchievements, { foreignKey: 'roomId' });
 
 
-module.exports = { Player, Gameweek, GameResult, Availability, Rating, TeamAssignment, Room, RoomMembership, Vote, Sport, Achievement, PlayerAchievement, sequelize };
+module.exports = { Player, Gameweek, GameResult, Availability, Rating, TeamAssignment, Room, RoomMembership, Vote, Sport, Achievement, PlayerAchievements, sequelize };
