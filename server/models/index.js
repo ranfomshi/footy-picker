@@ -331,6 +331,40 @@ const Achievement = sequelize.define('Achievement', {
     timestamps: true, // Adds createdAt and updatedAt
 });
 
+const PlayerAchievement = sequelize.define('PlayerAchievement', {
+    playerId: {
+        type: DataTypes.INTEGER,
+        references: {
+            model: Player,
+            key: 'id',
+        },
+        allowNull: false,
+    },
+    achievementId: {
+        type: DataTypes.INTEGER,
+        references: {
+            model: Achievement,
+            key: 'id',
+        },
+        allowNull: false,
+    },
+    roomId: {
+        type: DataTypes.INTEGER,
+        references: {
+            model: Room,
+            key: 'id',
+        },
+        allowNull: false,
+    },
+    earnedAt: {
+        type: DataTypes.DATE, // Timestamp for when the achievement was earned
+        allowNull: true, // Null if not earned yet
+    },
+}, {
+    tableName: 'PlayerAchievements',
+    timestamps: true, // To track creation and updates
+});
+
 // Associations
 Player.belongsToMany(Gameweek, { through: Availability, foreignKey: 'playerId', otherKey: 'gameweekId' });
 Gameweek.belongsToMany(Player, { through: Availability, foreignKey: 'gameweekId', otherKey: 'playerId' });
@@ -393,5 +427,18 @@ Achievement.belongsToMany(Player, { through: 'PlayerAchievements', foreignKey: '
 Room.belongsToMany(Achievement, { through: 'RoomAchievements', foreignKey: 'roomId' });
 Achievement.belongsToMany(Room, { through: 'RoomAchievements', foreignKey: 'achievementId' });
 
+Player.belongsToMany(Achievement, { through: PlayerAchievement, foreignKey: 'playerId' });
+Achievement.belongsToMany(Player, { through: PlayerAchievement, foreignKey: 'achievementId' });
 
-module.exports = { Player, Gameweek, GameResult, Availability, Rating, TeamAssignment, Room, RoomMembership, Vote, Sport, Achievement, sequelize };
+Room.belongsToMany(Achievement, { through: 'RoomAchievements', foreignKey: 'roomId' });
+Achievement.belongsToMany(Room, { through: 'RoomAchievements', foreignKey: 'achievementId' });
+
+PlayerAchievement.belongsTo(Player, { foreignKey: 'playerId' });
+PlayerAchievement.belongsTo(Achievement, { foreignKey: 'achievementId' });
+PlayerAchievement.belongsTo(Room, { foreignKey: 'roomId' });
+Player.hasMany(PlayerAchievement, { foreignKey: 'playerId' });
+Achievement.hasMany(PlayerAchievement, { foreignKey: 'achievementId' });
+Room.hasMany(PlayerAchievement, { foreignKey: 'roomId' });
+
+
+module.exports = { Player, Gameweek, GameResult, Availability, Rating, TeamAssignment, Room, RoomMembership, Vote, Sport, Achievement, PlayerAchievement, sequelize };
