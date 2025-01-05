@@ -175,4 +175,4 @@ const achievements = [
     },
 ];
 
-export default achievements;
+module.exports = achievements;

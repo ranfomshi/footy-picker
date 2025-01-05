@@ -13,7 +13,7 @@ const {
   Sport,
   Achievement,
   PlayerAchievements
-} = require('../models').default;
+} = require('../models');
 const router = express.Router();
 const { Op } = require('sequelize');
 const jwt = require('jsonwebtoken');
