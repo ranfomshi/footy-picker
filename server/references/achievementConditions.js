@@ -67,13 +67,18 @@ const achievements = [
     {
         id: 5,
         condition: async ({ playerId, roomId, gameweekId, team }) => {
-            // Long-time Teammates: Play 5 games in a row with the same teammate.
+            if (!gameweekId || !team) {
+                console.error('Missing gameweekId or team in achievement condition');
+                return false;
+            }
+
             const teammates = await getTeammates({ playerId, gameweekId, roomId, team });
 
-            // Check if teammates' games meet the condition
+            // Check if the teammates' games meet the condition
             return teammates.length >= 5;
         },
     },
+
     {
         id: 8,
         condition: async ({ playerId, roomId }) => {

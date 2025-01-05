@@ -2,6 +2,17 @@ const { TeamAssignment, Player } = require('../models'); // Adjust the path as n
 const sequelize = require('sequelize');
 
 const getTeammates = async ({ playerId, gameweekId, roomId, team }) => {
+    if (!playerId || !gameweekId || !roomId || !team) {
+        throw new Error(
+            `Missing parameters in getTeammates: ${JSON.stringify({
+                playerId,
+                gameweekId,
+                roomId,
+                team,
+            })}`
+        );
+    }
+
     return await TeamAssignment.findAll({
         where: {
             gameweekId,
@@ -15,5 +26,6 @@ const getTeammates = async ({ playerId, gameweekId, roomId, team }) => {
         },
     });
 };
+
 
 module.exports = { getTeammates };
