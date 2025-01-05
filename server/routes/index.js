@@ -13,12 +13,13 @@ const {
   Sport,
   Achievement,
   PlayerAchievements
-} = require('../models');
+} = require('../models').default;
 const router = express.Router();
 const { Op } = require('sequelize');
 const jwt = require('jsonwebtoken');
 const jwksRsa = require('jwks-rsa');
 const axios = require('axios');
+const achievements = require('..references/achievementConditions');
 
 // Load environment variables
 require('dotenv').config();
@@ -945,12 +946,29 @@ router.post('/gameresults', protect, async (req, res) => {
     );
 
     await updatePlayerRatings(gameweekId, roomId);
+    // Award achievements
+    await checkAndAwardAchievements(gameResult, roomId);
     res.json(gameResult);
   } catch (error) {
     console.error('Error recording game result:', error);
     res.status(500).json({ error: 'Internal Server Error' });
   }
 });
+
+const checkAndAwardAchievements = async (playerId, roomId, assignment, teamA_score, teamB_score) => {
+  for (const achievement of achievements) {
+    const isEligible = await achievement.condition(playerId, roomId, assignment, teamA_score, teamB_score);
+    if (isEligible) {
+      await PlayerAchievements.upsert({
+        playerId,
+        achievementId: achievement.id,
+        roomId,
+        earnedAt: new Date(),
+      });
+    }
+  }
+};
+
 
 const updatePlayerRatings = async (gameweekId, roomId) => {
   try {

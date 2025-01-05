@@ -1,4 +1,4 @@
-const { Sequelize, DataTypes } = require('sequelize');
+import { Sequelize, DataTypes } from 'sequelize';
 require('dotenv').config();
 
 const isProduction = process.env.NODE_ENV === 'production';
@@ -437,4 +437,4 @@ Achievement.belongsToMany(Room, { through: 'RoomAchievements', foreignKey: 'achi
 
 
 
-module.exports = { Player, Gameweek, GameResult, Availability, Rating, TeamAssignment, Room, RoomMembership, Vote, Sport, Achievement, PlayerAchievements, sequelize };
+export default { Player, Gameweek, GameResult, Availability, Rating, TeamAssignment, Room, RoomMembership, Vote, Sport, Achievement, PlayerAchievements, sequelize };
