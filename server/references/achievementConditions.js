@@ -1,4 +1,4 @@
-const { PlayerAchievements, GameResult, TeamAssignment } = require('../models'); // Import required models
+const { PlayerAchievements, GameResult, TeamAssignment, Gameweek } = require('../models'); // Import required models
 const sequelize = require('sequelize'); // Import sequelize if used for conditions
 const { getTeammates } = require('./teamAssignmentHelpers'); // Adjust path if needed
 
