@@ -435,6 +435,15 @@ Achievement.hasMany(PlayerAchievements, { foreignKey: 'achievementId' });
 Room.belongsToMany(Achievement, { through: 'RoomAchievements', foreignKey: 'roomId' });
 Achievement.belongsToMany(Room, { through: 'RoomAchievements', foreignKey: 'achievementId' });
 
+// GameResult belongs to a Gameweek
+GameResult.belongsTo(Gameweek, { foreignKey: 'gameweekId' });
+Gameweek.hasOne(GameResult, { foreignKey: 'gameweekId' });
+
+// Gameweek has many TeamAssignments
+Gameweek.hasMany(TeamAssignment, { foreignKey: 'gameweekId' });
+TeamAssignment.belongsTo(Gameweek, { foreignKey: 'gameweekId' });
+
+
 TeamAssignment.belongsToMany(TeamAssignment, {
     through: 'TeammateAssignments', // Name of the join table
     as: 'teammates',                // Alias for eager loading
