@@ -57,11 +57,15 @@ const achievements = [
                 limit: 5,
                 order: [['createdAt', 'DESC']],
                 include: {
-                    model: TeamAssignment,
-                    where: { playerId, roomId }, // Ensure the player participated
-                    attributes: ['team'],
+                    model: Gameweek,
+                    include: {
+                        model: TeamAssignment,
+                        where: { roomId },
+                        attributes: ['team', 'playerId'], // Fetch only the required fields
+                    },
                 },
             });
+
 
             // If the player hasn't participated in at least 5 games, return false
             if (recentGames.length < 5) {
