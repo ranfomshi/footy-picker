@@ -61,10 +61,12 @@ const achievements = [
                     include: {
                         model: TeamAssignment,
                         where: { roomId },
-                        attributes: ['team', 'playerId'], // Fetch only the required fields
+                        required: false, // Ensures TeamAssignments are optional, not mandatory
+                        attributes: ['team', 'playerId'], // Fetch only necessary fields
                     },
                 },
             });
+
 
 
             // If the player hasn't participated in at least 5 games, return false
@@ -74,19 +76,30 @@ const achievements = [
 
             // Check if the player's team remained undefeated in all games
             return recentGames.every((game) => {
-                const playerTeam = game.TeamAssignments.find(
-                    (assignment) => assignment.playerId === playerId
-                )?.team;
+                const gameweek = game.Gameweek;
 
-                if (!playerTeam) {
+                // Ensure Gameweek and TeamAssignments exist
+                if (!gameweek || !gameweek.TeamAssignments) {
+                    console.warn('Missing Gameweek or TeamAssignments for a game.');
                     return false;
                 }
 
+                const playerTeam = gameweek.TeamAssignments.find(
+                    (assignment) => assignment.playerId === assignment.playerId
+                )?.team;
+
+                if (!playerTeam) {
+                    console.warn('Player team not found in TeamAssignments.');
+                    return false;
+                }
+
+                // Check if the player's team was undefeated
                 return (
                     (playerTeam === 'A' && game.teamA_score >= game.teamB_score) ||
                     (playerTeam === 'B' && game.teamB_score >= game.teamA_score)
                 );
             });
+
         },
     },
 
