@@ -10,7 +10,7 @@ const PrivacyPolicy = () => (
       Effective Date: <Text strong>28th November 2024</Text>
     </Paragraph>
     <Paragraph>
-      At Footy Picker, we prioritize your privacy and are committed to safeguarding your data. This policy outlines how we collect, use, and protect your information.
+      At Teamix, we prioritize your privacy and are committed to safeguarding your data. This policy outlines how we collect, use, and protect your information.
     </Paragraph>
     <Title level={3}>1. Data Collection</Title>
     <Paragraph>
@@ -23,7 +23,7 @@ const PrivacyPolicy = () => (
           <Text strong>Team and Game Data</Text>: Results for teams you are part of. No individual player stats (e.g., goals, assists) are collected.
         </li>
         <li>
-          <Text strong>Analytics Data</Text>: Footy Picker uses Mixpanel to analyze app usage, where your email is used as a unique identifier.
+          <Text strong>Analytics Data</Text>: Teamix uses Mixpanel to analyze app usage, where your email is used as a unique identifier.
         </li>
       </ul>
     </Paragraph>

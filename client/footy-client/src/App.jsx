@@ -205,7 +205,7 @@ function App() {
                       </>
                     ) : (
                       <Title level={4} style={{ marginTop: 0 }}>
-                        Footy Picker
+                        Teamix
                       </Title>
                     )}
                     {hasJoinedRoom && (

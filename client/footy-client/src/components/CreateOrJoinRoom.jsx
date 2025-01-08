@@ -169,7 +169,7 @@ const CreateOrJoinRoom = ({ onRoomJoined }) => {
     return (
         <div style={{ maxWidth: 400, margin: '0 auto', padding: '20px', textAlign: 'center' }}>
             <Image width={100} height={100} preview={false} src='fp_logo.png' style={{ marginBottom: '20px' }} />
-            <Title level={2} style={{ fontWeight: 'bold' }}>Welcome to Footy Picker</Title>
+            <Title level={2} style={{ fontWeight: 'bold' }}>Teamix</Title>
             <Paragraph>
                 Effortlessly divide teams based on previous results. Save time and money by knowing your team from the start and tracking historic results.
             </Paragraph>
