@@ -585,28 +585,44 @@ router.get('/players', protect, async (req, res) => {
 
     const gameweekIds = gameweeks.map((gw) => gw.id);
 
-    // Fetch votes for players of the match
-    const playerMatchCounts = gameweekIds.length
+    // Fetch and aggregate votes
+    const voteCounts = gameweekIds.length
       ? await Vote.findAll({
         where: {
           gameweek_id: { [Op.in]: gameweekIds },
           roomId,
         },
         attributes: [
+          'gameweek_id',
           'voted_player_id',
-          [sequelize.fn('COUNT', sequelize.col('voted_player_id')), 'total_votes'],
+          [sequelize.fn('COUNT', sequelize.col('voted_player_id')), 'vote_count'],
         ],
-        group: ['voted_player_id'],
-        order: [[sequelize.literal('total_votes'), 'DESC']],
+        group: ['gameweek_id', 'voted_player_id'],
       })
       : [];
 
-    const playerOfTheMatchCounts = Object.fromEntries(
-      playerMatchCounts.map(({ voted_player_id, total_votes }) => [voted_player_id, parseInt(total_votes, 10)])
+    // Group votes by gameweek and rank players
+    const rankedVotes = voteCounts.reduce((acc, vote) => {
+      const { gameweek_id, voted_player_id, vote_count } = vote.get();
+
+      if (!acc[gameweek_id]) acc[gameweek_id] = [];
+      acc[gameweek_id].push({ voted_player_id, vote_count });
+
+      return acc;
+    }, {});
+
+    const topVotesPerGameweek = Object.values(rankedVotes).flatMap((votes) =>
+      votes
+        .sort((a, b) => b.vote_count - a.vote_count)
+        .filter((vote, index, arr) => vote.vote_count === arr[0].vote_count) // Keep ties
     );
 
+    // Aggregate "Player of the Match" counts
+    const playerOfTheMatchCounts = topVotesPerGameweek.reduce((acc, { voted_player_id }) => {
+      acc[voted_player_id] = (acc[voted_player_id] || 0) + 1;
+      return acc;
+    }, {});
 
-    // Calculate player stats
     // Calculate player stats
     const playerStats = await Promise.all(
       players.map(async (player) => {
@@ -724,15 +740,12 @@ router.get('/players', protect, async (req, res) => {
       })
     );
 
-
-
     res.json(playerStats);
   } catch (error) {
     console.error('Error fetching players:', error);
     res.status(500).json({ error: 'Internal Server Error' });
   }
 });
-
 
 
 /**
