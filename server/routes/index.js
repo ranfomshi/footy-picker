@@ -586,27 +586,25 @@ router.get('/players', protect, async (req, res) => {
     const gameweekIds = gameweeks.map((gw) => gw.id);
 
     // Fetch votes for players of the match
-    const votes = gameweekIds.length
+    const playerMatchCounts = gameweekIds.length
       ? await Vote.findAll({
         where: {
           gameweek_id: { [Op.in]: gameweekIds },
           roomId,
         },
         attributes: [
-          'gameweek_id',
           'voted_player_id',
-          [sequelize.fn('COUNT', sequelize.col('voted_player_id')), 'vote_count'],
+          [sequelize.fn('COUNT', sequelize.col('voted_player_id')), 'total_votes'],
         ],
-        group: ['gameweek_id', 'voted_player_id'],
-        order: [['gameweek_id', 'ASC'], [sequelize.literal('vote_count'), 'DESC']],
+        group: ['voted_player_id'],
+        order: [[sequelize.literal('total_votes'), 'DESC']],
       })
       : [];
 
-    const playerOfTheMatchCounts = votes.reduce((acc, vote) => {
-      const playerId = vote.voted_player_id;
-      acc[playerId] = (acc[playerId] || 0) + 1;
-      return acc;
-    }, {});
+    const playerOfTheMatchCounts = Object.fromEntries(
+      playerMatchCounts.map(({ voted_player_id, total_votes }) => [voted_player_id, parseInt(total_votes, 10)])
+    );
+
 
     // Calculate player stats
     // Calculate player stats
