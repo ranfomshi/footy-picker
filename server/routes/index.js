@@ -96,6 +96,34 @@ const protect = async (req, res, next) => {
   }
 };
 
+const adminOnly = async (req, res, next) => {
+  try {
+    // The `protect` middleware should already have stored:
+    //   req.user.playerId
+    //   req.user.roomId
+    // so we can look up the membership:
+
+    const membership = await RoomMembership.findOne({
+      where: {
+        playerId: req.user.playerId,
+        roomId: req.user.roomId,
+        isActive: true,
+      },
+    });
+
+    // If no membership or isAdmin is false, reject
+    if (!membership || !membership.isAdmin) {
+      return res.status(403).json({ error: 'Admin privileges required.' });
+    }
+
+    // Otherwise, proceed
+    next();
+  } catch (error) {
+    console.error('Error in adminOnly middleware:', error);
+    return res.status(500).json({ error: 'Internal Server Error' });
+  }
+};
+
 
 
 // Helper function to generate a 5-character alphanumeric room code
