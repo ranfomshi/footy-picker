@@ -155,28 +155,44 @@ router.get('/check-player-existence', protect, async (req, res) => {
 
 router.get('/current-player', protect, async (req, res) => {
   try {
-    const playerId = req.user.playerId; // This is set in the `protect` middleware
+    const { playerId, roomId } = req.user; // from protect middleware
 
     if (!playerId) {
       return res.status(404).json({ error: 'Player not found' });
     }
 
-    // Fetch the player information using the internal `id`
+    // 1) Fetch the player
     const player = await Player.findByPk(playerId, {
-      attributes: ['id', 'name', 'rating'], // Fetch any additional details you need
+      attributes: ['id', 'name', 'rating'],
     });
-
     if (!player) {
       return res.status(404).json({ error: 'Player not found' });
     }
 
-    // Return the player's information
-    res.json(player);
+    // 2) Fetch active membership for this player in the active room
+    const membership = await RoomMembership.findOne({
+      where: {
+        playerId: playerId,
+        roomId: roomId,
+        isActive: true,
+      },
+    });
+
+    // 3) Build the response object
+    // If there's no membership, default isAdmin to false
+    const response = {
+      ...player.toJSON(),
+      isAdmin: membership ? membership.isAdmin : false,
+    };
+
+    // 4) Send response
+    return res.json(response);
   } catch (error) {
     console.error('Error fetching current player:', error);
-    res.status(500).json({ error: 'Internal Server Error' });
+    return res.status(500).json({ error: 'Internal Server Error' });
   }
 });
+
 
 router.post('/create-room', protect, async (req, res) => {
   const { name, playerName, sportId } = req.body; // Accept sportId and playerName in the request body
