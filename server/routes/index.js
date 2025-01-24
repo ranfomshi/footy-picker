@@ -310,7 +310,7 @@ router.post('/join-room', protect, async (req, res) => {
         id: room.id,
         name: room.name,
         code: room.code,
-        isAdmin: membership.isAdmin
+        isAdmin: newMembership.isAdmin
       },
     });
   } catch (error) {
