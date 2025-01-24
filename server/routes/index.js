@@ -534,7 +534,9 @@ router.get('/check-room-membership', protect, async (req, res) => {
         id: activeMembership.Room.id,
         name: activeMembership.Room.name,
         code: activeMembership.Room.code,
-        sport: activeMembership.Room.Sport?.name || 'Unknown', // Include sport name
+        sport: activeMembership.Room.Sport?.name || 'Unknown',
+        // Include admin status from activeMembership
+        isAdmin: activeMembership.isAdmin,
       }
       : null;
 
