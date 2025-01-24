@@ -140,7 +140,13 @@ const GameResult = sequelize.define('GameResult', {
     }
 }, {
     tableName: 'GameResults',
-    timestamps: true
+    timestamps: true,
+    indexes: [
+        {
+            unique: true,
+            fields: ['gameweekId', 'roomId']
+        }
+    ]
 });
 
 const Sport = sequelize.define('Sport', {
