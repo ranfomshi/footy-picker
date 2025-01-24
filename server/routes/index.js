@@ -229,6 +229,7 @@ router.post('/create-room', protect, async (req, res) => {
       roomId: room.id,
       auth0Id,
       isActive: true, // Mark as active
+      isAdmin: true, // Make the creator an admin
     });
 
     res.status(201).json({
