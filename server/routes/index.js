@@ -577,12 +577,23 @@ router.post('/set-active-room', protect, async (req, res) => {
     // 4) Activate membership for the chosen room
     await membership.update({ isActive: true });
 
-    return res.status(200).json({ success: true, activeRoom: room });
+    // 5) Return `isAdmin` in the response
+    return res.status(200).json({
+      success: true,
+      activeRoom: {
+        id: room.id,
+        name: room.name,
+        code: room.code,
+        // Provide the admin status from the membership
+        isAdmin: membership.isAdmin,
+      },
+    });
   } catch (error) {
     console.error('Error setting active room:', error);
     res.status(500).json({ error: 'Internal Server Error' });
   }
 });
+
 
 
 router.get('/players', protect, async (req, res) => {
