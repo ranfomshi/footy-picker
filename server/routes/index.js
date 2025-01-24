@@ -310,6 +310,7 @@ router.post('/join-room', protect, async (req, res) => {
         id: room.id,
         name: room.name,
         code: room.code,
+        isAdmin: membership.isAdmin
       },
     });
   } catch (error) {
@@ -408,6 +409,7 @@ router.post('/finalize-join-room', protect, async (req, res) => {
         id: updatedRoom.id,
         name: updatedRoom.name,
         code: updatedRoom.code,
+        isAdmin: membership.isAdmin
       },
     });
   } catch (error) {
