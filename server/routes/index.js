@@ -614,7 +614,7 @@ router.get('/players', protect, async (req, res) => {
           model: RoomMembership,
           where: { roomId },
           required: true,
-          attributes: ['auth0Id'],
+          attributes: ['auth0Id', 'isAdmin'],
         },
         {
           model: TeamAssignment,
@@ -786,6 +786,7 @@ router.get('/players', protect, async (req, res) => {
         return {
           ...player.toJSON(),
           auth0Id,
+          isAdmin,
           wins,
           draws,
           losses,
