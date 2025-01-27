@@ -687,6 +687,7 @@ router.get('/players', protect, async (req, res) => {
     const playerStats = await Promise.all(
       players.map(async (player) => {
         const auth0Id = player.RoomMemberships?.[0]?.auth0Id || null;
+        const isAdmin = player.RoomMemberships?.[0]?.isAdmin || false;
         const teamAssignments = player.TeamAssignments || [];
 
         let wins = 0,
