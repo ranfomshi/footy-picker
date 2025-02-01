@@ -410,6 +410,8 @@ router.post('/finalize-join-room', protect, async (req, res) => {
         id: updatedRoom.id,
         name: updatedRoom.name,
         code: updatedRoom.code,
+        teamAColor: room.teamAColor, // New field
+        teamBColor: room.teamBColor, // New field
         isAdmin: membership.isAdmin
       },
     });
