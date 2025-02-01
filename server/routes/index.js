@@ -237,6 +237,8 @@ router.post('/create-room', protect, async (req, res) => {
         id: room.id,
         name: room.name,
         code: room.code,
+        teamAColor: room.teamAColor, // New field
+        teamBColor: room.teamBColor, // New field
         sport: sport.name, // Include the sport name for clarity
       },
       membership: newMembership,
@@ -589,7 +591,8 @@ router.post('/set-active-room', protect, async (req, res) => {
         id: room.id,
         name: room.name,
         code: room.code,
-        // Provide the admin status from the membership
+        teamAColor: room.teamAColor, // New field
+        teamBColor: room.teamBColor, // New field
         isAdmin: membership.isAdmin,
       },
     });
