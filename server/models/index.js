@@ -41,8 +41,19 @@ const Room = sequelize.define('Room', {
         type: DataTypes.STRING,
         allowNull: false,
         unique: true
+    },
+    teamAColor: {
+        type: DataTypes.STRING,
+        allowNull: false,
+        defaultValue: '#21C67C' // Matches your Dart primary color
+    },
+    teamBColor: {
+        type: DataTypes.STRING,
+        allowNull: false,
+        defaultValue: '#FFC107' // Matches the typical amber (Colors.amber) shade
     }
 });
+
 
 const RoomMembership = sequelize.define('RoomMembership', {
     playerId: {
