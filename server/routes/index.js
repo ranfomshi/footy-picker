@@ -249,6 +249,52 @@ router.post('/create-room', protect, async (req, res) => {
   }
 });
 
+// Update room endpoint (admin only)
+router.put('/rooms/:id', protect, adminOnly, async (req, res) => {
+  const { id } = req.params;
+  const { name, sportId, teamAColor, teamBColor } = req.body;
+
+  try {
+    // Find the room by primary key (id)
+    const room = await Room.findByPk(id);
+    if (!room) {
+      return res.status(404).json({ error: 'Room not found' });
+    }
+
+    // (Optional) Validate sportId if provided
+    if (sportId) {
+      const sport = await Sport.findByPk(sportId);
+      if (!sport) {
+        return res.status(400).json({ error: 'Invalid sport ID' });
+      }
+    }
+
+    // Update the room's fields only if provided; otherwise, leave them unchanged.
+    room.name = name || room.name;
+    room.sportId = sportId || room.sportId;
+    room.teamAColor = teamAColor || room.teamAColor;
+    room.teamBColor = teamBColor || room.teamBColor;
+
+    await room.save();
+
+    // Return the updated room object.
+    return res.status(200).json({
+      room: {
+        id: room.id,
+        name: room.name,
+        code: room.code,
+        sportId: room.sportId,
+        teamAColor: room.teamAColor,
+        teamBColor: room.teamBColor,
+      },
+    });
+  } catch (error) {
+    console.error('Error updating room:', error);
+    return res.status(500).json({ error: 'Internal Server Error' });
+  }
+});
+
+
 
 router.post('/join-room', protect, async (req, res) => {
   const { code } = req.body; // Room code from the frontend
