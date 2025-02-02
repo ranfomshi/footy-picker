@@ -575,8 +575,8 @@ router.get('/check-room-membership', protect, async (req, res) => {
       code: membership.Room.code,
       sport: membership.Room.Sport?.name || 'Unknown',
       // If you want to include colors in joinedRooms, uncomment:
-      // teamAColor: membership.Room.teamAColor || '#21C67C',
-      // teamBColor: membership.Room.teamBColor || '#FFC107',
+      teamAColor: membership.Room.teamAColor || '#21C67C',
+      teamBColor: membership.Room.teamBColor || '#FFC107',
     }));
 
     // Identify if there's an active membership.
