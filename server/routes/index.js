@@ -195,7 +195,8 @@ router.get('/current-player', protect, async (req, res) => {
 
 
 router.post('/create-room', protect, async (req, res) => {
-  const { name, playerName, sportId } = req.body; // Accept sportId and playerName in the request body
+  // Now also extract teamAColor and teamBColor from the request body.
+  const { name, playerName, sportId, teamAColor, teamBColor } = req.body;
   const auth0Id = req.user.sub;
   const code = generateRoomCode();
 
@@ -216,8 +217,14 @@ router.post('/create-room', protect, async (req, res) => {
       finalPlayerName = userInfoResponse.data.name || 'Unnamed Player';
     }
 
-    // Create the room with the sportId
-    const room = await Room.create({ name, code, sportId });
+    // Create the room including the team colours.
+    const room = await Room.create({
+      name,
+      code,
+      sportId,
+      teamAColor,  // Save the provided teamAColor
+      teamBColor,  // Save the provided teamBColor
+    });
 
     // Deactivate other memberships for this user
     await RoomMembership.update({ isActive: false }, { where: { auth0Id } });
@@ -228,8 +235,8 @@ router.post('/create-room', protect, async (req, res) => {
       playerId: newPlayer.id,
       roomId: room.id,
       auth0Id,
-      isActive: true, // Mark as active
-      isAdmin: true, // Make the creator an admin
+      isActive: true,
+      isAdmin: true,
     });
 
     res.status(201).json({
@@ -237,8 +244,8 @@ router.post('/create-room', protect, async (req, res) => {
         id: room.id,
         name: room.name,
         code: room.code,
-        teamAColor: room.teamAColor, // New field
-        teamBColor: room.teamBColor, // New field
+        teamAColor: room.teamAColor, // New field now saved
+        teamBColor: room.teamBColor, // New field now saved
         sport: sport.name, // Include the sport name for clarity
       },
       membership: newMembership,
