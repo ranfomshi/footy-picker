@@ -567,26 +567,31 @@ router.get('/check-room-membership', protect, async (req, res) => {
       },
     });
 
-    // Build an array of "joinedRooms" from the membership data
+    // Build an array of "joinedRooms" from the membership data.
+    // Optionally, include team colours here if needed.
     const joinedRooms = memberships.map((membership) => ({
       id: membership.Room.id,
       name: membership.Room.name,
       code: membership.Room.code,
-      sport: membership.Room.Sport?.name || 'Unknown', // Include sport name
+      sport: membership.Room.Sport?.name || 'Unknown',
+      // If you want to include colors in joinedRooms, uncomment:
+      // teamAColor: membership.Room.teamAColor || '#21C67C',
+      // teamBColor: membership.Room.teamBColor || '#FFC107',
     }));
 
-    // Identify if there's an active membership
+    // Identify if there's an active membership.
     const activeMembership = memberships.find((m) => m.isActive);
 
-    // Build the "activeRoom" object (or null if none)
+    // Build the "activeRoom" object (or null if none), including team colours.
     const activeRoom = activeMembership
       ? {
         id: activeMembership.Room.id,
         name: activeMembership.Room.name,
         code: activeMembership.Room.code,
         sport: activeMembership.Room.Sport?.name || 'Unknown',
-        // Include admin status from activeMembership
         isAdmin: activeMembership.isAdmin,
+        teamAColor: activeMembership.Room.teamAColor || '#21C67C',
+        teamBColor: activeMembership.Room.teamBColor || '#FFC107',
       }
       : null;
 
