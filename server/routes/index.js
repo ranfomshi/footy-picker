@@ -565,23 +565,28 @@ router.get('/check-room-membership', protect, async (req, res) => {
     // Find all memberships for this user based on auth0Id in RoomMembership
     const memberships = await RoomMembership.findAll({
       where: { auth0Id },
-      include: {
-        model: Room,
-        include: {
-          model: Sport, // Include the Sport model
-          attributes: ['id', 'name'], // Only fetch id and name of the sport
+      include: [
+        {
+          model: Room,
+          include: {
+            model: Sport,
+            attributes: ['id', 'name'], // Fetch only id and name of the sport
+          },
         },
-      },
+        {
+          model: Player, // ✅ Include the Player model to fetch playerId
+          attributes: ['id'], // Only fetch playerId
+        },
+      ],
     });
 
     // Build an array of "joinedRooms" from the membership data.
-    // Optionally, include team colours here if needed.
     const joinedRooms = memberships.map((membership) => ({
       id: membership.Room.id,
       name: membership.Room.name,
       code: membership.Room.code,
       sport: membership.Room.Sport?.name || 'Unknown',
-      // If you want to include colors in joinedRooms, uncomment:
+      playerId: membership.Player?.id || null, // ✅ Include playerId
       teamAColor: membership.Room.teamAColor || '#21C67C',
       teamBColor: membership.Room.teamBColor || '#FFC107',
     }));
@@ -597,6 +602,7 @@ router.get('/check-room-membership', protect, async (req, res) => {
         code: activeMembership.Room.code,
         sport: activeMembership.Room.Sport?.name || 'Unknown',
         isAdmin: activeMembership.isAdmin,
+        playerId: activeMembership.Player?.id || null, // ✅ Include playerId
         teamAColor: activeMembership.Room.teamAColor || '#21C67C',
         teamBColor: activeMembership.Room.teamBColor || '#FFC107',
       }
@@ -611,6 +617,7 @@ router.get('/check-room-membership', protect, async (req, res) => {
     return res.status(500).json({ error: 'Internal Server Error' });
   }
 });
+
 
 
 
