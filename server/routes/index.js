@@ -962,23 +962,21 @@ router.post('/players', protect, async (req, res) => {
         where: { roomId },
       },
       attributes: ['rating'],
-      order: [['rating', 'ASC']], // Sort to easily get percentiles
     });
 
     let newPlayerRating = 1000; // Default fallback if no players exist
 
     if (existingPlayers.length > 0) {
       const ratings = existingPlayers.map(p => parseFloat(p.rating || 0));
-      const percentile = (p) => {
-        const index = Math.floor(p * ratings.length);
-        return ratings[index] || ratings[0]; // Fallback to lowest rating if empty
-      };
+      const totalPlayers = ratings.length;
 
-      const avgRating = percentile(0.5);  // 50th percentile (median)
-      const betterThanAvg = percentile(0.25); // 25th percentile
-      const belowAvg = percentile(0.75); // 75th percentile
+      const meanRating = ratings.reduce((sum, r) => sum + r, 0) / totalPlayers; // Mean (average)
       const bestRating = Math.max(...ratings);
       const worstRating = Math.min(...ratings);
+
+      // Calculate interpolated ratings
+      const betterThanAvg = (meanRating + bestRating) / 2; // Midway between mean and best
+      const belowAvg = (meanRating + worstRating) / 2; // Midway between mean and worst
 
       // Assign rating based on modifier
       switch (modifier) {
@@ -995,7 +993,7 @@ router.post('/players', protect, async (req, res) => {
           newPlayerRating = worstRating;
           break;
         default: // 'average' (default case)
-          newPlayerRating = avgRating;
+          newPlayerRating = meanRating;
       }
     }
 
@@ -1022,15 +1020,8 @@ router.post('/players', protect, async (req, res) => {
     console.error('Error adding player:', error);
     res.status(500).json({ error: 'Internal Server Error' });
   }
-
-  // "average" → 50th percentile(median rating) ✅ Default
-  // "better_than_average" → 25th percentile rating
-  // "below_average" → 75th percentile rating
-  // "best" → Highest rating in the room
-  // "worst" → Lowest rating in the room
-
-
 });
+
 
 
 router.delete('/players/:id', protect, async (req, res) => {
