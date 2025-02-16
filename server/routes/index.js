@@ -934,40 +934,14 @@ router.put('/players/:id/link', protect, async (req, res) => {
 
 
 router.post('/players', protect, async (req, res) => {
-  const { name } = req.body;
-  const playerId = req.user.playerId;
+  const { name, modifier = 'average' } = req.body; // Default to 'average'
+  const { roomId } = req.user;
 
   if (!name) {
     return res.status(400).json({ error: 'Player name is required' });
   }
 
   try {
-    const { roomId } = req.user;
-
-    // Check for duplicate name in the same room
-    const duplicateName = await Player.findOne({
-      where: { name },
-      include: {
-        model: RoomMembership,
-        where: { roomId },
-      },
-    });
-    if (duplicateName) {
-      return res.status(400).json({ error: 'Player name already exists in this room' });
-    }
-
-    const existingPlayers = await Player.findAll({
-      include: {
-        model: RoomMembership,
-        where: { roomId },
-      },
-    });
-
-    const totalRating = existingPlayers.reduce(
-      (sum, player) => sum + parseFloat(player.rating || 0),
-      0
-    );
-    const averageRating = existingPlayers.length > 0 ? totalRating / existingPlayers.length : 0;
     // Check for duplicate player name in the room
     const existingPlayer = await Player.findOne({
       where: { name },
@@ -980,16 +954,64 @@ router.post('/players', protect, async (req, res) => {
     if (existingPlayer) {
       return res.status(400).json({ error: 'Player name already exists in this room' });
     }
-    const newPlayer = await Player.create({ name, rating: averageRating });
 
+    // Fetch all player ratings in the room
+    const existingPlayers = await Player.findAll({
+      include: {
+        model: RoomMembership,
+        where: { roomId },
+      },
+      attributes: ['rating'],
+      order: [['rating', 'ASC']], // Sort to easily get percentiles
+    });
+
+    let newPlayerRating = 1000; // Default fallback if no players exist
+
+    if (existingPlayers.length > 0) {
+      const ratings = existingPlayers.map(p => parseFloat(p.rating || 0));
+      const percentile = (p) => {
+        const index = Math.floor(p * ratings.length);
+        return ratings[index] || ratings[0]; // Fallback to lowest rating if empty
+      };
+
+      const avgRating = percentile(0.5);  // 50th percentile (median)
+      const betterThanAvg = percentile(0.25); // 25th percentile
+      const belowAvg = percentile(0.75); // 75th percentile
+      const bestRating = Math.max(...ratings);
+      const worstRating = Math.min(...ratings);
+
+      // Assign rating based on modifier
+      switch (modifier) {
+        case 'better_than_average':
+          newPlayerRating = betterThanAvg;
+          break;
+        case 'below_average':
+          newPlayerRating = belowAvg;
+          break;
+        case 'best':
+          newPlayerRating = bestRating;
+          break;
+        case 'worst':
+          newPlayerRating = worstRating;
+          break;
+        default: // 'average' (default case)
+          newPlayerRating = avgRating;
+      }
+    }
+
+    // Create new player
+    const newPlayer = await Player.create({ name, rating: newPlayerRating });
+
+    // Save initial rating entry
     await Rating.create({
       playerId: newPlayer.id,
       date: new Date(),
-      rating: averageRating,
+      rating: newPlayerRating,
       raterId: null,
       roomId,
     });
 
+    // Link player to room
     await RoomMembership.create({
       playerId: newPlayer.id,
       roomId,
@@ -1000,7 +1022,16 @@ router.post('/players', protect, async (req, res) => {
     console.error('Error adding player:', error);
     res.status(500).json({ error: 'Internal Server Error' });
   }
+
+  // "average" → 50th percentile(median rating) ✅ Default
+  // "better_than_average" → 25th percentile rating
+  // "below_average" → 75th percentile rating
+  // "best" → Highest rating in the room
+  // "worst" → Lowest rating in the room
+
+
 });
+
 
 router.delete('/players/:id', protect, async (req, res) => {
   try {
