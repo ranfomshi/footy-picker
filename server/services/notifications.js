@@ -1,8 +1,13 @@
-const axios = require("axios");
-const { Player, RoomMembership } = require("../models");
+const admin = require("firebase-admin");
+const { RoomMembership } = require("../models");
 
-const FIREBASE_SERVER_KEY = process.env.FIREBASE_SERVER_KEY || "f8b68756f91217ec901340768d8a08d8551ca94b";
-const FIREBASE_API_URL = "https://fcm.googleapis.com/fcm/send";
+// 🔹 Load the service account JSON
+const serviceAccount = require("../teamixflutter-f8b68756f912.json");
+
+// 🔹 Initialize Firebase Admin SDK
+admin.initializeApp({
+    credential: admin.credential.cert(serviceAccount),
+});
 
 /**
  * 🔹 Store FCM Token for a User (Auth0 ID)
@@ -41,21 +46,16 @@ const sendNotificationToUser = async (auth0Id, title, body, dataPayload = {}) =>
             return;
         }
 
-        const headers = {
-            "Content-Type": "application/json",
-            Authorization: `key=${FIREBASE_SERVER_KEY}`,
-        };
-
-        const payload = {
-            registration_ids: tokens, // 🔹 Send to multiple tokens at once
+        const message = {
+            tokens: tokens, // 🔹 Send to multiple users at once
             notification: { title, body },
             data: dataPayload,
         };
 
-        const response = await axios.post(FIREBASE_API_URL, payload, { headers });
-        console.log(`✅ Notification sent to user ${auth0Id}`, response.data);
+        const response = await admin.messaging().sendMulticast(message);
+        console.log(`✅ Notification sent to user ${auth0Id}`, response);
     } catch (error) {
-        console.error(`❌ Failed to send notification: ${error.response?.data || error.message}`);
+        console.error(`❌ Failed to send notification: ${error.message}`);
     }
 };
 
@@ -75,20 +75,15 @@ const sendRoomNotification = async (roomId, title, body) => {
             return;
         }
 
-        const headers = {
-            "Content-Type": "application/json",
-            Authorization: `key=${FIREBASE_SERVER_KEY}`,
-        };
-
-        const payload = {
-            registration_ids: tokens,
+        const message = {
+            tokens: tokens,
             notification: { title, body },
         };
 
-        const response = await axios.post(FIREBASE_API_URL, payload, { headers });
-        console.log(`✅ Room notification sent to ${tokens.length} players in room ${roomId}`, response.data);
+        const response = await admin.messaging().sendMulticast(message);
+        console.log(`✅ Room notification sent to ${tokens.length} players in room ${roomId}`, response);
     } catch (error) {
-        console.error(`❌ Failed to send room notification: ${error.response?.data || error.message}`);
+        console.error(`❌ Failed to send room notification: ${error.message}`);
     }
 };
 
