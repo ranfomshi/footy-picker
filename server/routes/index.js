@@ -20,6 +20,8 @@ const jwt = require('jsonwebtoken');
 const jwksRsa = require('jwks-rsa');
 const axios = require('axios');
 const achievements = require('../references/achievementConditions');
+const { saveFcmToken } = require('../services/notifications'); // Import only the save function
+
 
 // Load environment variables
 require('dotenv').config();
@@ -1816,7 +1818,25 @@ router.get('/player-achievements', protect, async (req, res) => {
 });
 
 
+router.post('/fcm-token', protect, async (req, res) => {
+  const { fcmToken } = req.body;
+  const auth0Id = req.user.sub;
 
+  if (!fcmToken) {
+    return res.status(400).json({ error: 'FCM token is required' });
+  }
+
+  try {
+    const response = await saveFcmToken(auth0Id, fcmToken);
+    if (response.error) {
+      return res.status(400).json(response);
+    }
+    return res.json(response);
+  } catch (error) {
+    console.error('❌ Error saving FCM token:', error);
+    return res.status(500).json({ error: 'Internal Server Error' });
+  }
+});
 
 
 module.exports = router;
