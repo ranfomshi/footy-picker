@@ -20,7 +20,7 @@ const jwt = require('jsonwebtoken');
 const jwksRsa = require('jwks-rsa');
 const axios = require('axios');
 const achievements = require('../references/achievementConditions');
-const { saveFcmToken } = require('../services/notifications'); // Import only the save function
+const { saveFcmToken, sendRoomNotification } = require('../services/notifications'); // Import only the save function
 
 
 // Load environment variables
