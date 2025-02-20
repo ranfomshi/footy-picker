@@ -1464,28 +1464,34 @@ router.get('/ratings', protect, async (req, res) => {
   }
 });
 
-router.post('/gameweeks', protect, async (req, res) => {
+router.post("/gameweeks", protect, async (req, res) => {
   try {
     const { date, location, startTime, maxPlayers } = req.body;
-    const { roomId } = req.user;
+    const { roomId } = req.user; // 🔹 Get roomId from logged-in user
 
     // Convert startTime to TIME format if it exists
     const formattedStartTime = startTime
       ? new Date(startTime).toISOString().slice(11, 19) // Extract HH:mm:ss
       : null;
 
+    // ✅ Create the gameweek
     const gameweek = await Gameweek.create({
       date,
       location,
-      startTime: formattedStartTime, // Save as TIME format
-      maxPlayers: maxPlayers && maxPlayers % 2 === 0 ? maxPlayers : null, // Ensure it's even
+      startTime: formattedStartTime,
+      maxPlayers: maxPlayers && maxPlayers % 2 === 0 ? maxPlayers : null,
       roomId,
     });
 
+    // ✅ Send push notification to all players in the room
+    const title = "📅 New Fixture Added!";
+    const body = `A new game is scheduled on ${date} at ${location}. Tap to view.`;
+    sendRoomNotification(roomId, title, body); // 🔹 Send the notification
+
     res.json(gameweek);
   } catch (error) {
-    console.error('Error creating gameweek:', error);
-    res.status(500).json({ error: 'Internal Server Error' });
+    console.error("❌ Error creating gameweek:", error);
+    res.status(500).json({ error: "Internal Server Error" });
   }
 });
 
