@@ -85,8 +85,13 @@ const RoomMembership = sequelize.define('RoomMembership', {
         type: DataTypes.BOOLEAN,
         allowNull: false,
         defaultValue: false
+    },
+    fcmToken: {  // ✅ Add FCM Token Storage
+        type: DataTypes.STRING,
+        allowNull: true
     }
 });
+
 
 const Gameweek = sequelize.define('Gameweek', {
     maxPlayers: {
