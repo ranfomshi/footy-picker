@@ -80,7 +80,7 @@ const sendRoomNotification = async (roomId, title, body) => {
             notification: { title, body },
         };
 
-        const response = await admin.messaging().sendMulticast(message);
+        const response = await admin.messaging().sendEachForMulticast(message);
         console.log(`✅ Room notification sent to ${tokens.length} players in room ${roomId}`, response);
     } catch (error) {
         console.error(`❌ Failed to send room notification: ${error.message}`);
