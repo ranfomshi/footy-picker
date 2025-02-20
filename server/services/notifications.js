@@ -52,7 +52,7 @@ const sendNotificationToUser = async (auth0Id, title, body, dataPayload = {}) =>
             data: dataPayload,
         };
 
-        const response = await admin.messaging().sendMulticast(message);
+        const response = await admin.messaging().sendEachForMulticast(message);
         console.log(`✅ Notification sent to user ${auth0Id}`, response);
     } catch (error) {
         console.error(`❌ Failed to send notification: ${error.message}`);
