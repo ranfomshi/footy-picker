@@ -1329,20 +1329,28 @@ router.post('/manual-teamassignment', protect, async (req, res) => {
       return res.status(404).json({ error: 'Gameweek not found' });
     }
 
-    // Manually assign the player to the specified team
-    await TeamAssignment.upsert({
-      gameweekId,
-      playerId,
-      team,
-      roomId,
-    });
-
-    res.status(200).json({ message: 'Player assigned to team successfully' });
+    if (team === 'None') {
+      // Remove the player from the team assignment
+      await TeamAssignment.destroy({
+        where: { gameweekId, playerId, roomId },
+      });
+      return res.status(200).json({ message: 'Player removed from team successfully' });
+    } else {
+      // Manually assign the player to the specified team
+      await TeamAssignment.upsert({
+        gameweekId,
+        playerId,
+        team,
+        roomId,
+      });
+      return res.status(200).json({ message: 'Player assigned to team successfully' });
+    }
   } catch (error) {
     console.error('Error manually assigning player to team', error);
     res.status(500).json({ error: 'Internal Server Error' });
   }
 });
+
 
 router.post('/teamassignments', protect, async (req, res) => {
   try {
