@@ -180,21 +180,49 @@ const achievements = [
     },
     {
         id: 14,
-        condition: async ({ roomId, assignment, teamA_score, teamB_score }) => {
-            // Bounce Back: Win the next game after a loss.
+        condition: async ({ playerId, roomId, assignment, teamA_score, teamB_score }) => {
+            // Fetch the last game where the player participated
             const lastGame = await GameResult.findOne({
                 where: { roomId },
                 order: [['createdAt', 'DESC']],
+                include: {
+                    model: Gameweek,
+                    include: {
+                        model: TeamAssignment,
+                        where: { roomId, playerId }, // Ensure we get only games where the player played
+                        required: true, // Ensures TeamAssignment must be included
+                        attributes: ['team'], // Get player's team
+                    },
+                },
             });
-            return (
-                lastGame &&
-                ((lastGame.teamA_score < lastGame.teamB_score && assignment.team === 'A') ||
-                    (lastGame.teamB_score < lastGame.teamA_score && assignment.team === 'B')) &&
-                ((assignment.team === 'A' && teamA_score > teamB_score) ||
-                    (assignment.team === 'B' && teamB_score > teamA_score))
+
+            if (!lastGame || !lastGame.Gameweek || !lastGame.Gameweek.TeamAssignments.length) {
+                return false; // No valid last game found where the player participated
+            }
+
+            // Determine player's team in the last game
+            const lastGameAssignment = lastGame.Gameweek.TeamAssignments.find(
+                (a) => a.playerId === playerId
             );
+
+            if (!lastGameAssignment) {
+                return false; // Player wasn't in the last game
+            }
+
+            const lastGameTeam = lastGameAssignment.team;
+            const lastGameLost =
+                (lastGameTeam === 'A' && lastGame.teamA_score < lastGame.teamB_score) ||
+                (lastGameTeam === 'B' && lastGame.teamB_score < lastGame.teamA_score);
+
+            // Check if the current game is a win for the player's current team
+            const currentGameWin =
+                (assignment.team === 'A' && teamA_score > teamB_score) ||
+                (assignment.team === 'B' && teamB_score > teamA_score);
+
+            return lastGameLost && currentGameWin;
         },
     },
+
     {
         id: 15,
         condition: async ({ assignment, teamA_score, teamB_score }) => {
