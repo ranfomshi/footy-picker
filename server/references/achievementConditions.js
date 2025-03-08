@@ -181,40 +181,42 @@ const achievements = [
     {
         id: 14,
         condition: async ({ playerId, roomId, assignment, teamA_score, teamB_score }) => {
-            // Fetch the last game where the player participated
+            // Fetch the last game that the player participated in
             const lastGame = await GameResult.findOne({
                 where: { roomId },
                 order: [['createdAt', 'DESC']],
                 include: {
                     model: Gameweek,
+                    required: true,
                     include: {
                         model: TeamAssignment,
-                        where: { roomId, playerId }, // Ensure we get only games where the player played
-                        required: true, // Ensures TeamAssignment must be included
-                        attributes: ['team'], // Get player's team
+                        where: { playerId, roomId }, // Ensure the player was assigned
+                        required: true,
+                        attributes: ['team'], // Get player's team in that game
                     },
                 },
             });
 
-            if (!lastGame || !lastGame.Gameweek || !lastGame.Gameweek.TeamAssignments.length) {
-                return false; // No valid last game found where the player participated
+            if (!lastGame || !lastGame.Gameweek || lastGame.Gameweek.TeamAssignments.length === 0) {
+                console.warn(`No valid last game found for player ${playerId}`);
+                return false; // No previous game found
             }
 
-            // Determine player's team in the last game
-            const lastGameAssignment = lastGame.Gameweek.TeamAssignments.find(
-                (a) => a.playerId === playerId
-            );
-
+            // Find which team the player was on in the last game
+            const lastGameAssignment = lastGame.Gameweek.TeamAssignments.find(a => a.playerId === playerId);
             if (!lastGameAssignment) {
-                return false; // Player wasn't in the last game
+                console.warn(`Player ${playerId} did not have a team in the last game.`);
+                return false;
             }
 
             const lastGameTeam = lastGameAssignment.team;
+
+            // Ensure player's team **lost** the last game
             const lastGameLost =
                 (lastGameTeam === 'A' && lastGame.teamA_score < lastGame.teamB_score) ||
                 (lastGameTeam === 'B' && lastGame.teamB_score < lastGame.teamA_score);
 
-            // Check if the current game is a win for the player's current team
+            // Ensure player's team **won** the current game
             const currentGameWin =
                 (assignment.team === 'A' && teamA_score > teamB_score) ||
                 (assignment.team === 'B' && teamB_score > teamA_score);
@@ -223,29 +225,47 @@ const achievements = [
         },
     },
 
+
     {
         id: 15,
         condition: async ({ playerId, roomId, gameweekId, teamA_score, teamB_score }) => {
             if (!gameweekId) {
-                console.error('Missing gameweekId in High Scorer condition');
+                console.error(`❌ Missing gameweekId for High Scorer check (playerId: ${playerId})`);
                 return false;
             }
 
-            // Check if player was assigned to a team in this game
+            // Fetch player's team assignment for the gameweek
             const playerAssignment = await TeamAssignment.findOne({
                 where: { playerId, roomId, gameweekId },
                 attributes: ['team'],
             });
 
-            if (!playerAssignment) {
-                return false; // Player did not participate in this game
+            if (!playerAssignment || !playerAssignment.team) {
+                console.warn(`⚠️ Player ${playerId} did not have a valid team in gameweek ${gameweekId}`);
+                return false; // Player did not participate
             }
 
-            // Determine if player's team scored 10 or more goals
-            const playerTeam = playerAssignment.team;
-            return (playerTeam === 'A' && teamA_score >= 10) || (playerTeam === 'B' && teamB_score >= 10);
+            const playerTeam = playerAssignment.team.trim().toUpperCase(); // Normalize team names
+
+            // Debugging logs to check values
+            console.log(`✅ Player ${playerId} assigned to team ${playerTeam} in gameweek ${gameweekId}`);
+            console.log(`🔹 Score check -> Team A: ${teamA_score}, Team B: ${teamB_score}`);
+
+            // Ensure the player's team actually scored 10 or more goals
+            const highScoreAchieved =
+                (playerTeam === 'A' && teamA_score >= 10) ||
+                (playerTeam === 'B' && teamB_score >= 10);
+
+            if (!highScoreAchieved) {
+                console.warn(`❌ High Scorer not awarded - Team ${playerTeam} did not score 10+ goals`);
+            } else {
+                console.log(`🏆 High Scorer awarded to player ${playerId}!`);
+            }
+
+            return highScoreAchieved;
         },
     },
+
 
     {
         id: 16,
