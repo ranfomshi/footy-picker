@@ -225,14 +225,28 @@ const achievements = [
 
     {
         id: 15,
-        condition: async ({ assignment, teamA_score, teamB_score }) => {
-            // High Scorer: Play in a game where your team scores 10 or more goals.
-            return (
-                (assignment.team === 'A' && teamA_score >= 10) ||
-                (assignment.team === 'B' && teamB_score >= 10)
-            );
+        condition: async ({ playerId, roomId, gameweekId, teamA_score, teamB_score }) => {
+            if (!gameweekId) {
+                console.error('Missing gameweekId in High Scorer condition');
+                return false;
+            }
+
+            // Check if player was assigned to a team in this game
+            const playerAssignment = await TeamAssignment.findOne({
+                where: { playerId, roomId, gameweekId },
+                attributes: ['team'],
+            });
+
+            if (!playerAssignment) {
+                return false; // Player did not participate in this game
+            }
+
+            // Determine if player's team scored 10 or more goals
+            const playerTeam = playerAssignment.team;
+            return (playerTeam === 'A' && teamA_score >= 10) || (playerTeam === 'B' && teamB_score >= 10);
         },
     },
+
     {
         id: 16,
         condition: async ({ assignment, teamA_score, teamB_score }) => {
