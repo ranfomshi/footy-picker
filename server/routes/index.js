@@ -1763,6 +1763,26 @@ router.get('/sports', async (req, res) => {
   }
 });
 
+// GET /sports/:id - return one sport with positions
+router.get('/sports/:id', async (req, res) => {
+  const { id } = req.params;
+  try {
+    const sport = await Sport.findByPk(id, {
+      attributes: ['id', 'name', 'positions'],
+    });
+
+    if (!sport) {
+      return res.status(404).json({ error: 'Sport not found' });
+    }
+
+    res.json(sport);
+  } catch (error) {
+    console.error('Error fetching sport:', error);
+    res.status(500).json({ error: 'Internal Server Error' });
+  }
+});
+
+
 
 router.get('/has-voted', protect, async (req, res) => {
   const { gameweekId } = req.query;
