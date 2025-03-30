@@ -185,6 +185,7 @@ router.get('/current-player', protect, async (req, res) => {
     const response = {
       ...player.toJSON(),
       isAdmin: membership ? membership.isAdmin : false,
+      favoritePositions: membership?.favoritePositions || [],
     };
 
     // 4) Send response
@@ -1851,6 +1852,34 @@ router.post('/fcm-token', protect, async (req, res) => {
     return res.status(500).json({ error: 'Internal Server Error' });
   }
 });
+
+router.put('/favorite-positions', protect, async (req, res) => {
+  const { favoritePositions } = req.body;
+  const { roomId, playerId } = req.user;
+
+  if (!Array.isArray(favoritePositions) || favoritePositions.length > 3) {
+    return res.status(400).json({ error: 'Must be an array with up to 3 positions.' });
+  }
+
+  try {
+    const membership = await RoomMembership.findOne({
+      where: { playerId, roomId, isActive: true },
+    });
+
+    if (!membership) {
+      return res.status(404).json({ error: 'Membership not found' });
+    }
+
+    membership.favoritePositions = favoritePositions;
+    await membership.save();
+
+    return res.status(200).json({ message: 'Favorite positions updated successfully', favoritePositions });
+  } catch (error) {
+    console.error('Error updating favorite positions:', error);
+    res.status(500).json({ error: 'Internal Server Error' });
+  }
+});
+
 
 
 module.exports = router;
