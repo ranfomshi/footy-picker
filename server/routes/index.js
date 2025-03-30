@@ -1755,7 +1755,7 @@ router.post('/votes', protect, async (req, res) => {
 
 router.get('/sports', async (req, res) => {
   try {
-    const sports = await Sport.findAll({ attributes: ['id', 'name'] });
+    const sports = await Sport.findAll({ attributes: ['id', 'name', 'positions'] });
     res.json(sports);
   } catch (error) {
     console.error('Error fetching sports:', error);
