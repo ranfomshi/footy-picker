@@ -8,7 +8,7 @@ import BottomNav from "./components/BottomNav";
 import PlayerStats from "./components/PlayerStats";
 import AccountManager from "./components/AccountManager";
 import CreateOrJoinRoom from "./components/CreateOrJoinRoom";
-import PrivacyPolicy from "./components/Privacy"; // Import PrivacyPolicy
+import Privacy from "./components/PrivacyPolicy"; // Import PrivacyPolicy
 import Support from "./components/Support";
 import { Button, ConfigProvider, Typography, Spin, Image, Space } from "antd";
 import { Auth0Provider, useAuth0 } from "@auth0/auth0-react";
@@ -186,7 +186,7 @@ function App() {
             )}
           </div>
           <Routes>
-            <Route path="/privacy" element={<PrivacyPolicy />} />
+            <Route path="/privacy" element={<Privacy />} />
             <Route path="/support" element={<Support />} />
             <Route
               path="/"
