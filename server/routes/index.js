@@ -605,7 +605,7 @@ router.get('/check-room-membership', protect, async (req, res) => {
         name: activeMembership.Room.name,
         code: activeMembership.Room.code,
         sport: activeMembership.Room.Sport?.name || 'Unknown',
-        sportId: membership.Room.Sport?.id || 'Unknown',
+        sportId: activeMembership.Room.Sport?.id || 'Unknown',
         isAdmin: activeMembership.isAdmin,
         playerId: activeMembership.Player?.id || null, // ✅ Include playerId
         teamAColor: activeMembership.Room.teamAColor || '#21C67C',
