@@ -89,7 +89,11 @@ const RoomMembership = sequelize.define('RoomMembership', {
     fcmToken: {  // ✅ Add FCM Token Storage
         type: DataTypes.STRING,
         allowNull: true
-    }
+    },
+    favoritePositions: {
+        type: DataTypes.ARRAY(DataTypes.STRING),
+        allowNull: true,
+    },
 });
 
 
@@ -176,7 +180,13 @@ const Sport = sequelize.define('Sport', {
         allowNull: false,
         unique: true,
     },
+    positions: {
+        type: DataTypes.ARRAY(DataTypes.STRING),
+        allowNull: false,
+        defaultValue: [],
+    },
 });
+
 
 
 const Availability = sequelize.define('Availability', {
