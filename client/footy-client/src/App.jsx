@@ -8,7 +8,8 @@ import BottomNav from "./components/BottomNav";
 import PlayerStats from "./components/PlayerStats";
 import AccountManager from "./components/AccountManager";
 import CreateOrJoinRoom from "./components/CreateOrJoinRoom";
-import PrivacyPolicy from "./components/PrivacyPolicy"; // Import PrivacyPolicy
+import PrivacyPolicy from "./components/Support"; // Import PrivacyPolicy
+import Support from "./components/Support"; // Import support component
 import { Button, ConfigProvider, Typography, Spin, Image, Space } from "antd";
 import { Auth0Provider, useAuth0 } from "@auth0/auth0-react";
 import useStore from "./useStore";
