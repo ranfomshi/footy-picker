@@ -128,10 +128,10 @@ const adminOnly = async (req, res, next) => {
 
 const getManagementToken = async () => {
   const response = await axios.post(`https://${auth0Domain}/oauth/token`, {
-    client_id: process.env.AUTH0_MGMT_CLIENT_ID,
-    client_secret: process.env.AUTH0_MGMT_CLIENT_SECRET,
-    audience: `https://${auth0Domain}/api/v2`,
-    grant_type: 'client_credentials',
+    "client_id": process.env.AUTH0_CLIENT_ID,
+    "client_secret": process.env.AUTH0_CLIENT_SECRET,
+    "audience": "https://footy-picker.uk.auth0.com/api/v2/",
+    "grant_type": "client_credentials"
   });
 
   return response.data.access_token;
