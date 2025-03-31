@@ -130,7 +130,7 @@ const getManagementToken = async () => {
   const response = await axios.post(`https://${auth0Domain}/oauth/token`, {
     client_id: process.env.AUTH0_MGMT_CLIENT_ID,
     client_secret: process.env.AUTH0_MGMT_CLIENT_SECRET,
-    audience: `https://${auth0Domain}/api/v2/`,
+    audience: `https://${auth0Domain}/api/v2`,
     grant_type: 'client_credentials',
   });
 
