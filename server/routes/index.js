@@ -126,35 +126,6 @@ const adminOnly = async (req, res, next) => {
   }
 };
 
-const getManagementToken = async () => {
-  const response = await axios.post(`https://${auth0Domain}/oauth/token`, {
-    "client_id": process.env.AUTH0_CLIENT_ID,
-    "client_secret": process.env.AUTH0_CLIENT_SECRET,
-    "audience": "https://footy-picker.uk.auth0.com/api/v2/",
-    "grant_type": "client_credentials"
-  });
-
-  return response.data.access_token;
-};
-
-const getAuth0UserInfo = async (auth0Id, token) => {
-  try {
-    const response = await axios.get(`https://${auth0Domain}/api/v2/users/${auth0Id}`, {
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-    });
-    return {
-      name: response.data.name,
-      picture: response.data.picture,
-    };
-  } catch (error) {
-    console.error(`Error fetching Auth0 user info for ${auth0Id}:`, error.message);
-    return null;
-  }
-};
-
-
 
 
 // Helper function to generate a 5-character alphanumeric room code
@@ -711,9 +682,7 @@ router.get('/players', protect, async (req, res) => {
       return res.status(400).json({ error: 'User is not associated with any room' });
     }
 
-    // 🔐 Get Auth0 management token
-    const managementToken = await getManagementToken();
-
+    // Fetch all players in the room
     const players = await Player.findAll({
       include: [
         {
@@ -744,12 +713,20 @@ router.get('/players', protect, async (req, res) => {
       ],
     });
 
-    const gameweeks = await Gameweek.findAll({ where: { roomId } });
-    const gameweekIds = gameweeks.map(gw => gw.id);
+    // Fetch all gameweeks in the room
+    const gameweeks = await Gameweek.findAll({
+      where: { roomId },
+    });
 
+    const gameweekIds = gameweeks.map((gw) => gw.id);
+
+    // Fetch and aggregate votes
     const voteCounts = gameweekIds.length
       ? await Vote.findAll({
-        where: { gameweek_id: { [Op.in]: gameweekIds }, roomId },
+        where: {
+          gameweek_id: { [Op.in]: gameweekIds },
+          roomId,
+        },
         attributes: [
           'gameweek_id',
           'voted_player_id',
@@ -759,49 +736,60 @@ router.get('/players', protect, async (req, res) => {
       })
       : [];
 
+    // Group votes by gameweek and rank players
     const rankedVotes = voteCounts.reduce((acc, vote) => {
       const { gameweek_id, voted_player_id, vote_count } = vote.get();
+
       if (!acc[gameweek_id]) acc[gameweek_id] = [];
       acc[gameweek_id].push({ voted_player_id, vote_count });
+
       return acc;
     }, {});
 
     const topVotesPerGameweek = Object.values(rankedVotes).flatMap((votes) =>
       votes
         .sort((a, b) => b.vote_count - a.vote_count)
-        .filter((vote, _, arr) => vote.vote_count === arr[0].vote_count)
+        .filter((vote, index, arr) => vote.vote_count === arr[0].vote_count) // Keep ties
     );
 
+    // Aggregate "Player of the Match" counts
     const playerOfTheMatchCounts = topVotesPerGameweek.reduce((acc, { voted_player_id }) => {
       acc[voted_player_id] = (acc[voted_player_id] || 0) + 1;
       return acc;
     }, {});
 
+    // Calculate player stats
     const playerStats = await Promise.all(
       players.map(async (player) => {
         const auth0Id = player.RoomMemberships?.[0]?.auth0Id || null;
         const isAdmin = player.RoomMemberships?.[0]?.isAdmin || false;
-
-        let avatar = null;
-        if (auth0Id) {
-          const userInfo = await getAuth0UserInfo(auth0Id, managementToken);
-          avatar = userInfo?.picture || null;
-        }
-
         const teamAssignments = player.TeamAssignments || [];
-        let wins = 0, draws = 0, losses = 0, goalsFor = 0, goalsAgainst = 0, totalPoints = 0;
+
+        let wins = 0,
+          draws = 0,
+          losses = 0,
+          goalsFor = 0,
+          goalsAgainst = 0,
+          totalPoints = 0;
+
         const teammateStats = {};
         let lastFiveGames = [];
 
+        // Sort team assignments by gameweek timestamp in descending order
         const sortedAssignments = teamAssignments.sort((a, b) => {
-          return new Date(b.Gameweek.date) - new Date(a.Gameweek.date);
+          const dateA = new Date(a.Gameweek.date).getTime();
+          const dateB = new Date(b.Gameweek.date).getTime();
+          return dateB - dateA; // Most recent first
         });
 
         for (const assignment of sortedAssignments) {
           const gameResult = assignment.Gameweek?.GameResult;
+
           if (gameResult) {
-            const teamScore = assignment.team === 'A' ? gameResult.teamA_score : gameResult.teamB_score;
-            const opponentScore = assignment.team === 'A' ? gameResult.teamB_score : gameResult.teamA_score;
+            const teamScore =
+              assignment.team === 'A' ? gameResult.teamA_score : gameResult.teamB_score;
+            const opponentScore =
+              assignment.team === 'A' ? gameResult.teamB_score : gameResult.teamA_score;
 
             goalsFor += teamScore;
             goalsAgainst += opponentScore;
@@ -819,10 +807,12 @@ router.get('/players', protect, async (req, res) => {
               lastFiveGames.push('loss');
             }
 
+            // Limit lastFiveGames to 5 entries
             if (lastFiveGames.length > 5) {
-              lastFiveGames = lastFiveGames.slice(0, 5);
+              lastFiveGames = lastFiveGames.slice(0, 5); // Keep only the first 5 entries
             }
 
+            // Track teammate stats
             const teammates = await TeamAssignment.findAll({
               where: {
                 gameweekId: assignment.gameweekId,
@@ -840,8 +830,8 @@ router.get('/players', protect, async (req, res) => {
                   goalDifference: 0,
                 };
               }
-
               teammateStats[teammate.playerId].matchesPlayed += 1;
+
               if (teamScore > opponentScore) {
                 teammateStats[teammate.playerId].wins += 1;
               }
@@ -858,6 +848,7 @@ router.get('/players', protect, async (req, res) => {
                 where: { id: parseInt(id, 10) },
                 attributes: ['name'],
               });
+
               return {
                 id: parseInt(id, 10),
                 name: teammate?.name || 'Unknown',
@@ -872,7 +863,6 @@ router.get('/players', protect, async (req, res) => {
           ...player.toJSON(),
           auth0Id,
           isAdmin,
-          avatar, // 🎉 Include avatar here
           wins,
           draws,
           losses,
@@ -882,7 +872,7 @@ router.get('/players', protect, async (req, res) => {
           totalPoints,
           playerOfTheMatchCount: playerOfTheMatchCounts[player.id] || 0,
           favoriteTeammates,
-          lastFiveGames,
+          lastFiveGames, // Include last five games in the response
         };
       })
     );
