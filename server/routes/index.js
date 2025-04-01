@@ -515,8 +515,6 @@ router.post('/unlink-player', protect, async (req, res) => {
 
 
 
-const { pickBalancedTeams } = require('../services/teamPicker');
-
 router.get('/pick-teams', protect, async (req, res) => {
   const { gameweekId } = req.query;
   const { roomId } = req.user;
@@ -538,6 +536,10 @@ router.get('/pick-teams', protect, async (req, res) => {
       order: [['rating', 'DESC']],
     });
 
+    if (players.length % 2 !== 0) {
+      return res.status(400).json({ error: 'Uneven number of available players. Teams must be even.' });
+    }
+
     // Add favoritePositions directly to each player
     const enrichedPlayers = players.map(player => {
       const fp = player.RoomMemberships?.[0]?.favoritePositions || [];
@@ -550,8 +552,8 @@ router.get('/pick-teams', protect, async (req, res) => {
 
     const teamResult = await pickBalancedTeams(enrichedPlayers, 0.1);
 
-    if (!teamResult || !teamResult.teamA) {
-      return res.status(400).json({ error: 'Unable to form balanced teams.' });
+    if (!teamResult) {
+      return res.status(400).json({ error: 'Unable to form balanced teams within the 10% rating threshold.' });
     }
 
     const { teamA, teamB } = teamResult;
