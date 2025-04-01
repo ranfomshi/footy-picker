@@ -14,13 +14,14 @@ function isRatingBalanced(avgA, avgB, threshold = 0.1) {
 }
 
 function generateCombinations(players) {
-    const half = Math.floor(players.length / 2);
     const result = [];
+    const total = players.length;
+    const half = Math.floor(total / 2);
 
     function backtrack(start, teamA) {
-        if (teamA.length === half) {
+        if (teamA.length === half || teamA.length === Math.ceil(total / 2)) {
             const teamB = players.filter(p => !teamA.includes(p));
-            result.push([teamA, teamB]);
+            result.push([teamA.slice(), teamB]);
             return;
         }
         for (let i = start; i < players.length; i++) {
@@ -59,6 +60,11 @@ function getPositionPreferenceScore(team, allPositions) {
 }
 
 async function pickBalancedTeams(players, threshold = 0.1) {
+    // Handle edge case: 1 player → assign to Team A
+    if (players.length === 1) {
+        return { teamA: [players[0]], teamB: [] };
+    }
+
     // Get all distinct favorite positions across all players
     const allPositions = new Set();
     players.forEach(p => (p.favoritePositions || []).forEach(pos => allPositions.add(pos)));
@@ -68,11 +74,13 @@ async function pickBalancedTeams(players, threshold = 0.1) {
     let bestCombo = null;
     let bestScore = Infinity;
 
+    const adjustedThreshold = players.length % 2 === 0 ? threshold : threshold * 1.5; // Looser threshold for uneven teams
+
     for (const [teamA, teamB] of combos) {
         const avgA = averageRating(teamA);
         const avgB = averageRating(teamB);
 
-        if (!isRatingBalanced(avgA, avgB, threshold)) continue;
+        if (!isRatingBalanced(avgA, avgB, adjustedThreshold)) continue;
 
         const score =
             getPositionPreferenceScore(teamA, allPositions) +
