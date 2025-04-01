@@ -14,6 +14,7 @@ const {
   Achievement,
   PlayerAchievements
 } = require('../models');
+const { pickBalancedTeams } = require('../services/teamPicker'); // team picking logic
 const router = express.Router();
 const { Op } = require('sequelize');
 const jwt = require('jsonwebtoken');
@@ -519,6 +520,7 @@ router.get('/pick-teams', protect, async (req, res) => {
   const { roomId } = req.user;
 
   try {
+    // Fetch available players with favoritePositions
     const players = await Player.findAll({
       include: [
         {
@@ -528,36 +530,51 @@ router.get('/pick-teams', protect, async (req, res) => {
         {
           model: RoomMembership,
           where: { roomId },
+          attributes: ['favoritePositions'],
         },
       ],
-      order: [
-        ['rating', 'DESC'],
-        ['name', 'ASC'],
-      ],
+      order: [['rating', 'DESC']],
     });
 
-    const teamA = [];
-    const teamB = [];
+    if (players.length % 2 !== 0) {
+      return res.status(400).json({ error: 'Uneven number of available players. Teams must be even.' });
+    }
 
-    players.forEach((player, index) => {
-      if (index % 2 === 0) {
-        teamA.push(player.id);
-      } else {
-        teamB.push(player.id);
-      }
+    // Add favoritePositions directly to each player
+    const enrichedPlayers = players.map(player => {
+      const fp = player.RoomMemberships?.[0]?.favoritePositions || [];
+      return {
+        id: player.id,
+        rating: parseFloat(player.rating || 0),
+        favoritePositions: fp,
+      };
     });
 
+    const teamResult = await pickBalancedTeams(enrichedPlayers, 0.1);
+
+    if (!teamResult) {
+      return res.status(400).json({ error: 'Unable to form balanced teams within the 10% rating threshold.' });
+    }
+
+    const { teamA, teamB } = teamResult;
+
+    // Save assignments
     await TeamAssignment.destroy({ where: { gameweekId, roomId } });
 
     await TeamAssignment.bulkCreate([
-      ...teamA.map((playerId) => ({ playerId, gameweekId, team: 'A', roomId })),
-      ...teamB.map((playerId) => ({ playerId, gameweekId, team: 'B', roomId })),
+      ...teamA.map(p => ({ playerId: p.id, gameweekId, team: 'A', roomId })),
+      ...teamB.map(p => ({ playerId: p.id, gameweekId, team: 'B', roomId })),
     ]);
 
-    res.json({ message: 'Teams assigned successfully' });
+    res.json({
+      message: 'Teams assigned successfully',
+      teamA: teamA.map(p => p.id),
+      teamB: teamB.map(p => p.id),
+    });
+
   } catch (error) {
     console.error('Error picking teams:', error);
-    res.status(500).json({ error: 'Error picking teams' });
+    res.status(500).json({ error: 'Internal Server Error' });
   }
 });
 
