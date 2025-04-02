@@ -536,12 +536,7 @@ router.get('/pick-teams', protect, async (req, res) => {
       order: [['rating', 'DESC']],
     });
 
-    // Remove the check that returns an error if players.length is odd
-    // if (players.length % 2 !== 0) {
-    //   return res.status(400).json({ error: 'Uneven number of available players. Teams must be even.' });
-    // }
-
-    // Add favoritePositions directly to each player
+    // Map data into a simpler structure
     const enrichedPlayers = players.map(player => {
       const fp = player.RoomMemberships?.[0]?.favoritePositions || [];
       return {
@@ -551,20 +546,38 @@ router.get('/pick-teams', protect, async (req, res) => {
       };
     });
 
-    // The pickBalancedTeams function must handle uneven totals if you want to allow 5 vs. 4, etc.
-    const teamResult = await pickBalancedTeams(enrichedPlayers, 0.1);
+    // Determine the threshold based on number of players
+    const totalPlayers = enrichedPlayers.length;
+    let threshold;
 
+    if (totalPlayers < 4) {
+      threshold = 0.0;     // 0%
+    } else if (totalPlayers <= 6) {
+      threshold = 0.5;     // 50%
+    } else if (totalPlayers <= 8) {
+      threshold = 0.4;     // 40%
+    } else if (totalPlayers <= 10) {
+      threshold = 0.3;     // 30%
+    } else if (totalPlayers <= 12) {
+      threshold = 0.25;    // 25%
+    } else {
+      threshold = 0.15;    // 15%
+    }
+
+    // Call pickBalancedTeams with the computed threshold
+    const teamResult = await pickBalancedTeams(enrichedPlayers, threshold);
+
+    // If no balanced result can be formed
     if (!teamResult) {
       return res
         .status(400)
-        .json({ error: 'Unable to form balanced teams within the 10% rating threshold.' });
+        .json({ error: `Unable to form balanced teams within the ${threshold * 100}% rating threshold.` });
     }
 
     const { teamA, teamB } = teamResult;
 
     // Save assignments
     await TeamAssignment.destroy({ where: { gameweekId, roomId } });
-
     await TeamAssignment.bulkCreate([
       ...teamA.map(p => ({ playerId: p.id, gameweekId, team: 'A', roomId })),
       ...teamB.map(p => ({ playerId: p.id, gameweekId, team: 'B', roomId })),
@@ -575,6 +588,7 @@ router.get('/pick-teams', protect, async (req, res) => {
       teamA: teamA.map(p => p.id),
       teamB: teamB.map(p => p.id),
     });
+
   } catch (error) {
     console.error('Error picking teams:', error);
     res.status(500).json({ error: 'Internal Server Error' });
