@@ -536,9 +536,10 @@ router.get('/pick-teams', protect, async (req, res) => {
       order: [['rating', 'DESC']],
     });
 
-    if (players.length % 2 !== 0) {
-      return res.status(400).json({ error: 'Uneven number of available players. Teams must be even.' });
-    }
+    // Remove the check that returns an error if players.length is odd
+    // if (players.length % 2 !== 0) {
+    //   return res.status(400).json({ error: 'Uneven number of available players. Teams must be even.' });
+    // }
 
     // Add favoritePositions directly to each player
     const enrichedPlayers = players.map(player => {
@@ -550,10 +551,13 @@ router.get('/pick-teams', protect, async (req, res) => {
       };
     });
 
+    // The pickBalancedTeams function must handle uneven totals if you want to allow 5 vs. 4, etc.
     const teamResult = await pickBalancedTeams(enrichedPlayers, 0.1);
 
     if (!teamResult) {
-      return res.status(400).json({ error: 'Unable to form balanced teams within the 10% rating threshold.' });
+      return res
+        .status(400)
+        .json({ error: 'Unable to form balanced teams within the 10% rating threshold.' });
     }
 
     const { teamA, teamB } = teamResult;
@@ -571,12 +575,12 @@ router.get('/pick-teams', protect, async (req, res) => {
       teamA: teamA.map(p => p.id),
       teamB: teamB.map(p => p.id),
     });
-
   } catch (error) {
     console.error('Error picking teams:', error);
     res.status(500).json({ error: 'Internal Server Error' });
   }
 });
+
 
 router.get('/check-room-membership', protect, async (req, res) => {
   const auth0Id = req.user.sub;
