@@ -519,7 +519,7 @@ router.get('/pick-teams', protect, async (req, res) => {
   const { roomId } = req.user;
 
   try {
-    // Fetch available players with favoritePositions
+    // Fetch available players (including favoritePositions)
     const players = await Player.findAll({
       include: [
         {
@@ -535,8 +535,8 @@ router.get('/pick-teams', protect, async (req, res) => {
       order: [['rating', 'DESC']],
     });
 
-    // Map data into a simpler structure
-    const enrichedPlayers = players.map(player => {
+    // Create a simplified array of players with relevant fields
+    const enrichedPlayers = players.map((player) => {
       const fp = player.RoomMemberships?.[0]?.favoritePositions || [];
       return {
         id: player.id,
@@ -545,13 +545,13 @@ router.get('/pick-teams', protect, async (req, res) => {
       };
     });
 
-    // Determine the threshold based on number of players
+    // Decide which threshold to use based on the total number of players
     const totalPlayers = enrichedPlayers.length;
     let threshold;
 
     if (totalPlayers < 4) {
-      // No threshold at all, pass null (or Infinity) to your function
-      threshold = null;
+      // Use Infinity so there's effectively no cap on rating difference
+      threshold = Infinity;
     } else if (totalPlayers <= 6) {
       threshold = 0.5;   // 50%
     } else if (totalPlayers <= 8) {
@@ -564,36 +564,38 @@ router.get('/pick-teams', protect, async (req, res) => {
       threshold = 0.15;  // 15%
     }
 
-    // Call pickBalancedTeams with the computed threshold
+    // Attempt to pick balanced teams using the computed threshold
     const teamResult = await pickBalancedTeams(enrichedPlayers, threshold);
 
-    // If no balanced result can be formed
     if (!teamResult) {
       return res
         .status(400)
-        .json({ error: `Unable to form balanced teams within the provided rating threshold.` });
+        .json({
+          error: `Unable to form balanced teams within the threshold of ${Number.isFinite(threshold) ? `${threshold * 100}%` : 'no limit'
+            }.`
+        });
     }
 
     const { teamA, teamB } = teamResult;
 
-    // Save assignments
+    // Store the team assignments
     await TeamAssignment.destroy({ where: { gameweekId, roomId } });
     await TeamAssignment.bulkCreate([
-      ...teamA.map(p => ({ playerId: p.id, gameweekId, team: 'A', roomId })),
-      ...teamB.map(p => ({ playerId: p.id, gameweekId, team: 'B', roomId })),
+      ...teamA.map((p) => ({ playerId: p.id, gameweekId, team: 'A', roomId })),
+      ...teamB.map((p) => ({ playerId: p.id, gameweekId, team: 'B', roomId })),
     ]);
 
-    res.json({
+    return res.json({
       message: 'Teams assigned successfully',
-      teamA: teamA.map(p => p.id),
-      teamB: teamB.map(p => p.id),
+      teamA: teamA.map((p) => p.id),
+      teamB: teamB.map((p) => p.id),
     });
-
   } catch (error) {
     console.error('Error picking teams:', error);
-    res.status(500).json({ error: 'Internal Server Error' });
+    return res.status(500).json({ error: 'Internal Server Error' });
   }
 });
+
 
 
 
