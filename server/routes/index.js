@@ -514,7 +514,6 @@ router.post('/unlink-player', protect, async (req, res) => {
 
 
 
-
 router.get('/pick-teams', protect, async (req, res) => {
   const { gameweekId } = req.query;
   const { roomId } = req.user;
@@ -551,17 +550,18 @@ router.get('/pick-teams', protect, async (req, res) => {
     let threshold;
 
     if (totalPlayers < 4) {
-      threshold = 0.0;     // 0%
+      // No threshold at all, pass null (or Infinity) to your function
+      threshold = null;
     } else if (totalPlayers <= 6) {
-      threshold = 0.5;     // 50%
+      threshold = 0.5;   // 50%
     } else if (totalPlayers <= 8) {
-      threshold = 0.4;     // 40%
+      threshold = 0.4;   // 40%
     } else if (totalPlayers <= 10) {
-      threshold = 0.3;     // 30%
+      threshold = 0.3;   // 30%
     } else if (totalPlayers <= 12) {
-      threshold = 0.25;    // 25%
+      threshold = 0.25;  // 25%
     } else {
-      threshold = 0.15;    // 15%
+      threshold = 0.15;  // 15%
     }
 
     // Call pickBalancedTeams with the computed threshold
@@ -571,7 +571,7 @@ router.get('/pick-teams', protect, async (req, res) => {
     if (!teamResult) {
       return res
         .status(400)
-        .json({ error: `Unable to form balanced teams within the ${threshold * 100}% rating threshold.` });
+        .json({ error: `Unable to form balanced teams within the provided rating threshold.` });
     }
 
     const { teamA, teamB } = teamResult;
@@ -594,6 +594,7 @@ router.get('/pick-teams', protect, async (req, res) => {
     res.status(500).json({ error: 'Internal Server Error' });
   }
 });
+
 
 
 router.get('/check-room-membership', protect, async (req, res) => {
