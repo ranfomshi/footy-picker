@@ -549,17 +549,18 @@ router.get('/pick-teams', protect, async (req, res) => {
     const totalPlayers = enrichedPlayers.length;
     let threshold;
 
-    if (totalPlayers <= 6) {
+    if (totalPlayers == 6) {
       threshold = 0.5;   // 50%
-    } else if (totalPlayers <= 8) {
+    } else if (totalPlayers == 7 || totalPlayers == 8) {
       threshold = 0.4;   // 40%
-    } else if (totalPlayers <= 10) {
+    } else if (totalPlayers == 9 || totalPlayers == 10) {
       threshold = 0.3;   // 30%
-    } else if (totalPlayers <= 12) {
+    } else if (totalPlayers == 11 || totalPlayers == 12) {
       threshold = 0.25;  // 25%
-    } else {
+    } else if (totalPlayers > 12) {
       threshold = 0.15;  // 15%
     }
+
 
     // Attempt to pick balanced teams using the computed threshold
     const teamResult = await pickBalancedTeams(enrichedPlayers, threshold);
