@@ -549,10 +549,7 @@ router.get('/pick-teams', protect, async (req, res) => {
     const totalPlayers = enrichedPlayers.length;
     let threshold;
 
-    if (totalPlayers < 4) {
-      // Use Infinity so there's effectively no cap on rating difference
-      threshold = Infinity;
-    } else if (totalPlayers <= 6) {
+    if (totalPlayers <= 6) {
       threshold = 0.5;   // 50%
     } else if (totalPlayers <= 8) {
       threshold = 0.4;   // 40%
