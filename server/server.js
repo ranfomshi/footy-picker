@@ -52,7 +52,7 @@ app.get('*', (req, res) => {
 // Log environment variables to verify they are loaded correctly
 console.log('NODE_ENV:', process.env.NODE_ENV);
 console.log('DATABASE_URL:', process.env.DATABASE_URL);
-console.log('DATABASE_URL_DEV:', process.env.DATABASE_URL_DEV);
+console.log('DATABASE_URL_DEV (use prod for now):', process.env.DATABASE_URL);
 
 const PORT = process.env.PORT || 5000;
 
