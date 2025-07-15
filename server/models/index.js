@@ -7,10 +7,10 @@ const sequelize = new Sequelize(databaseUrl, {
     dialect: 'postgres',
     protocol: 'postgres',
     dialectOptions: {
-        ssl: isProduction ? {
+        ssl: {
             require: true,
             rejectUnauthorized: false
-        } : false // Disable SSL for development
+        }
     }
 });
 
