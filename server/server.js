@@ -29,6 +29,12 @@ app.use(cors({
         callback(new Error('Not allowed by CORS: ' + origin));
     },
     credentials: true,
+    allowedHeaders: ['Content-Type', 'Authorization'],
+    methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS']
+}));
+app.options('*', cors({
+    allowedHeaders: ['Content-Type', 'Authorization'],
+    methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS']
 }));
 
 app.options('*', cors()); // Handles all preflight requests
