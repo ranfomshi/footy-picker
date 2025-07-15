@@ -7,6 +7,11 @@ const { sequelize } = require('./models'); // Import the initialized sequelize i
 
 const app = express();
 
+app.use((req, res, next) => {
+    console.log('🌐 Incoming Origin:', req.headers.origin);
+    next();
+});
+
 const allowedOrigins = [
     'http://localhost:5173', // dev front-end
     'https://teamix-4eb6acbc8b28.herokuapp.com', // production front-end
