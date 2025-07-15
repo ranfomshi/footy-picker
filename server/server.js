@@ -45,10 +45,10 @@ const corsOptions = {
     optionsSuccessStatus: 204
 };
 
-// Attach CORS middleware
+// Attach CORS middleware for all routes
 app.use(cors(corsOptions));
 
-// Handle preflight requests with debug
+// Handle preflight requests (single middleware)
 app.options('*', (req, res) => {
     console.log('CORS DEBUG ➤ preflight for', req.method, req.path);
     console.log('  Req headers:', req.headers['access-control-request-headers']);
