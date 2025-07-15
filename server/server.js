@@ -6,16 +6,24 @@ require('dotenv').config(); // Load environment variables from .env file
 const { sequelize } = require('./models'); // Import the initialized sequelize instance
 
 const app = express();
-const corsOptions = {
-    origin: [
-        'http://localhost:5173', // for local dev
-        'https://footy-picker.vercel.app', // example of Vite hosted frontend
-        'https://footy-picker-58753c2f9639.herokuapp.com', // optional if using same origin
-    ],
-    credentials: true, // important for Auth0 access tokens
-};
 
-app.use(cors(corsOptions));
+const allowedOrigins = [
+    'http://localhost:5173', // dev front-end
+    'https://footy-picker.vercel.app', // your production front-end (replace if different)
+];
+
+app.use(cors({
+    origin: function (origin, callback) {
+        // allow requests with no origin (like curl/postman)
+        if (!origin) return callback(null, true);
+        if (allowedOrigins.includes(origin)) {
+            return callback(null, true);
+        } else {
+            return callback(new Error('Not allowed by CORS'));
+        }
+    },
+    credentials: true, // for Auth0 or cookies
+}));
 app.use(express.json());
 
 // Serve static files from the Vite build directory
