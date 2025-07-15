@@ -261,46 +261,38 @@ const Rating = sequelize.define('Rating', {
     tableName: 'Ratings',
     timestamps: true
 });
-const TeamAssignment = sequelize.define('TeamAssignment', {
-    team: {
-        type: DataTypes.STRING,
-        allowNull: false
-    },
+
+const TeammateAssignments = sequelize.define('TeammateAssignments', {
     playerId: {
         type: DataTypes.INTEGER,
         references: {
             model: Player,
             key: 'id'
         },
-        allowNull: false
-        // ❌ Removed unique: true
+        onDelete: 'CASCADE',
+        onUpdate: 'CASCADE',
+        allowNull: false,
     },
-    gameweekId: {
+    teammateId: {
         type: DataTypes.INTEGER,
         references: {
-            model: Gameweek,
+            model: Player,
             key: 'id'
         },
-        allowNull: false
+        onDelete: 'CASCADE',
+        onUpdate: 'CASCADE',
+        allowNull: false,
     },
-    roomId: {
-        type: DataTypes.INTEGER,
-        references: {
-            model: Room,
-            key: 'id'
-        },
-        allowNull: false
-    }
 }, {
-    tableName: 'TeamAssignments',
     timestamps: true,
     indexes: [
         {
             unique: true,
-            fields: ['playerId', 'roomId', 'gameweekId']
-        }
+            fields: ['playerId', 'teammateId'],
+        },
     ]
 });
+
 
 
 const Vote = sequelize.define('Vote', {
@@ -406,7 +398,12 @@ const PlayerAchievements = sequelize.define('PlayerAchievements', {
 Player.belongsToMany(Gameweek, { through: Availability, foreignKey: 'playerId', otherKey: 'gameweekId' });
 Gameweek.belongsToMany(Player, { through: Availability, foreignKey: 'gameweekId', otherKey: 'playerId' });
 
-Player.belongsToMany(Gameweek, { through: TeamAssignment, foreignKey: 'playerId', otherKey: 'gameweekId' });
+Player.belongsToMany(Player, {
+    through: 'TeammateAssignments',
+    as: 'teammates',
+    foreignKey: 'playerId',
+    otherKey: 'teammateId',
+});
 Gameweek.belongsToMany(Player, { through: TeamAssignment, foreignKey: 'gameweekId', otherKey: 'playerId' });
 
 Player.hasMany(Rating, { foreignKey: 'playerId' });
@@ -489,4 +486,4 @@ TeamAssignment.belongsToMany(TeamAssignment, {
 });
 
 
-module.exports = { Player, Gameweek, GameResult, Availability, Rating, TeamAssignment, Room, RoomMembership, Vote, Sport, Achievement, PlayerAchievements, sequelize };
+module.exports = { Player, Gameweek, GameResult, Availability, Rating, TeammateAssignments, Room, RoomMembership, Vote, Sport, Achievement, PlayerAchievements, sequelize };
