@@ -13,23 +13,25 @@ app.use((req, res, next) => {
 });
 
 const allowedOrigins = [
-    'http://localhost:5173', // dev front-end
-    'https://teamix-4eb6acbc8b28.herokuapp.com', // production front-end
-    'https://footy-picker-58753c2f9639.herokuapp.com', //
+    /^http:\/\/localhost:\d+$/, // localhost on any port
+    'https://teamix-4eb6acbc8b28.herokuapp.com',
+    'https://footy-picker-58753c2f9639.herokuapp.com',
 ];
 
 app.use(cors({
     origin: function (origin, callback) {
-        // allow requests with no origin (like curl/postman)
-        if (!origin) return callback(null, true);
-        if (allowedOrigins.includes(origin)) {
-            return callback(null, true);
-        } else {
-            return callback(new Error('Not allowed by CORS'));
-        }
+        if (!origin) return callback(null, true); // curl, Postman etc.
+        const isAllowed = allowedOrigins.some(allowed =>
+            typeof allowed === 'string' ? allowed === origin : allowed.test(origin)
+        );
+        if (isAllowed) return callback(null, true);
+        return callback(new Error('Not allowed by CORS'));
     },
-    credentials: true, // for Auth0 or cookies
+    credentials: true,
 }));
+
+app.options('*', cors()); // Handles all preflight requests
+
 app.use(express.json());
 
 // Serve static files from the Vite build directory
