@@ -1,272 +1,232 @@
 import React, { useState } from 'react';
-import { useAuth0 } from '@auth0/auth0-react';
-import { Button, Input, Space, Typography, message, Form, Divider, Modal, Radio, Image } from 'antd';
 import axios from 'axios';
+import { useAuth0 } from '@auth0/auth0-react';
+import { Button, Input, Form, Space, message, Modal, Radio, Divider, Typography } from 'antd';
 import useStore from '../useStore';
 
 const { Title, Paragraph } = Typography;
 
 const CreateOrJoinRoom = ({ onRoomJoined }) => {
-    const { getAccessTokenSilently, user, logout } = useAuth0(); // Added logout
-    const [roomNameLocalState, setRoomNameLocalState] = useState('');
+    const { getAccessTokenSilently, logout, user } = useAuth0();
+    const [mode, setMode] = useState('join'); // 'join' or 'create'
+    const [roomName, setRoomName] = useState('');
     const [roomCode, setRoomCode] = useState('');
-    const [creatingRoom, setCreatingRoom] = useState(false);
-    const [creatingRoomLoading, setCreatingRoomLoading] = useState(false);
-    const [joiningRoomLoading, setJoiningRoomLoading] = useState(false);
+    const [loading, setLoading] = useState(false);
     const [unlinkedPlayers, setUnlinkedPlayers] = useState([]);
-    const [selectedUnlinkedPlayer, setSelectedUnlinkedPlayer] = useState(null);
-    const [isSelectPlayerModalVisible, setIsSelectPlayerModalVisible] = useState(false);
-    const { setRoomCode: setGlobalRoomCode, setRoomName } = useStore();
+    const [selectedPlayer, setSelectedPlayer] = useState(null);
+    const [playerModalVisible, setPlayerModalVisible] = useState(false);
 
+    const { setHasJoinedRoom, setRoomCode: setGlobalCode, setRoomName: setGlobalName } = useStore();
     const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
 
-    const handle401Error = (error) => {
-        if (error.response && error.response.status === 401) {
-            // Log out the user if a 401 error is encountered
+    // Handle 401 by forcing logout
+    const handleAuthError = (err) => {
+        if (err.response?.status === 401) {
             logout({ returnTo: window.location.origin });
         }
     };
 
-    // Create Room Function
+    // Create a new room
     const createRoom = async () => {
-        if (!roomNameLocalState.trim()) {
-            message.error("Room name cannot be empty");
+        if (!roomName.trim()) {
+            message.error('Room name is required');
             return;
         }
-
-        setCreatingRoomLoading(true);
+        setLoading(true);
         try {
             const token = await getAccessTokenSilently();
-            const response = await axios.post(`${API_BASE_URL}/create-room`, { name: roomNameLocalState }, {
-                headers: {
-                    Authorization: `Bearer ${token}`
-                }
-            });
-            message.success(`Room created successfully. Room code: ${response.data.code}`);
-            setGlobalRoomCode(response.data.code);
+            const payload = { name: roomName };
+            const res = await axios.post(
+                `${API_BASE_URL}/create-room`,
+                payload,
+                { headers: { Authorization: `Bearer ${token}` } }
+            );
+            const { code, room } = res.data;
+            message.success(`Room created: ${code}`);
+            setGlobalCode(code);
+            setGlobalName(room.name);
+            setHasJoinedRoom(true);
             onRoomJoined();
         } catch (error) {
-            handle401Error(error); // Log out if 401 error
-            console.error('Error creating room:', error);
-            message.error("Error creating room");
+            handleAuthError(error);
+            console.error(error);
+            message.error('Failed to create room');
         } finally {
-            setCreatingRoomLoading(false);
+            setLoading(false);
         }
     };
 
-    // Join Room Function
+    // Join an existing room
     const joinRoom = async () => {
         if (!roomCode.trim()) {
-            message.error("Room code cannot be empty");
+            message.error('Room code is required');
             return;
         }
-
-        setJoiningRoomLoading(true);
+        setLoading(true);
         try {
             const token = await getAccessTokenSilently();
-            const response = await axios.post(`${API_BASE_URL}/join-room`, { code: roomCode }, {
-                headers: {
-                    Authorization: `Bearer ${token}`
-                }
-            });
+            const res = await axios.post(
+                `${API_BASE_URL}/join-room`,
+                { code: roomCode },
+                { headers: { Authorization: `Bearer ${token}` } }
+            );
 
-            if (response.data.unlinkedPlayers && response.data.unlinkedPlayers.length > 0) {
-                setUnlinkedPlayers(response.data.unlinkedPlayers);
-                setIsSelectPlayerModalVisible(true);
+            if (res.data.status === 'unlinked' && res.data.unlinkedPlayers.length > 0) {
+                setUnlinkedPlayers(res.data.unlinkedPlayers);
+                setPlayerModalVisible(true);
             } else {
-                createAndLinkNewPlayer();
+                // auto link new player
+                createAndLink(null);
             }
         } catch (error) {
-            handle401Error(error); // Log out if 401 error
-            console.error('Error joining room:', error);
-            message.error("Error joining room - check your room code and try again");
+            handleAuthError(error);
+            console.error(error);
+            message.error('Failed to join room');
         } finally {
-            setJoiningRoomLoading(false);
+            setLoading(false);
         }
     };
 
-    // Finalize Join Room
-    const finalizeJoinRoom = async () => {
-        setJoiningRoomLoading(true);
+    // Finalize joining by linking existing or creating new
+    const createAndLink = async (playerId) => {
+        setLoading(true);
         try {
             const token = await getAccessTokenSilently();
-            await axios.post(`${API_BASE_URL}/finalize-join-room`, {
-                roomCode,
-                playerId: selectedUnlinkedPlayer,
-                newPlayerName: null
-            }, {
-                headers: {
-                    Authorization: `Bearer ${token}`
-                }
-            });
-
+            await axios.post(
+                `${API_BASE_URL}/finalize-join-room`,
+                {
+                    roomCode,
+                    playerId,
+                    newPlayerName: playerId ? null : user.name
+                },
+                { headers: { Authorization: `Bearer ${token}` } }
+            );
             message.success('Joined room successfully');
-            setGlobalRoomCode(roomCode);
+            setGlobalCode(roomCode);
+            setHasJoinedRoom(true);
             onRoomJoined();
         } catch (error) {
-            handle401Error(error); // Log out if 401 error
-            console.error('Error finalizing room join:', error);
-            message.error("Error finalizing room join");
+            handleAuthError(error);
+            console.error(error);
+            message.error('Failed to finalize join');
         } finally {
-            setJoiningRoomLoading(false);
-            setIsSelectPlayerModalVisible(false);
-        }
-    };
-
-    // Create and Link New Player
-    const createAndLinkNewPlayer = async () => {
-        setJoiningRoomLoading(true);
-        try {
-            const token = await getAccessTokenSilently();
-            await axios.post(`${API_BASE_URL}/finalize-join-room`, {
-                roomCode,
-                playerId: null,
-                newPlayerName: user.name
-            }, {
-                headers: {
-                    Authorization: `Bearer ${token}`
-                }
-            });
-
-            message.success('Joined room successfully');
-            setGlobalRoomCode(roomCode);
-            onRoomJoined();
-        } catch (error) {
-            handle401Error(error); // Log out if 401 error
-            console.error('Error finalizing room join:', error);
-            message.error("Error finalizing room join");
-        } finally {
-            setJoiningRoomLoading(false);
-            setIsSelectPlayerModalVisible(false);
-        }
-    };
-
-    const handleRadioChange = (e) => {
-        if (selectedUnlinkedPlayer === e.target.value) {
-            setSelectedUnlinkedPlayer(null);
-        } else {
-            setSelectedUnlinkedPlayer(e.target.value);
-        }
-    };
-
-    const getSelectedPlayerName = () => {
-        const selectedPlayer = unlinkedPlayers.find(player => player.id === selectedUnlinkedPlayer);
-        return selectedPlayer ? selectedPlayer.name : '';
-    };
-
-    const handleRoomNameKeyPress = (e) => {
-        if (e.key === 'Enter') {
-            createRoom();
-        }
-    };
-
-    const handleRoomCodeKeyPress = (e) => {
-        if (e.key === 'Enter') {
-            joinRoom();
+            setLoading(false);
+            setPlayerModalVisible(false);
+            setSelectedPlayer(null);
         }
     };
 
     return (
-        <div style={{ maxWidth: 400, margin: '0 auto', padding: '20px', textAlign: 'center' }}>
-            <Image width={100} height={100} preview={false} src='fp_logo.png' style={{ marginBottom: '20px' }} />
-            <Title level={2} style={{ fontWeight: 'bold' }}>Teamix</Title>
-            <Paragraph>
-                Effortlessly divide teams based on previous results. Save time and money by knowing your team from the start and tracking historic results.
-            </Paragraph>
+        <div style={{ maxWidth: 400, margin: 'auto', padding: 20, textAlign: 'center' }}>
+            <Title level={2}>Welcome to Teamix</Title>
+            <Paragraph>Divide teams based on past results. Create or join a room to get started.</Paragraph>
             <Divider />
-            {creatingRoom ? (
+
+            {mode === 'join' ? (
                 <Form layout="vertical">
-                    <Form.Item label="Room Name" required>
+                    <Form.Item label="Room Code">
                         <Input
-                            placeholder="Enter room name"
-                            value={roomNameLocalState}
-                            onChange={(e) => { setRoomName(e.target.value); setRoomNameLocalState(e.target.value) }}
-                            onKeyPress={handleRoomNameKeyPress}
-                            disabled={creatingRoomLoading}
+                            placeholder="Enter code"
+                            value={roomCode}
+                            onChange={(e) => setRoomCode(e.target.value)}
+                            onPressEnter={joinRoom}
+                            disabled={loading}
+                            maxLength={5}
                         />
                     </Form.Item>
                     <Form.Item>
                         <Space direction="vertical" style={{ width: '100%' }}>
-                            <Button type="primary" size="large" onClick={createRoom} loading={creatingRoomLoading} block>
-                                Create Room
+                            <Button
+                                type="primary"
+                                block
+                                size="large"
+                                onClick={joinRoom}
+                                loading={loading}
+                            >
+                                Join Room
                             </Button>
-                            <Button size="large" onClick={() => setCreatingRoom(false)} disabled={creatingRoomLoading} block>
-                                Go Back
+                            <Button
+                                block
+                                size="large"
+                                onClick={() => setMode('create')}
+                                disabled={loading}
+                            >
+                                Create Room
                             </Button>
                         </Space>
                     </Form.Item>
                 </Form>
             ) : (
                 <Form layout="vertical">
-                    <Form.Item label="Room Code" required>
+                    <Form.Item label="Room Name">
                         <Input
-                            maxLength={5}
-                            placeholder="Enter room code"
-                            value={roomCode}
-                            onChange={(e) => setRoomCode(e.target.value)}
-                            onKeyPress={handleRoomCodeKeyPress}
-                            disabled={joiningRoomLoading}
+                            placeholder="Enter name"
+                            value={roomName}
+                            onChange={(e) => setRoomName(e.target.value)}
+                            onPressEnter={createRoom}
+                            disabled={loading}
                         />
                     </Form.Item>
                     <Form.Item>
                         <Space direction="vertical" style={{ width: '100%' }}>
-                            <Button type="primary" size="large" onClick={joinRoom} loading={joiningRoomLoading} block>
-                                Join Room
+                            <Button
+                                type="primary"
+                                block
+                                size="large"
+                                onClick={createRoom}
+                                loading={loading}
+                            >
+                                Create Room
                             </Button>
-                            <Button size="large" onClick={() => setCreatingRoom(true)} disabled={joiningRoomLoading} block>
-                                Create New Room
+                            <Button
+                                block
+                                size="large"
+                                onClick={() => setMode('join')}
+                                disabled={loading}
+                            >
+                                Back to Join
                             </Button>
                         </Space>
                     </Form.Item>
                 </Form>
             )}
-            <Divider />
-            <Paragraph>
-                Join an existing room or create a new one to get started.
-            </Paragraph>
+
             <Modal
-                title="Select or Create Player"
-                visible={isSelectPlayerModalVisible}
-                onOk={finalizeJoinRoom}
-                onCancel={() => setIsSelectPlayerModalVisible(false)}
-                confirmLoading={joiningRoomLoading}
-                okButtonProps={{ disabled: !selectedUnlinkedPlayer }}
-                footer={[
-                    <Button
-                        block
-                        key="create"
-                        type="primary"
-                        onClick={createAndLinkNewPlayer}
-                        disabled={selectedUnlinkedPlayer || joiningRoomLoading}
-                    >
-                        None of these players is me
-                    </Button>,
-                    <Button
-                        style={{ marginTop: 16, marginLeft: 0 }}
-                        block
-                        key="submit"
-                        type="primary"
-                        onClick={finalizeJoinRoom}
-                        disabled={!selectedUnlinkedPlayer || joiningRoomLoading}
-                    >
-                        {selectedUnlinkedPlayer ? `I'm ${getSelectedPlayerName()}` : 'OK'}
-                    </Button>
-                ]}
+                title="Select Your Player"
+                visible={playerModalVisible}
+                onCancel={() => setPlayerModalVisible(false)}
+                footer={null}
             >
-                <Paragraph>Select your name from the list to retain your historic stats. If you are not listed, add your player at the bottom.</Paragraph>
-                <div className='scroll-list' style={{ maxHeight: '40vh' }}>
-                    <Radio.Group
-                        onChange={handleRadioChange}
-                        value={selectedUnlinkedPlayer}
-                        style={{ display: 'block', marginBottom: '1em', maxHeight: '40vh', overflowY: 'auto' }}
+                <Paragraph>Select your existing player or create a new one:</Paragraph>
+                <Radio.Group
+                    onChange={(e) => setSelectedPlayer(e.target.value)}
+                    value={selectedPlayer}
+                    style={{ width: '100%' }}
+                >
+                    {unlinkedPlayers.map((p) => (
+                        <Radio key={p.id} value={p.id} style={{ display: 'block' }}>
+                            {p.name}
+                        </Radio>
+                    ))}
+                </Radio.Group>
+                <Space direction="vertical" style={{ width: '100%', marginTop: 16 }}>
+                    <Button
+                        block
+                        onClick={() => createAndLink(null)}
+                        disabled={loading || selectedPlayer !== null}
                     >
-                        {unlinkedPlayers.map((player) => (
-                            <Radio key={player.id} value={player.id} style={{ display: 'block' }}>
-                                {player.name}
-                            </Radio>
-                        ))}
-                    </Radio.Group>
-                </div>
+                        Create New Player
+                    </Button>
+                    <Button
+                        type="primary"
+                        block
+                        onClick={() => createAndLink(selectedPlayer)}
+                        disabled={loading || !selectedPlayer}
+                        loading={loading}
+                    >
+                        I'm {unlinkedPlayers.find((p) => p.id === selectedPlayer)?.name}
+                    </Button>
+                </Space>
             </Modal>
         </div>
     );

@@ -68,21 +68,25 @@ function App() {
   const checkRoomMembership = async () => {
     try {
       const token = await getAccessTokenSilently();
-      const response = await axios.get(`${API_BASE_URL}/check-room-membership`, {
+      const { data } = await axios.get(`${API_BASE_URL}/check-room-membership`, {
         headers: {
           Authorization: `Bearer ${token}`,
         },
         withCredentials: true,
       });
-      setRoomMembership(
-        response.data.hasJoinedRoom,
-        response.data.roomCode,
-        response.data.roomName
-      );
+
+      // If we have an activeRoom object, mark joined and pull its code & name
+      if (data.activeRoom) {
+        const { code, name } = data.activeRoom;
+        setRoomMembership(true, code, name);
+      } else {
+        setRoomMembership(false, '', '');
+      }
     } catch (error) {
       console.error("Error checking room membership", error);
     }
   };
+
 
   useEffect(() => {
     const performInitialChecks = async () => {
