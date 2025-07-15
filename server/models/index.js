@@ -404,7 +404,7 @@ Player.belongsToMany(Player, {
     foreignKey: 'playerId',
     otherKey: 'teammateId',
 });
-Gameweek.belongsToMany(Player, { through: TeamAssignment, foreignKey: 'gameweekId', otherKey: 'playerId' });
+Gameweek.belongsToMany(Player, { through: TeammateAssignment, foreignKey: 'gameweekId', otherKey: 'playerId' });
 
 Player.hasMany(Rating, { foreignKey: 'playerId' });
 Rating.belongsTo(Player, { foreignKey: 'playerId' });
@@ -418,12 +418,12 @@ Player.hasMany(Availability, { foreignKey: 'playerId' });
 Gameweek.hasMany(Availability, { foreignKey: 'gameweekId' });
 Room.hasMany(Availability, { foreignKey: 'roomId' });
 
-TeamAssignment.belongsTo(Player, { foreignKey: 'playerId' });
-TeamAssignment.belongsTo(Gameweek, { foreignKey: 'gameweekId' });
-TeamAssignment.belongsTo(Room, { foreignKey: 'roomId' });
-Player.hasMany(TeamAssignment, { foreignKey: 'playerId' });
-Gameweek.hasMany(TeamAssignment, { foreignKey: 'gameweekId' });
-Room.hasMany(TeamAssignment, { foreignKey: 'roomId' });
+TeammateAssignments.belongsTo(Player, { foreignKey: 'playerId' });
+TeammateAssignments.belongsTo(Gameweek, { foreignKey: 'gameweekId' });
+TeammateAssignments.belongsTo(Room, { foreignKey: 'roomId' });
+Player.hasMany(TeammateAssignments, { foreignKey: 'playerId' });
+Gameweek.hasMany(TeammateAssignments, { foreignKey: 'gameweekId' });
+Room.hasMany(TeammateAssignments, { foreignKey: 'roomId' });
 
 GameResult.belongsTo(Gameweek, { foreignKey: 'gameweekId' });
 GameResult.belongsTo(Room, { foreignKey: 'roomId' });
@@ -473,12 +473,12 @@ Achievement.belongsToMany(Room, { through: 'RoomAchievements', foreignKey: 'achi
 GameResult.belongsTo(Gameweek, { foreignKey: 'gameweekId' });
 Gameweek.hasOne(GameResult, { foreignKey: 'gameweekId' });
 
-// Gameweek has many TeamAssignments
-Gameweek.hasMany(TeamAssignment, { foreignKey: 'gameweekId' });
-TeamAssignment.belongsTo(Gameweek, { foreignKey: 'gameweekId' });
+// Gameweek has many TeammateAssignments
+Gameweek.hasMany(TeammateAssignment, { foreignKey: 'gameweekId' });
+TeammateAssignment.belongsTo(Gameweek, { foreignKey: 'gameweekId' });
 
 
-TeamAssignment.belongsToMany(TeamAssignment, {
+TeammateAssignment.belongsToMany(TeammateAssignment, {
     through: 'TeammateAssignments', // Name of the join table
     as: 'teammates',                // Alias for eager loading
     foreignKey: 'playerId',
