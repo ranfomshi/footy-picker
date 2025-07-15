@@ -19,15 +19,9 @@ const allowedOrigins = [
 ];
 
 app.use(cors({
-    origin: function (origin, callback) {
-        if (!origin) return callback(null, true); // curl, Postman etc.
-        const isAllowed = allowedOrigins.some(allowed =>
-            typeof allowed === 'string' ? allowed === origin : allowed.test(origin)
-        );
-        if (isAllowed) return callback(null, true);
-        return callback(new Error('Not allowed by CORS'));
-    },
-    credentials: true,
+    origin: '*',
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Authorization', 'Content-Type'],
 }));
 
 app.options('*', cors()); // Handles all preflight requests
