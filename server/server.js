@@ -64,8 +64,12 @@ app.listen(PORT, async () => {
     try {
         await sequelize.authenticate();
         console.log('Connection has been established successfully.');
-        await sequelize.sync({ alter: true }); // Sync models with the database
-        console.log('Database synchronized.');
+        if (process.env.NODE_ENV !== 'production') {
+            await sequelize.sync({ alter: true });
+            console.log('Database synchronized (dev only).');
+        } else {
+            console.log('Skipping sync in production – relying on migrations.');
+        }
     } catch (error) {
         console.error('Unable to connect to the database:', error);
     }
