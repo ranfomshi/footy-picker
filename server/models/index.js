@@ -263,6 +263,11 @@ const Rating = sequelize.define('Rating', {
 });
 
 const TeamAssignment = sequelize.define('TeamAssignment', {
+    id: {
+        type: DataTypes.INTEGER,
+        primaryKey: true,
+        autoIncrement: true
+    },
     team: {
         type: DataTypes.STRING,
         allowNull: false
