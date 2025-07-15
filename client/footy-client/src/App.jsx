@@ -68,14 +68,12 @@ function App() {
   const checkRoomMembership = async () => {
     try {
       const token = await getAccessTokenSilently();
-      const response = await axios.get(
-        `${API_BASE_URL}/check-room-membership`,
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        }
-      );
+      const response = await axios.get(`${API_BASE_URL}/check-room-membership`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+        withCredentials: true,
+      });
       setRoomMembership(
         response.data.hasJoinedRoom,
         response.data.roomCode,
