@@ -9,8 +9,14 @@ const app = express();
 
 // ─── DISABLE CORS RESTRICTIONS ─────────────────────────────────────────
 // Allow all origins, headers, and methods
-app.use(cors());
-app.options('*', cors());
+app.use(cors({
+    origin: true,
+    credentials: true
+}));
+app.options('*', cors({
+    origin: true,
+    credentials: true
+}));
 
 // Request logger
 app.use((req, res, next) => {
