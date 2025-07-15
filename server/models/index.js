@@ -274,7 +274,6 @@ const TeamAssignment = sequelize.define('TeamAssignment', {
             key: 'id'
         },
         allowNull: false,
-        unique: true,
     },
     gameweekId: {
         type: DataTypes.INTEGER,
@@ -301,6 +300,30 @@ const TeamAssignment = sequelize.define('TeamAssignment', {
             fields: ['playerId', 'gameweekId']
         }
     ]
+});
+
+const TeammateAssignment = sequelize.define('TeammateAssignment', {
+    playerAssignmentId: {
+        type: DataTypes.INTEGER,
+        allowNull: false,
+        references: { model: TeamAssignment, key: 'id' }
+    },
+    teammateAssignmentId: {
+        type: DataTypes.INTEGER,
+        allowNull: false,
+        references: { model: TeamAssignment, key: 'id' }
+    }
+}, {
+    tableName: 'TeammateAssignments',
+    timestamps: true
+});
+
+// 3) Set up a self‑referential M:N through that model:
+TeamAssignment.belongsToMany(TeamAssignment, {
+    through: TeammateAssignment,
+    as: 'teammates',
+    foreignKey: 'playerAssignmentId',
+    otherKey: 'teammateAssignmentId'
 });
 
 const Vote = sequelize.define('Vote', {
