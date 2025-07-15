@@ -223,7 +223,7 @@ const Availability = sequelize.define('Availability', {
     indexes: [
         {
             unique: true,
-            fields: ['playerId', 'gameweekId']
+            fields: ['playerId', 'gameweekId', 'roomId'] // Ensure unique availability per player per gameweek per room
         }
     ]
 });
@@ -267,7 +267,6 @@ const TeamAssignment = sequelize.define('TeamAssignment', {
         type: DataTypes.INTEGER,
         primaryKey: true,
         autoIncrement: true,
-        primaryKey: true,
     },
     team: {
         type: DataTypes.STRING,
@@ -303,7 +302,7 @@ const TeamAssignment = sequelize.define('TeamAssignment', {
     indexes: [
         {
             unique: true,
-            fields: ['playerId', 'gameweekId']
+            fields: ['playerId', 'gameweekId', 'roomId'] // Ensure unique team assignment per player per gameweek per room
         }
     ]
 });
@@ -312,17 +311,33 @@ const TeammateAssignment = sequelize.define('TeammateAssignment', {
     playerAssignmentId: {
         type: DataTypes.INTEGER,
         allowNull: false,
-        references: { model: TeamAssignment, key: 'id' }
+        references: { model: TeamAssignment, key: 'id' },
+        onDelete: 'CASCADE',
+        onUpdate: 'CASCADE'
     },
     teammateAssignmentId: {
         type: DataTypes.INTEGER,
         allowNull: false,
-        references: { model: TeamAssignment, key: 'id' }
+        references: { model: TeamAssignment, key: 'id' },
+        onDelete: 'CASCADE',
+        onUpdate: 'CASCADE'
     }
 }, {
     tableName: 'TeammateAssignments',
-    timestamps: true
+    timestamps: true,
+    indexes: [
+        { unique: true, fields: ['playerAssignmentId', 'teammateAssignmentId'] }
+    ],
+    // For Postgres: add a constraint to prevent self‐assignment
+    validate: {
+        noSelfAssignment() {
+            if (this.playerAssignmentId === this.teammateAssignmentId) {
+                throw new Error('Cannot assign self as teammate');
+            }
+        }
+    }
 });
+
 
 // 3) Set up a self‑referential M:N through that model:
 TeamAssignment.belongsToMany(TeamAssignment, {
