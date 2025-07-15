@@ -261,7 +261,6 @@ const Rating = sequelize.define('Rating', {
     tableName: 'Ratings',
     timestamps: true
 });
-
 const TeamAssignment = sequelize.define('TeamAssignment', {
     team: {
         type: DataTypes.STRING,
@@ -273,8 +272,8 @@ const TeamAssignment = sequelize.define('TeamAssignment', {
             model: Player,
             key: 'id'
         },
-        allowNull: false,
-        unique: true,
+        allowNull: false
+        // ❌ Removed unique: true
     },
     gameweekId: {
         type: DataTypes.INTEGER,
@@ -284,7 +283,7 @@ const TeamAssignment = sequelize.define('TeamAssignment', {
         },
         allowNull: false
     },
-    roomId: { // Added roomId
+    roomId: {
         type: DataTypes.INTEGER,
         references: {
             model: Room,
@@ -299,9 +298,14 @@ const TeamAssignment = sequelize.define('TeamAssignment', {
         {
             unique: true,
             fields: ['playerId', 'gameweekId']
+        },
+        {
+            unique: true,
+            fields: ['playerId', 'roomId'] // ✅ This is the fix
         }
     ]
 });
+
 
 const Vote = sequelize.define('Vote', {
     gameweek_id: {
