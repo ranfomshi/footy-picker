@@ -7,57 +7,10 @@ const { sequelize } = require('./models'); // Import the initialized sequelize i
 
 const app = express();
 
-// ─── CORS DEBUG MIDDLEWARE ─────────────────────────────────────────────
-app.use((req, res, next) => {
-    console.log('────────────────────────────────────────────────');
-    console.log('CORS DEBUG ➤ Incoming request:');
-    console.log('  URL:     ', req.method, req.originalUrl);
-    console.log('  Origin:  ', req.headers.origin);
-    console.log('  A-C-Req-M:', req.headers['access-control-request-method']);
-    console.log('  A-C-Req-H:', req.headers['access-control-request-headers']);
-    next();
-});
-
-const allowedOrigins = [
-    /^http:\/\/localhost:\d+$/, // localhost on any port
-    'https://teamix-4eb6acbc8b28.herokuapp.com',
-    'https://footy-picker-58753c2f9639.herokuapp.com',
-    'null'
-];
-
-// ─── CONFIGURED CORS OPTIONS ──────────────────────────────────────────
-const corsOptions = {
-    origin: (origin, callback) => {
-        console.log('CORS DEBUG ➤ origin check:', origin);
-        if (!origin) {
-            console.log('  → no origin (curl/postman?), allowing');
-            return callback(null, true);
-        }
-        const isAllowed = allowedOrigins.some(o =>
-            typeof o === 'string' ? o === origin : o.test(origin)
-        );
-        console.log(`  → isAllowed? ${isAllowed}`);
-        callback(isAllowed ? null : new Error('Not allowed by CORS'), isAllowed);
-    },
-    credentials: true,
-    allowedHeaders: ['Content-Type', 'Authorization'],
-    methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-    optionsSuccessStatus: 204
-};
-
-// Attach CORS middleware for all routes
-app.use(cors(corsOptions));
-
-// Handle preflight requests (single middleware)
-app.options('*', (req, res) => {
-    console.log('CORS DEBUG ➤ preflight for', req.method, req.path);
-    console.log('  Req headers:', req.headers['access-control-request-headers']);
-    console.log('  Req method:', req.headers['access-control-request-method']);
-    cors(corsOptions)(req, res, () => {
-        console.log('CORS DEBUG ➤ preflight passed');
-        res.sendStatus(corsOptions.optionsSuccessStatus);
-    });
-});
+// ─── DISABLE CORS RESTRICTIONS ─────────────────────────────────────────
+// Allow all origins, headers, and methods
+app.use(cors());
+app.options('*', cors());
 
 // Request logger
 app.use((req, res, next) => {
