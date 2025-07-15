@@ -306,7 +306,7 @@ const TeamAssignment = sequelize.define('TeamAssignment', {
         }
     ]
 });
-//comment to prompt a rebuild of the model.
+//comment to prompt a rebuild of the model
 
 const TeammateAssignment = sequelize.define('TeammateAssignment', {
     playerAssignmentId: {
