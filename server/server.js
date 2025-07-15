@@ -8,7 +8,7 @@ const { sequelize } = require('./models'); // Import the initialized sequelize i
 const app = express();
 
 app.use((req, res, next) => {
-    console.log('🌐 Incoming Origin:', req.headers.origin);
+    console.log(`🛰️ ${req.method} ${req.originalUrl}`);
     next();
 });
 
