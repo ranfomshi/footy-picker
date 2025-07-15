@@ -223,7 +223,7 @@ const Availability = sequelize.define('Availability', {
     indexes: [
         {
             unique: true,
-            fields: ['playerId', 'gameweekId']
+            fields: ['playerId', 'gameweekId', 'gameweekId', 'roomId'] // Updated to include roomId
         }
     ]
 });
