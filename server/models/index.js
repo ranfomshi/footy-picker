@@ -482,11 +482,10 @@ TeamAssignment.belongsTo(Gameweek, { foreignKey: 'gameweekId' });
 
 
 TeamAssignment.belongsToMany(TeamAssignment, {
-    through: 'TeammateAssignments', // Name of the join table
-    as: 'teammates',                // Alias for eager loading
-    foreignKey: 'playerId',
-    otherKey: 'teammateId',
+    through: 'TeammateAssignments',
+    as: 'teammates',
+    foreignKey: 'playerAssignmentId',
+    otherKey: 'teammateAssignmentId'
 });
-
 
 module.exports = { Player, Gameweek, GameResult, Availability, Rating, TeamAssignment, Room, RoomMembership, Vote, Sport, Achievement, PlayerAchievements, sequelize };
