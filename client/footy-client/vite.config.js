@@ -14,7 +14,7 @@ export default defineConfig({
       NODE_ENV: JSON.stringify(process.env.NODE_ENV),
       VITE_API_BASE_URL: JSON.stringify(
         process.env.NODE_ENV === 'production'
-          ? 'https://footy-picker-58753c2f9639.herokuapp.com/api'
+          ? 'https://teamix-4eb6acbc8b28.herokuapp.com.com/api'
           : 'http://localhost:5000/api'
       ),
     },
