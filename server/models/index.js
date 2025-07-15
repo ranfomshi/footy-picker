@@ -297,11 +297,7 @@ const TeamAssignment = sequelize.define('TeamAssignment', {
     indexes: [
         {
             unique: true,
-            fields: ['playerId', 'gameweekId']
-        },
-        {
-            unique: true,
-            fields: ['playerId', 'roomId'] // ✅ This is the fix
+            fields: ['playerId', 'roomId', 'gameweekId']
         }
     ]
 });
