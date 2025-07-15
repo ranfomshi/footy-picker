@@ -385,6 +385,8 @@ router.post('/finalize-join-room', protect, async (req, res) => {
   const { roomCode, playerId, newPlayerName } = req.body;
   const auth0Id = req.user.sub;
 
+  let membership;
+
   try {
     const room = await Room.findOne({ where: { code: roomCode } });
     if (!room) {
@@ -408,7 +410,7 @@ router.post('/finalize-join-room', protect, async (req, res) => {
         return res.status(400).json({ error: 'Invalid or already-linked player.' });
       }
 
-      const membership = await RoomMembership.findOne({
+      membership = await RoomMembership.findOne({
         where: { roomId: room.id, playerId: player.id, auth0Id: null },
       });
 
@@ -446,7 +448,7 @@ router.post('/finalize-join-room', protect, async (req, res) => {
       player = await Player.create({ name: finalName, rating: averageRating });
 
       // Create the room membership linking the new player
-      await RoomMembership.create({
+      membership = await RoomMembership.create({
         playerId: player.id,
         roomId: room.id,
         auth0Id,
