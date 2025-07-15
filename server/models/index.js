@@ -266,7 +266,8 @@ const TeamAssignment = sequelize.define('TeamAssignment', {
     id: {
         type: DataTypes.INTEGER,
         primaryKey: true,
-        autoIncrement: true
+        autoIncrement: true,
+        primaryKey: true,
     },
     team: {
         type: DataTypes.STRING,
