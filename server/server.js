@@ -9,7 +9,8 @@ const app = express();
 
 const allowedOrigins = [
     'http://localhost:5173', // dev front-end
-    'https://footy-picker.vercel.app', // your production front-end (replace if different)
+    'https://teamix-4eb6acbc8b28.herokuapp.com/', // production front-end
+    'https://footy-picker-58753c2f9639.herokuapp.com', //
 ];
 
 app.use(cors({
