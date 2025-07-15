@@ -16,6 +16,7 @@ const allowedOrigins = [
     /^http:\/\/localhost:\d+$/, // localhost on any port
     'https://teamix-4eb6acbc8b28.herokuapp.com',
     'https://footy-picker-58753c2f9639.herokuapp.com',
+    'null'
 ];
 
 app.use(cors({
