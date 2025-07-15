@@ -268,13 +268,13 @@ const TeamAssignment = sequelize.define('TeamAssignment', {
         allowNull: false
     },
     playerId: {
-        unique: true,
         type: DataTypes.INTEGER,
         references: {
             model: Player,
             key: 'id'
         },
-        allowNull: false
+        allowNull: false,
+        unique: true,
     },
     gameweekId: {
         type: DataTypes.INTEGER,
