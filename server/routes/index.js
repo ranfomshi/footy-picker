@@ -308,74 +308,35 @@ router.put('/rooms/:id', protect, adminOnly, async (req, res) => {
 
 
 router.post('/join-room', protect, async (req, res) => {
-  const { code } = req.body; // Room code from the frontend
-  const auth0Id = req.user.sub; // User's Auth0 ID
+  const { code } = req.body;
+  const auth0Id = req.user.sub;
 
   try {
-    // Step 1: Find the room by code
+    // 1) Find the room
     const room = await Room.findOne({ where: { code } });
     if (!room) {
       return res.status(404).json({ status: 'error', message: 'Room not found' });
     }
 
-    // Step 2: Check if the user is already a member
-    const existingMembership = await RoomMembership.findOne({
+    // 2) Check existing membership
+    const existing = await RoomMembership.findOne({
       where: { auth0Id, roomId: room.id },
     });
-    if (existingMembership) {
+    if (existing) {
       return res.status(200).json({
         status: 'success',
         message: 'Already a member of this room',
       });
     }
 
-    // Step 3: Find unlinked players in the room
-    const unlinkedPlayers = await Player.findAll({
-      include: {
-        model: RoomMembership,
-        where: { roomId: room.id, auth0Id: null },
-      },
-    });
+    // 3) Fetch unlinked players
+    const unlinkedPlayers = await getUnlinkedPlayers(room.id);
 
-    // If unlinked players exist, return them
-    if (unlinkedPlayers.length > 0) {
-      return res.status(200).json({ status: 'unlinked', unlinkedPlayers });
-    }
-
-    // Step 4: Create a new player and membership
-    const existingPlayers = await Player.findAll({
-      include: {
-        model: RoomMembership,
-        where: { roomId: room.id },
-      },
-    });
-
-    // Calculate the average rating of players in the room
-    const totalRating = existingPlayers.reduce((sum, player) => sum + parseFloat(player.rating || 0), 0);
-    const averageRating = existingPlayers.length > 0 ? totalRating / existingPlayers.length : 0;
-
-    const newPlayer = await Player.create({ name: 'New Player', rating: averageRating }); // Assign average rating
-    const newMembership = await RoomMembership.create({
-      playerId: newPlayer.id,
-      roomId: room.id,
-      auth0Id,
-      isActive: true, // Mark as active
-    });
-
-    // Step 5: Return success response
-    return res.status(200).json({
-      status: 'success',
-      message: 'Room joined successfully',
-      activeRoom: {
-        id: room.id,
-        name: room.name,
-        code: room.code,
-        isAdmin: newMembership.isAdmin
-      },
-    });
-  } catch (error) {
-    console.error('Error joining room:', error);
-    return res.status(500).json({ status: 'error', error: 'Internal Server Error' });
+    // 4) Return slots to client
+    return res.status(200).json({ status: 'unlinked', unlinkedPlayers });
+  } catch (err) {
+    console.error('Error in join-room:', err);
+    return res.status(500).json({ status: 'error', message: 'Internal Server Error' });
   }
 });
 
