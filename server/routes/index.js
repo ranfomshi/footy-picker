@@ -347,100 +347,25 @@ router.post('/finalize-join-room', protect, async (req, res) => {
   const { roomCode, playerId, newPlayerName } = req.body;
   const auth0Id = req.user.sub;
 
-  let membership;
-
   try {
-    const room = await Room.findOne({ where: { code: roomCode } });
-    if (!room) {
-      return res.status(404).json({ error: 'Room not found' });
-    }
-
-    let player;
-
-    if (playerId) {
-      // Link to an existing unlinked player
-      player = await Player.findOne({
-        where: { id: playerId },
-        include: {
-          model: RoomMembership,
-          where: { roomId: room.id, auth0Id: null },
-          required: true,
-        },
-      });
-
-      if (!player) {
-        return res.status(400).json({ error: 'Invalid or already-linked player.' });
-      }
-
-      membership = await RoomMembership.findOne({
-        where: { roomId: room.id, playerId: player.id, auth0Id: null },
-      });
-
-      if (!membership) {
-        return res.status(400).json({ error: 'Invalid membership link attempt.' });
-      }
-
-      await membership.update({ auth0Id, isActive: true });
-    } else {
-      // Create a new player
-      let finalName = newPlayerName;
-      if (!finalName) {
-        const accessToken = req.headers.authorization.split(' ')[1];
-        const userInfoResponse = await axios.get(`https://${auth0Domain}/userinfo`, {
-          headers: { Authorization: `Bearer ${accessToken}` },
-        });
-        finalName = userInfoResponse.data.name || 'Unnamed Player';
-      }
-
-      // Calculate the average rating for players in the room
-      const existingPlayers = await Player.findAll({
-        include: {
-          model: RoomMembership,
-          where: { roomId: room.id },
-        },
-      });
-
-      const totalRating = existingPlayers.reduce(
-        (sum, player) => sum + parseFloat(player.rating || 0),
-        0
-      );
-      const averageRating = existingPlayers.length > 0 ? totalRating / existingPlayers.length : 0;
-
-      // Create the new player with the calculated average rating
-      player = await Player.create({ name: finalName, rating: averageRating });
-
-      // Create the room membership linking the new player
-      membership = await RoomMembership.create({
-        playerId: player.id,
-        roomId: room.id,
-        auth0Id,
-        isActive: true,
-      });
-    }
-
-    // Deactivate other memberships for the user
-    await RoomMembership.update(
-      { isActive: false },
-      { where: { auth0Id, roomId: { [Op.ne]: room.id } } }
-    );
-
-    const updatedRoom = await Room.findOne({ where: { id: room.id } });
+    // Delegate to transactional service
+    const { room, membership } = await completeRoomJoin({ roomCode, playerId, newPlayerName, auth0Id });
 
     return res.status(200).json({
       success: true,
-      message: 'Joined room successfully!',
       room: {
-        id: updatedRoom.id,
-        name: updatedRoom.name,
-        code: updatedRoom.code,
-        teamAColor: room.teamAColor, // New field
-        teamBColor: room.teamBColor, // New field
-        isAdmin: membership.isAdmin
+        id: room.id,
+        name: room.name,
+        code: room.code,
+        teamAColor: room.teamAColor,
+        teamBColor: room.teamBColor,
+        isAdmin: membership.isAdmin,
       },
     });
-  } catch (error) {
-    console.error('Error finalizing room join:', error);
-    res.status(500).json({ error: 'Internal Server Error' });
+  } catch (err) {
+    console.error('Error in finalize-join-room:', err.message);
+    const status = err.message === 'Room not found' ? 404 : 400;
+    return res.status(status).json({ status: 'error', message: err.message });
   }
 });
 
