@@ -22,6 +22,7 @@ const jwksRsa = require('jwks-rsa');
 const axios = require('axios');
 const achievements = require('../references/achievementConditions');
 const { saveFcmToken, sendRoomNotification } = require('../services/notifications'); // Import only the save function
+const { getUnlinkedPlayers, completeRoomJoin } = require('../services/roomService');
 
 
 // Load environment variables
