@@ -200,64 +200,63 @@ router.get('/current-player', protect, async (req, res) => {
 
 
 router.post('/create-room', protect, async (req, res) => {
-  // Now also extract teamAColor and teamBColor from the request body.
-  const { name, playerName, sportId, teamAColor, teamBColor } = req.body;
+  // Extract and coerce sportId
+  const { name, playerName, teamAColor, teamBColor } = req.body;
+  const sportId = parseInt(req.body.sportId, 10);
+  console.log('Creating room with sportId:', sportId);
   const auth0Id = req.user.sub;
   const code = generateRoomCode();
 
   try {
-    // Validate the sportId
+    // Validate sport
     const sport = await Sport.findByPk(sportId);
     if (!sport) {
       return res.status(400).json({ error: 'Invalid sport ID' });
     }
 
-    // Get the user's name from Auth0 profile if playerName is not provided
+    // Determine player name from request or Auth0
     let finalPlayerName = playerName;
     if (!finalPlayerName) {
-      const accessToken = req.headers.authorization.split(' ')[1];
-      const userInfoResponse = await axios.get(`https://${auth0Domain}/userinfo`, {
-        headers: { Authorization: `Bearer ${accessToken}` },
+      const token = req.headers.authorization.split(' ')[1];
+      const userInfo = await axios.get(`https://${auth0Domain}/userinfo`, {
+        headers: { Authorization: `Bearer ${token}` }
       });
-      finalPlayerName = userInfoResponse.data.name || 'Unnamed Player';
+      finalPlayerName = userInfo.data.name || 'Unnamed Player';
     }
 
-    // Create the room including the team colours.
-    const room = await Room.create({
-      name,
-      code,
-      sportId,
-      teamAColor,  // Save the provided teamAColor
-      teamBColor,  // Save the provided teamBColor
-    });
+    // Create room with colours
+    const room = await Room.create({ name, code, sportId, teamAColor, teamBColor });
 
-    // Deactivate other memberships for this user
-    await RoomMembership.update({ isActive: false }, { where: { auth0Id } });
+    // Deactivate other memberships
+    await RoomMembership.update(
+      { isActive: false },
+      { where: { auth0Id } }
+    );
 
-    // Create a new player and link them to the user in this room
+    // Create creator player & membership
     const newPlayer = await Player.create({ name: finalPlayerName });
     const newMembership = await RoomMembership.create({
       playerId: newPlayer.id,
       roomId: room.id,
       auth0Id,
       isActive: true,
-      isAdmin: true,
+      isAdmin: true
     });
 
-    res.status(201).json({
+    return res.status(201).json({
       room: {
         id: room.id,
         name: room.name,
         code: room.code,
-        teamAColor: room.teamAColor, // New field now saved
-        teamBColor: room.teamBColor, // New field now saved
-        sport: sport.name, // Include the sport name for clarity
+        sport: sport.name,
+        teamAColor: room.teamAColor,
+        teamBColor: room.teamBColor
       },
-      membership: newMembership,
+      membership: newMembership
     });
   } catch (error) {
     console.error('Error creating room:', error.message);
-    res.status(500).json({ error: error.message || 'Internal Server Error' });
+    return res.status(500).json({ error: error.message || 'Internal Server Error' });
   }
 });
 
