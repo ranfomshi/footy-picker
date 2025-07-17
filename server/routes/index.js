@@ -142,7 +142,7 @@ router.get('/check-player-existence', protect, async (req, res) => {
 
   try {
     // Check if user has ANY membership row
-    const memberships = await RoomMembership.findAll({ where: { auth0Id } });
+    const memberships = await RoomMembership.findAll({ where: { auth0Id, isMember: true } });
 
     if (memberships.length > 0) {
       // user has at least one membership
