@@ -85,7 +85,12 @@ const RoomMembership = sequelize.define('RoomMembership', {
         allowNull: false,
         defaultValue: false
     },
-    fcmToken: {  // ✅ Add FCM Token Storage
+    isMember: {
+        type: DataTypes.BOOLEAN,
+        allowNull: false,
+        defaultValue: true,
+    },
+    fcmToken: {
         type: DataTypes.STRING,
         allowNull: true
     },
