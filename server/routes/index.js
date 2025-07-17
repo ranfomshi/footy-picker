@@ -953,25 +953,24 @@ router.post('/players', protect, async (req, res) => {
 
 
 
-router.delete('/members/:playerId', protect, async (req, res) => {
+router.delete('/players/:id', protect, async (req, res) => {
   try {
-    const { playerId } = req.params;
+    const { id } = req.params;
     const { roomId } = req.user;
 
-    // find their membership in this room
+    // find the membership
     const membership = await RoomMembership.findOne({
-      where: { playerId, roomId }
+      where: { playerId: id, roomId }
     });
     if (!membership) {
-      return res.status(404).json({ error: 'Member not found in this room' });
+      return res.status(404).json({ error: 'Player not found in this room' });
     }
 
-    // mark them as no longer a member
+    // soft-remove them
     await membership.update({ isMember: false });
-
     return res.status(204).end();
   } catch (err) {
-    console.error('Error removing member:', err);
+    console.error('Error removing player:', err);
     return res.status(500).json({ error: 'Internal Server Error' });
   }
 });
