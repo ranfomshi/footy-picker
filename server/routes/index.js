@@ -611,7 +611,7 @@ router.get('/players', protect, async (req, res) => {
       include: [
         {
           model: RoomMembership,
-          where: { roomId },
+          where: { roomId, isMember: true },
           required: true,
           attributes: ['auth0Id', 'isAdmin'],
         },
@@ -953,28 +953,26 @@ router.post('/players', protect, async (req, res) => {
 
 
 
-router.delete('/players/:id', protect, async (req, res) => {
+router.delete('/members/:playerId', protect, async (req, res) => {
   try {
-    const { id } = req.params;
+    const { playerId } = req.params;
     const { roomId } = req.user;
 
-    const player = await Player.findOne({
-      where: { id },
-      include: {
-        model: RoomMembership,
-        where: { roomId },
-      },
+    // find their membership in this room
+    const membership = await RoomMembership.findOne({
+      where: { playerId, roomId }
     });
-
-    if (!player) {
-      return res.status(404).json({ error: 'Player not found' });
+    if (!membership) {
+      return res.status(404).json({ error: 'Member not found in this room' });
     }
 
-    await player.destroy();
-    res.status(204).end();
-  } catch (error) {
-    console.error('Error deleting player', error);
-    res.status(500).json({ error: 'Internal Server Error' });
+    // mark them as no longer a member
+    await membership.update({ isMember: false });
+
+    return res.status(204).end();
+  } catch (err) {
+    console.error('Error removing member:', err);
+    return res.status(500).json({ error: 'Internal Server Error' });
   }
 });
 

@@ -138,7 +138,7 @@ export default function AccountManager() {
       {/* Room switcher with edit icon for admins */}
       <Space align="center" style={{ marginBottom: 20, width: '100%', display: 'flex', justifyContent: 'center' }}>
         <Select
-          style={{ flexGrow: 1 }}
+          style={{ flexGrow: 1, minWidth: 200 }}
           placeholder={loadingRooms ? "Loading rooms..." : "Choose a room"}
           loading={loadingRooms}
           value={roomCode}

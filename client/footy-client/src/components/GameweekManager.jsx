@@ -1,635 +1,302 @@
+// src/components/GameweekManager.jsx
 import React, { useEffect, useState } from "react";
 import axios from "axios";
-import {
-  Button,
-  DatePicker,
-  message,
-  Collapse,
-  Input,
-  Form,
-  Modal,
-  Typography,
-  Row,
-  Col,
-  Space,
-} from "antd";
-import {
-  PlusOutlined,
-} from "@ant-design/icons";
+import { Button, DatePicker, message, Form, Modal, Space, Input, Row, Col, TimePicker, InputNumber, AutoComplete } from "antd";
+import { PlusOutlined } from "@ant-design/icons";
 import GameweekList from "./GameweekList";
 import { useAuth0 } from "@auth0/auth0-react";
 
-const { Title } = Typography;
-const { Panel } = Collapse;
-
 const GameweekManager = () => {
   const { getAccessTokenSilently } = useAuth0();
-  const [gameweeks, setGameweeks] = useState([]);
-  const [selectedDate, setSelectedDate] = useState(null);
+  const API = import.meta.env.VITE_API_BASE_URL;
+
+  const [gameweeks, setGameweeks] = useState({});
+  const [previousLocations, setPreviousLocations] = useState([]);
   const [players, setPlayers] = useState([]);
   const [teams, setTeams] = useState({});
   const [availability, setAvailability] = useState({});
-  const [assignments, setAssignments] = useState({});
-  const [form] = Form.useForm();
-  const [isAddGameweekModalVisible, setIsAddGameweekModalVisible] =
-    useState(false);
-  const [isResultModalVisible, setIsResultModalVisible] = useState(false);
-  const [manualAssignmentModalVisible, setManualAssignmentModalVisible] =
-    useState(false);
-  const [resultGameweekId, setResultGameweekId] = useState(null);
-  const [recordedResults, setRecordedResults] = useState({});
-  const [searchTerm, setSearchTerm] = useState("");
-  const [selectedGameweekId, setSelectedGameweekId] = useState(null);
-  const [playerAssignments, setPlayerAssignments] = useState({});
   const [hasVoted, setHasVoted] = useState({});
-  const [currentUserId, setCurrentUserId] = useState(null);
+  const [selectedGameweekId, setSelectedGameweekId] = useState(null);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [isAddVisible, setIsAddVisible] = useState(false);
+  const [isManualVisible, setIsManualVisible] = useState(false);
+  const [form] = Form.useForm();
+  const [addForm] = Form.useForm();
+  const [manualForm] = Form.useForm();
 
-  const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
-
-  const checkVotingStatus = async (gameweekId) => {
-    const token = await getAccessTokenSilently();
-    const response = await axios.get(
-      `${API_BASE_URL}/has-voted?gameweekId=${gameweekId}`,
-      {
-        headers: { Authorization: `Bearer ${token}` },
-      }
-    );
-    setHasVoted((prevHasVoted) => ({
-      ...prevHasVoted,
-      [gameweekId]: response.data.hasVoted,
-    }));
-
-    setCurrentUserId(response.data.player_id);
-  };
-
-  useEffect(() => {
-    console.log("Current User ID:", currentUserId); // Add this line for debugging
-  }, [currentUserId]);
-
-  const castVote = async (gameweekId, votedPlayerId, currentUserId) => {
-    try {
-      const token = await getAccessTokenSilently();
-      await axios.post(
-        `${API_BASE_URL}/votes`,
-        { gameweekId, votedPlayerId, currentUserId },
-        {
-          headers: { Authorization: `Bearer ${token}` },
-        }
-      );
-
-      // Fetch the updated gameweeks to get the new playerOfTheMatch
-      await fetchGameweeks();
-
-      // Update hasVoted state
-      setHasVoted((prevHasVoted) => ({
-        ...prevHasVoted,
-        [gameweekId]: true,
-      }));
-
-      message.success("Vote cast successfully!");
-    } catch (error) {
-      console.error("Error casting vote", error);
-      message.error("Failed to cast vote");
-    }
-  };
-  
-
+  // — Fetch all gameweeks
   const fetchGameweeks = async () => {
-    try {
-      const token = await getAccessTokenSilently();
-      const response = await axios.get(`${API_BASE_URL}/gameweeks`, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
-      const gameweeksData = response.data.reduce((acc, gameweek) => {
-        acc[gameweek.id] = gameweek;
-        return acc;
-      }, {});
-      setGameweeks(gameweeksData);
-    } catch (error) {
-      console.error("Error fetching gameweeks", error);
-    }
-  };
+    const token = await getAccessTokenSilently();
+    const { data } = await axios.get(`${API}/gameweeks`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    setGameweeks(Object.fromEntries(data.map((gw) => [gw.id, gw])));
 
-  const fetchPlayers = async () => {
-    try {
-      const token = await getAccessTokenSilently();
-      const response = await axios.get(`${API_BASE_URL}/players`, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
-      setPlayers(response.data);
-    } catch (error) {
-      console.error("Error fetching players", error);
-    }
-  };
-
-  const fetchTeams = async (gameweekId) => {
-    try {
-      const token = await getAccessTokenSilently();
-      const response = await axios.get(
-        `${API_BASE_URL}/teamassignments?gameweekId=${gameweekId}`,
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        }
-      );
-      const teamA = [];
-      const teamB = [];
-      response.data.forEach((assignment) => {
-        if (assignment.team === "A") {
-          teamA.push(
-            players.find((player) => player.id === assignment.playerId)
-          );
-        } else {
-          teamB.push(
-            players.find((player) => player.id === assignment.playerId)
-          );
-        }
-      });
-      setTeams((prevTeams) => ({
-        ...prevTeams,
-        [gameweekId]: { teamA, teamB },
-      }));
-      const playerAssignmentsData = response.data.reduce((acc, assignment) => {
-        acc[assignment.playerId] = assignment.team;
-        return acc;
-      }, {});
-      setPlayerAssignments(playerAssignmentsData);
-    } catch (error) {
-      console.error("Error fetching teams", error);
-    }
-  };
-
-  const fetchAssignments = async (gameweekId) => {
-    try {
-      const token = await getAccessTokenSilently();
-      const response = await axios.get(
-        `${API_BASE_URL}/teamassignments?gameweekId=${gameweekId}`,
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        }
-      );
-      const assignmentData = response.data.reduce((acc, assignment) => {
-        acc[assignment.playerId] = assignment.team;
-        return acc;
-      }, {});
-      setAssignments((prevAssignments) => ({
-        ...prevAssignments,
-        [gameweekId]: assignmentData,
-      }));
-    } catch (error) {
-      console.error("Error fetching assignments", error);
-    }
-  };
-
-  const fetchAvailability = async (gameweekId) => {
-    try {
-      const token = await getAccessTokenSilently();
-      const response = await axios.get(
-        `${API_BASE_URL}/availability?gameweekId=${gameweekId}`,
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        }
-      );
-      const availabilityData = response.data.reduce((acc, availability) => {
-        acc[availability.playerId] = availability.status;
-        return acc;
-      }, {});
-      setAvailability((prevAvailability) => ({
-        ...prevAvailability,
-        [gameweekId]: availabilityData,
-      }));
-    } catch (error) {
-      console.error("Error fetching availability", error);
-    }
-  };
-
-  const handleManualTeamAssignment = async (playerId, gameweekId, team) => {
-    try {
-      const token = await getAccessTokenSilently();
-      await axios.post(
-        `${API_BASE_URL}/manual-teamassignment`,
-        { gameweekId, playerId, team },
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        }
-      );
-      message.success("Player manually assigned to team");
-      fetchTeams(gameweekId); // Refresh teams after manual assignment
-    } catch (error) {
-      console.error("Error manually assigning player", error);
-      message.error("Error manually assigning player");
-    }
-  };
-
-  const isVotingOpen = (gameweek) => {
-    const now = new Date();
-    const votingCloseTime = new Date(gameweek.votingCloseTime);
-    return now < votingCloseTime;
-  };
-
-  const fetchRecordedResults = async () => {
-    try {
-      const token = await getAccessTokenSilently();
-      const response = await axios.get(`${API_BASE_URL}/gameresults`, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
-      const resultData = response.data.reduce((acc, result) => {
-        acc[result.gameweekId] = result;
-        return acc;
-      }, {});
-      setRecordedResults(resultData);
-    } catch (error) {
-      console.error("Error fetching recorded results", error);
-    }
-  };
-
-  const showAddGameweekModal = () => {
-    setIsAddGameweekModalVisible(true);
-  };
-
-  const handleAddGameweek = async () => {
-    if (!selectedDate) {
-      message.error("Please select a date for the gameweek.");
-      return;
-    }
-
-    try {
-      const token = await getAccessTokenSilently();
-      await axios.post(
-        `${API_BASE_URL}/gameweeks`,
-        { date: selectedDate },
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        }
-      );
-      fetchGameweeks();
-      setSelectedDate(null);
-      setIsAddGameweekModalVisible(false);
-    } catch (error) {
-      console.error("Error adding gameweek", error);
-    }
-  };
-
-  const setPlayerAvailability = async (playerId, gameweekId, status) => {
-    try {
-      const token = await getAccessTokenSilently();
-      await axios.post(
-        `${API_BASE_URL}/availability`,
-        { gameweekId, playerIds: [playerId], status },
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        }
-      );
-      setAvailability((prevAvailability) => ({
-        ...prevAvailability,
-        [gameweekId]: { ...prevAvailability[gameweekId], [playerId]: status },
-      }));
-      handleTeamAssignment(gameweekId);
-      setSearchTerm("");
-    } catch (error) {
-      console.error("Error setting availability", error);
-    }
-  };
-
-  const removePlayerAvailability = async (playerId, gameweekId) => {
-    try {
-      const token = await getAccessTokenSilently();
-      await axios.post(
-        `${API_BASE_URL}/availability`,
-        { gameweekId, playerIds: [playerId], status: false },
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        }
-      );
-      setAvailability((prevAvailability) => ({
-        ...prevAvailability,
-        [gameweekId]: { ...prevAvailability[gameweekId], [playerId]: false },
-      }));
-      handleTeamAssignment(gameweekId);
-    } catch (error) {
-      console.error("Error removing availability", error);
-    }
-  };
-
-  const deleteGameweek = async (id) => {
-    try {
-      const token = await getAccessTokenSilently();
-      await axios.delete(`${API_BASE_URL}/gameweeks/${id}`, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
-      fetchGameweeks();
-    } catch (error) {
-      console.error("Error deleting gameweek", error);
-    }
-  };
-
-  const handleTeamAssignment = async (gameweekId) => {
-    try {
-      const token = await getAccessTokenSilently();
-      await axios.get(`${API_BASE_URL}/pick-teams?gameweekId=${gameweekId}`, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
-      message.success("Teams assigned successfully");
-      fetchTeams(gameweekId);
-      fetchAssignments(gameweekId);
-    } catch (error) {
-      console.error("Error picking teams", error);
-      message.error("Error picking teams");
-    }
-  };
-
-  const handleGameResult = async (values) => {
-    try {
-      const token = await getAccessTokenSilently();
-      await axios.post(`${API_BASE_URL}/gameresults`, values, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
-      message.success("Game result recorded successfully");
-      setIsResultModalVisible(false);
-      form.resetFields();
-      fetchGameweeks();
-      fetchRecordedResults();
-    } catch (error) {
-      console.error("Error recording game result", error);
-      message.error(
-        error.response?.data?.error || "Error recording game result"
-      );
-    }
-  };
-
-  const showResultModal = (gameweekId) => {
-    setResultGameweekId(gameweekId);
-    form.setFieldsValue({ gameweekId });
-    setIsResultModalVisible(true);
-    fetchAvailability(gameweekId); // Fetch availability only once when opening the modal
-  };
-
-  const showManualAssignmentModal = (gameweekId) => {
-    setSelectedGameweekId(gameweekId);
-    setManualAssignmentModalVisible(true);
-    fetchTeams(gameweekId);
-  };
-
-  const assignTeam = (playerId, team) => {
-    setPlayerAssignments((prevAssignments) => ({
-      ...prevAssignments,
-      [playerId]: team,
-    }));
-    handleManualTeamAssignment(playerId, selectedGameweekId, team);
-  };
-
-  const handleCancel = () => {
-    setIsAddGameweekModalVisible(false);
-    setIsResultModalVisible(false);
-    setManualAssignmentModalVisible(false);
-    form.resetFields();
-  };
-
-  const filteredPlayers = (gameweekId) =>
-    players.filter(
-      (player) =>
-        !availability[gameweekId]?.[player.id] &&
-        player.name.toLowerCase().includes(searchTerm.toLowerCase())
+    // derive unique previous locations
+    const locs = Array.from(
+      new Set(
+        data
+          .map((gw) => gw.location)
+          .filter((loc) => loc && loc.trim().length > 0)
+      )
     );
+    setPreviousLocations(locs);
+  };
+
+  // — Fetch all players
+  const fetchPlayers = async () => {
+    const token = await getAccessTokenSilently();
+    const { data } = await axios.get(`${API}/players`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    setPlayers(data);
+  };
+
+  // — Group assignments
+  const fetchTeams = async (gwId) => {
+    const token = await getAccessTokenSilently();
+    const { data } = await axios.get(
+      `${API}/teamassignments?gameweekId=${gwId}`,
+      { headers: { Authorization: `Bearer ${token}` } }
+    );
+    const grouped = { teamA: [], teamB: [] };
+    data.forEach((a) => {
+      const p = a.Player;
+      if (a.team === "A") grouped.teamA.push(p);
+      else grouped.teamB.push(p);
+    });
+    setTeams((prev) => ({ ...prev, [gwId]: grouped }));
+  };
+
+  // — Availability
+  const fetchAvailability = async (gwId) => {
+    const token = await getAccessTokenSilently();
+    const { data } = await axios.get(
+      `${API}/availability?gameweekId=${gwId}`,
+      { headers: { Authorization: `Bearer ${token}` } }
+    );
+    setAvailability((prev) => ({ ...prev, [gwId]: data }));
+  };
+
+  // — Voting status
+  const checkVotingStatus = async (gwId) => {
+    const token = await getAccessTokenSilently();
+    const { data } = await axios.get(
+      `${API}/votes/status?gameweekId=${gwId}`,
+      { headers: { Authorization: `Bearer ${token}` } }
+    );
+    setHasVoted((prev) => ({ ...prev, [gwId]: data.hasVoted }));
+  };
+
+  // — Mark availability
+  const setPlayerAvailability = async (pid, gwId, avail) => {
+    const token = await getAccessTokenSilently();
+    await axios.post(
+      `${API}/availability`,
+      { gameweekId: gwId, playerId: pid, available: avail },
+      { headers: { Authorization: `Bearer ${token}` } }
+    );
+    fetchAvailability(gwId);
+  };
+
+  // — Add gameweek
+  const handleAdd = async (vals) => {
+    const token = await getAccessTokenSilently();
+    await axios.post(`${API}/gameweeks`, vals, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    message.success("Gameweek added");
+    setIsAddVisible(false);
+    fetchGameweeks();
+  };
+
+  // — Manual override
+  const handleManual = async (vals) => {
+    const token = await getAccessTokenSilently();
+    await axios.post(
+      `${API}/teamassignments`,
+      { gameweekId: selectedGameweekId, assignments: vals },
+      { headers: { Authorization: `Bearer ${token}` } }
+    );
+    message.success("Assignments updated");
+    setIsManualVisible(false);
+    fetchTeams(selectedGameweekId);
+  };
 
   useEffect(() => {
     fetchGameweeks();
     fetchPlayers();
-    fetchRecordedResults();
   }, []);
 
-  function formatTime(isoString) {
-    const date = new Date(isoString);
-
-    const options = {
-      year: "numeric",
-      month: "long",
-      day: "numeric",
-      hour: "numeric",
-      minute: "numeric",
-      second: "numeric",
-      hour12: true,
-    };
-
-    return date.toLocaleDateString("en-US", options);
-  }
-
-  // Sort gameweeks by date in descending order
-  const sortedGameweeks = Object.values(gameweeks).sort(
+  const sorted = Object.values(gameweeks).sort(
     (a, b) => new Date(b.date) - new Date(a.date)
   );
 
+  const filteredPlayers = (gwId) =>
+    players.filter((p) =>
+      p.name.toLowerCase().includes(searchTerm.toLowerCase())
+    );
+
+  // formatting helpers
+  const formatDate = (iso) =>
+    new Date(iso).toLocaleDateString("en-GB", {
+      year: "numeric",
+      month: "short",
+      day: "numeric",
+    });
+  const formatVotingCloseTime = (iso) =>
+    new Date(iso).toLocaleString("en-GB", {
+      hour: "2-digit",
+      minute: "2-digit",
+      day: "numeric",
+      month: "short",
+    });
+
   return (
-    <div>
-      <Button size="small" type="primary" block onClick={showAddGameweekModal}>
-        <PlusOutlined />
+    <>
+      <Button
+        block
+        type="primary"
+        icon={<PlusOutlined />}
+        onClick={() => setIsAddVisible(true)}
+        style={{ marginBottom: 16 }}
+      >
         Add Gameweek
       </Button>
+
       <GameweekList
-        filteredPlayers={filteredPlayers}
-        searchTerm={searchTerm}
-        sortedGameweeks={sortedGameweeks}
-        recordedResults={recordedResults}
+        sortedGameweeks={sorted}
         teams={teams}
         availability={availability}
-        playerAssignments={playerAssignments}
         fetchAvailability={fetchAvailability}
-        fetchAssignments={fetchAssignments}
+        fetchAssignments={fetchTeams}
         fetchTeams={fetchTeams}
+        filteredPlayers={filteredPlayers}
         checkVotingStatus={checkVotingStatus}
         setPlayerAvailability={setPlayerAvailability}
-        removePlayerAvailability={removePlayerAvailability}
-        castVote={castVote}
-        currentUserId={currentUserId}
+        removePlayerAvailability={(pid, gwId) =>
+          setPlayerAvailability(pid, gwId, false)
+        }
+        showManualAssignmentModal={(id) => {
+          setSelectedGameweekId(id);
+          setIsManualVisible(true);
+        }}
         hasVoted={hasVoted}
-        isVotingOpen={isVotingOpen}
-        showManualAssignmentModal={showManualAssignmentModal}
-        showResultModal={showResultModal}
-        deleteGameweek={deleteGameweek}
-        formatTime={formatTime}
+        isVotingOpen={(gw) => new Date() < new Date(gw.votingCloseTime)}
+        formatDate={formatDate}
+        formatVotingCloseTime={formatVotingCloseTime}
+        searchTerm={searchTerm}
+        setSearchTerm={setSearchTerm}
       />
+
+      {/* Add Gameweek */}
       <Modal
         title="Add Gameweek"
-        visible={isAddGameweekModalVisible}
-        onOk={handleAddGameweek}
-        onCancel={handleCancel}
-        okText="Add"
-        cancelText="Cancel"
+        open={isAddVisible}
+        onCancel={() => setIsAddVisible(false)}
+        footer={null}
+        destroyOnClose
       >
-        <DatePicker
-          onChange={(date, dateString) => setSelectedDate(dateString)}
-        />
-      </Modal>
-      <Modal
-        title="Record Game Result"
-        visible={isResultModalVisible}
-        onCancel={handleCancel}
-        footer={[
-          <Button key="cancel" onClick={handleCancel}>
-            Cancel
-          </Button>,
-          <Button key="submit" type="primary" onClick={() => form.submit()}>
-            Submit
-          </Button>,
-        ]}
-      >
-        <Form form={form} onFinish={handleGameResult}>
-          <Form.Item name="gameweekId" hidden>
-            <Input />
-          </Form.Item>
-          <Row style={{ height: 124, marginTop: 32 }} justify="center">
-            <Space style={{ height: 124 }}>
-              <Col span={11}>
-                <Form.Item
-                  name="teamA_score"
-                  rules={[
-                    {
-                      required: true,
-                      message: "Please enter the score for Team A",
-                    },
-                  ]}
-                >
-                  <div>
-                    <label
-                      style={{
-                        position: "absolute",
-                        top: 10,
-                        zIndex: 2,
-                        left: 10,
-                        fontSize: 12,
-                        color: "rgba(0, 0, 0, 0.45)",
-                      }}
-                    >
-                      A
-                    </label>
-                    <Input
-                      style={{
-                        width: 124,
-                        height: 124,
-                        fontSize: 50,
-                        textAlign: "center",
-                        MozAppearance: "textfield",
-                        appearance: "textfield",
-                        WebkitAppearance: "none",
-                      }}
-                      type="number"
-                      placeholder=""
-                    />
-                  </div>
-                </Form.Item>
-              </Col>
-              <Col span={11}>
-                <Form.Item
-                  name="teamB_score"
-                  rules={[
-                    {
-                      required: true,
-                      message: "Please enter the score for Team B",
-                    },
-                  ]}
-                >
-                  <div>
-                    <label
-                      style={{
-                        position: "absolute",
-                        top: 10,
-                        zIndex: 2,
-                        left: 10,
-                        fontSize: 12,
-                        color: "rgba(0, 0, 0, 0.45)",
-                      }}
-                    >
-                      B
-                    </label>
-                    <Input
-                      style={{
-                        width: 124,
-                        height: 124,
-                        fontSize: 50,
-                        textAlign: "center",
-                        MozAppearance: "textfield",
-                        appearance: "textfield",
-                        WebkitAppearance: "none",
-                      }}
-                      type="number"
-                      placeholder=""
-                    />
-                  </div>
-                </Form.Item>
-              </Col>
-            </Space>
+        <Form
+          form={addForm}
+          layout="vertical"
+          onFinish={handleAdd}
+          initialValues={{ maxPlayers: 10 }}
+        >
+          <Row gutter={16}>
+            <Col span={12}>
+              <Form.Item
+                name="date"
+                label="Date"
+                rules={[{ required: true, message: 'Please select a date' }]}
+              >
+                <DatePicker
+                  style={{ width: '100%' }}
+                  format="YYYY-MM-DD"
+                />
+              </Form.Item>
+            </Col>
+            <Col span={12}>
+              <Form.Item
+                name="startTime"
+                label="Start Time"
+                rules={[{ required: true, message: 'Please select start time' }]}
+              >
+                <TimePicker
+                  style={{ width: '100%' }}
+                  format="HH:mm"
+                />
+              </Form.Item>
+            </Col>
           </Row>
+
+          <Form.Item
+            name="location"
+            label="Location"
+            rules={[{ required: true, message: 'Please enter or select a location' }]}
+          >
+            <AutoComplete
+              options={previousLocations.map((loc) => ({ value: loc }))}
+              placeholder="e.g. Main Pitch"
+              filterOption={(inputValue, option) =>
+                option.value.toLowerCase().includes(inputValue.toLowerCase())
+              }
+            />
+          </Form.Item>
+
+          <Form.Item
+            name="maxPlayers"
+            label="Max Players"
+            rules={[
+              { type: 'number', min: 2, message: 'Minimum of 2 players' },
+              ({ }) => ({
+                validator(_, value) {
+                  if (!value || value % 2 === 0) {
+                    return Promise.resolve();
+                  }
+                  return Promise.reject(new Error('Must be an even number'));
+                },
+              }),
+            ]}
+          >
+            <InputNumber
+              style={{ width: '100%' }}
+              min={2}
+              step={2}
+            />
+          </Form.Item>
+
+          <Form.Item>
+            <Space>
+              <Button onClick={() => { setIsAddVisible(false); addForm.resetFields(); }}>Cancel</Button>
+              <Button type="primary" htmlType="submit">
+                Add Gameweek
+              </Button>
+            </Space>
+          </Form.Item>
         </Form>
       </Modal>
 
+      {/* Manual Override */}
       <Modal
-        title="Manual Team Assignment"
-        visible={manualAssignmentModalVisible}
-        onCancel={handleCancel}
-        footer={[
-          <Button key="cancel" onClick={handleCancel}>
-            Cancel
-          </Button>,
-        ]}
+        title="Override Assignments"
+        visible={isManualVisible}
+        onCancel={() => setIsManualVisible(false)}
+        footer={null}
       >
-        <p>Assign Players to Teams</p>
-        {players.map((player) => (
-          <div
-            key={player.id}
-            style={{
-              display: "flex",
-              justifyContent: "space-between",
-              margin: "8px 0",
-            }}
-          >
-            <span>{player.name}</span>
+        <Form form={form} layout="vertical" onFinish={handleManual}>
+          {/* your override UI */}
+          <Form.Item>
             <Space>
-              <Button
-                type={
-                  playerAssignments[player.id] === "A" ? "primary" : "default"
-                }
-                onClick={() => assignTeam(player.id, "A")}
-              >
-                Team A
-              </Button>
-              <Button
-                type={
-                  playerAssignments[player.id] === "B" ? "primary" : "default"
-                }
-                onClick={() => assignTeam(player.id, "B")}
-              >
-                Team B
+              <Button onClick={() => setIsManualVisible(false)}>Cancel</Button>
+              <Button type="primary" htmlType="submit">
+                Save
               </Button>
             </Space>
-          </div>
-        ))}
+          </Form.Item>
+        </Form>
       </Modal>
-    </div>
+    </>
   );
 };
 
