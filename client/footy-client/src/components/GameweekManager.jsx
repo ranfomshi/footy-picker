@@ -68,14 +68,19 @@ const GameweekManager = () => {
     setTeams((prev) => ({ ...prev, [gwId]: grouped }));
   };
 
-  // — Availability
+
   const fetchAvailability = async (gwId) => {
     const token = await getAccessTokenSilently();
     const { data } = await axios.get(
       `${API}/availability?gameweekId=${gwId}`,
       { headers: { Authorization: `Bearer ${token}` } }
     );
-    setAvailability((prev) => ({ ...prev, [gwId]: data }));
+    // Mirror Dart logic:
+    const availabilityMap = data.reduce((acc, record) => {
+      acc[record.playerId] = record.status;
+      return acc;
+    }, {});
+    setAvailability((prev) => ({ ...prev, [gwId]: availabilityMap }));
   };
 
   // — Voting status
@@ -88,16 +93,21 @@ const GameweekManager = () => {
     setHasVoted((prev) => ({ ...prev, [gwId]: data.hasVoted }));
   };
 
-  // — Mark availability
-  const setPlayerAvailability = async (pid, gwId, avail) => {
+  // AFTER
+  const setPlayerAvailability = async (playerId, gwId, avail) => {
     const token = await getAccessTokenSilently();
     await axios.post(
       `${API}/availability`,
-      { gameweekId: gwId, playerId: pid, available: avail },
+      {
+        gameweekId: gwId,
+        playerIds: [playerId],   // wrap ID in an array
+        status: avail            // rename `available` → `status`
+      },
       { headers: { Authorization: `Bearer ${token}` } }
     );
     fetchAvailability(gwId);
   };
+
 
   // — Add gameweek
   const handleAdd = async (vals) => {

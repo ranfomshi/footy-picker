@@ -1314,28 +1314,35 @@ router.get('/availability', protect, async (req, res) => {
     const { gameweekId } = req.query;
     const { roomId } = req.user;
 
-    const availability = await Availability.findAll({
-      where: { gameweekId, roomId },
-      include: [
-        {
-          model: Player,
-          include: {
-            model: RoomMembership,
-            where: { roomId },
-          },
-        },
-        {
-          model: Gameweek,
-          where: { roomId },
-        },
-      ],
+    // 1) Load all current members of this room
+    const memberships = await RoomMembership.findAll({
+      where: { roomId, isMember: true },
+      include: [{ model: Player, attributes: ['id', 'name', 'rating'] }]
     });
-    res.json(availability);
+
+    // 2) Load any existing availability rows for that gameweek
+    const availRows = await Availability.findAll({
+      where: { gameweekId, roomId }
+    });
+
+    // 3) Merge: one entry per member, defaulting status=false
+    const merged = memberships.map(m => {
+      const rec = availRows.find(a => a.playerId === m.playerId);
+      return {
+        playerId: m.playerId,
+        status: rec ? rec.status : false,
+        Player: m.Player,      // so front‑end can show name, icon, etc.
+        gameweekId
+      };
+    });
+
+    return res.json(merged);
   } catch (error) {
     console.error('Error fetching availability:', error);
     res.status(500).json({ error: 'Internal Server Error' });
   }
 });
+
 
 router.post('/ratings', protect, async (req, res) => {
   try {
