@@ -58,18 +58,19 @@ const PlayerCard = ({ player, showPercentages = false, sortBy = null }) => {
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
-                    padding: '6px 10px',
+                    padding: '4px 8px',
                     background: background || '#f0f0f0',
-                    borderRadius: 12,
-                    fontSize: 14,
+                    borderRadius: 8,
+                    fontSize: 12,
                     fontWeight: 500,
-                    gap: 6,
+                    gap: 4,
                     minWidth: 0,
                     ...style,
                 }}
             >
-                {icon}
-                {label} : {value}
+                {React.cloneElement(icon, { style: { fontSize: 12 } })}
+                <Text style={{ fontSize: 11, margin: 0 }}>{label}</Text>
+                <Text style={{ fontSize: 12, fontWeight: 600, margin: 0 }}>{value}</Text>
             </div>
         );
 
@@ -106,11 +107,11 @@ const PlayerCard = ({ player, showPercentages = false, sortBy = null }) => {
     return (
         <Card
             style={{
-                borderRadius: 16,
-                boxShadow: '0 4px 12px rgba(0,0,0,0.05)',
+                borderRadius: 12,
+                boxShadow: '0 2px 8px rgba(0,0,0,0.04)',
                 padding: 0,
                 maxWidth: 480,
-                margin: '0 auto 24px',
+                margin: '0 auto 16px',
                 background: '#fafafa',
             }}
             bodyStyle={{ padding: 0 }}
@@ -119,9 +120,9 @@ const PlayerCard = ({ player, showPercentages = false, sortBy = null }) => {
             <div
                 style={{
                     background: '#f0f2f5',
-                    borderTopLeftRadius: 16,
-                    borderTopRightRadius: 16,
-                    padding: '8px 16px',
+                    borderTopLeftRadius: 12,
+                    borderTopRightRadius: 12,
+                    padding: '6px 12px',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'space-between',
@@ -129,42 +130,62 @@ const PlayerCard = ({ player, showPercentages = false, sortBy = null }) => {
                 }}
                 onClick={toggleExpanded}
             >
-                <Text strong style={{ fontSize: 16 }}>
-                    {player.name}
-                </Text>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                    <Text strong style={{ fontSize: 14 }}>
+                        {player.name}
+                    </Text>
+                    {player.playerOfTheMatchCount > 0 && (
+                        <Tooltip title={`Player of the Match: ${player.playerOfTheMatchCount}`}>
+                            <div style={{
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: 2,
+                                backgroundColor: '#fff7e6',
+                                padding: '2px 6px',
+                                borderRadius: 8,
+                                fontSize: 11,
+                                fontWeight: 600,
+                                color: '#fa8c16'
+                            }}>
+                                <StarFilled style={{ fontSize: 10 }} />
+                                {player.playerOfTheMatchCount}
+                            </div>
+                        </Tooltip>
+                    )}
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                     <div>
                         {player.auth0Id && (
                             <Tooltip title="Linked to user">
                                 <CheckCircleOutlined
-                                    style={{ color: '#00b96b', fontSize: 18, marginRight: 8 }}
+                                    style={{ color: '#00b96b', fontSize: 16, marginRight: 6 }}
                                 />
                             </Tooltip>
                         )}
                         {player.isAdmin && (
                             <Tooltip title="Admin">
                                 <SafetyCertificateOutlined
-                                    style={{ color: '#722ed1', fontSize: 18, marginRight: 8 }}
+                                    style={{ color: '#722ed1', fontSize: 16, marginRight: 6 }}
                                 />
                             </Tooltip>
                         )}
                     </div>
                     <Tooltip title={expanded ? 'Collapse details' : 'Expand details'}>
                         {expanded ?
-                            <CompressOutlined style={{ fontSize: 16, color: '#666' }} /> :
-                            <ExpandOutlined style={{ fontSize: 16, color: '#666' }} />
+                            <CompressOutlined style={{ fontSize: 14, color: '#666' }} /> :
+                            <ExpandOutlined style={{ fontSize: 14, color: '#666' }} />
                         }
                     </Tooltip>
                 </div>
             </div>
 
             {/* Stat grid */}
-            <div style={{ padding: 16 }}>
-                <Row gutter={[8, 8]} style={{ marginBottom: 12 }}>
+            <div style={{ padding: 12 }}>
+                <Row gutter={[6, 6]} style={{ marginBottom: 8 }}>
                     <Col flex="1">
                         <StatPill
                             icon={<CrownOutlined style={{ color: '#00b96b' }} />}
-                            label="Win"
+                            label="W"
                             value={getDisplayValue('wins', player.wins)}
                             background="#e6fffb"
                         />
@@ -172,7 +193,7 @@ const PlayerCard = ({ player, showPercentages = false, sortBy = null }) => {
                     <Col flex="1">
                         <StatPill
                             icon={<LockOutlined style={{ color: '#faad14' }} />}
-                            label="Draw"
+                            label="D"
                             value={getDisplayValue('draws', player.draws)}
                             background="#fffbe6"
                         />
@@ -180,19 +201,19 @@ const PlayerCard = ({ player, showPercentages = false, sortBy = null }) => {
                     <Col flex="1">
                         <StatPill
                             icon={<CloseCircleOutlined style={{ color: '#ff4d4f' }} />}
-                            label="Loss"
+                            label="L"
                             value={getDisplayValue('losses', player.losses)}
                             background="#fff1f0"
                         />
                     </Col>
                 </Row>
 
-                <Row gutter={[8, 8]} style={{ marginBottom: 12 }}>
+                <Row gutter={[6, 6]} style={{ marginBottom: 8 }}>
                     <Col flex="1">
-                        <StatPill icon={<PlusOutlined />} label="GF" value={`+${player.goalsFor}`} />
+                        <StatPill icon={<PlusOutlined />} label="GF" value={player.goalsFor} />
                     </Col>
                     <Col flex="1">
-                        <StatPill icon={<MinusOutlined />} label="GA" value={`-${player.goalsAgainst}`} />
+                        <StatPill icon={<MinusOutlined />} label="GA" value={player.goalsAgainst} />
                     </Col>
                     <Col flex="1">
                         <StatPill
@@ -203,32 +224,17 @@ const PlayerCard = ({ player, showPercentages = false, sortBy = null }) => {
                     </Col>
                 </Row>
 
-                {/* PoM */}
-                {player.playerOfTheMatchCount > 0 && (
-                    <Row style={{ marginBottom: 12 }}>
-                        <Col flex="1">
-                            <StatPill
-                                icon={<StarFilled style={{ color: 'orange' }} />}
-                                label="PoM"
-                                value={player.playerOfTheMatchCount}
-                                background="#fff7e6"
-                                tooltip="Player of the Match Count"
-                            />
-                        </Col>
-                    </Row>
-                )}
-
                 {/* Last 5 form bar */}
-                <div style={{ display: 'flex', gap: 8, marginTop: 16 }}>
+                <div style={{ display: 'flex', gap: 6, marginTop: 12 }}>
                     {form.map((result, idx) => (
                         <div
                             key={idx}
                             style={{
-                                height: 10,
+                                height: 8,
                                 flex: 1,
                                 maxWidth: '20%',
                                 background: colorMap[result] || '#d9d9d9',
-                                borderRadius: 8,
+                                borderRadius: 6,
                             }}
                         />
                     ))}

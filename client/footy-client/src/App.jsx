@@ -167,24 +167,44 @@ function App() {
       <Router>
         <div className="App">
           {isAuthenticated && <Avatar />}
-          <div className="header">
+          <div className="header" style={{ marginLeft: '60px' }}>
             {!isAuthenticated && (
-              <Space direction="vertical">
+              <div style={{
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                justifyContent: 'center',
+                padding: '40px 20px',
+                textAlign: 'center'
+              }}>
                 <Image
-                  width={200}
-                  height={200}
+                  width={80}
+                  height={80}
                   preview={false}
                   src="fp_logo.png"
-                  style={{ marginBottom: "20px" }}
+                  style={{ marginBottom: "16px" }}
                 />
+                <Title level={2} style={{ marginBottom: "8px", color: '#00b96b' }}>
+                  Teamix
+                </Title>
+                <Paragraph style={{ marginBottom: "24px", color: '#666', maxWidth: '300px' }}>
+                  Organize your football teams with ease. Track stats, manage players, and make every game count.
+                </Paragraph>
                 <Button
                   type="primary"
                   size="large"
                   onClick={() => loginWithRedirect()}
+                  style={{
+                    borderRadius: '8px',
+                    height: '44px',
+                    fontSize: '16px',
+                    paddingLeft: '32px',
+                    paddingRight: '32px'
+                  }}
                 >
-                  Log in
+                  Get Started
                 </Button>
-              </Space>
+              </div>
             )}
           </div>
           <Routes>
@@ -194,30 +214,49 @@ function App() {
               path="/"
               element={
                 <div className="content scroll-list">
-                  <div
-                    style={{
-                      borderBottom: "1px solid black",
-                      marginBottom: 8,
-                      width: "100%",
-                    }}
-                  >
-                    {hasJoinedRoom ? (
-                      <>
-                        <Title level={4} style={{ marginTop: 0 }}>
+                  {hasJoinedRoom && (
+                    <div
+                      style={{
+                        padding: '8px 12px',
+                        borderRadius: '6px',
+                        marginBottom: '12px',
+                        backgroundColor: '#f6ffed',
+                        border: '1px solid #b7eb8f',
+                        marginLeft: '60px'
+                      }}
+                    >
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <Text strong style={{ fontSize: '14px', color: '#389e0d' }}>
                           {roomName}
-                        </Title>
-                      </>
-                    ) : (
-                      <Title level={4} style={{ marginTop: 0 }}>
-                        Teamix
-                      </Title>
-                    )}
-                    {hasJoinedRoom && (
-                      <Paragraph>
-                        Room Code: <Text code strong>{roomCode}</Text>
-                      </Paragraph>
-                    )}
-                  </div>
+                        </Text>
+                        <Text
+                          code
+                          style={{
+                            fontSize: '12px'
+                          }}
+                        >
+                          {roomCode}
+                        </Text>
+                      </div>
+                    </div>
+                  )}
+                  {!hasJoinedRoom && (
+                    <div
+                      style={{
+                        textAlign: 'center',
+                        padding: '12px 16px',
+                        borderRadius: '6px',
+                        backgroundColor: '#fafafa',
+                        marginBottom: '12px',
+                        border: '1px solid #f0f0f0',
+                        marginLeft: '60px'
+                      }}
+                    >
+                      <Text style={{ fontSize: '14px', color: '#666' }}>
+                        Welcome to Teamix
+                      </Text>
+                    </div>
+                  )}
                   {isAuthenticated ? (
                     loading ? (
                       <Spin size="large" />
