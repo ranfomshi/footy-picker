@@ -1,8 +1,29 @@
 import React, { useEffect, useState } from 'react';
 import axios from 'axios';
-import { Spin, Card, Tooltip, Select, Space, Typography, Button, Switch } from 'antd';
+import {
+    Spin,
+    Card,
+    Tooltip,
+    Select,
+    Space,
+    Typography,
+    Button,
+    Switch,
+    Input,
+    Modal,
+    message,
+    Dropdown,
+    Menu
+} from 'antd';
 import { useAuth0 } from '@auth0/auth0-react';
-import { CheckCircleOutlined, SortAscendingOutlined, SortDescendingOutlined } from '@ant-design/icons';
+import {
+    CheckCircleOutlined,
+    SortAscendingOutlined,
+    SortDescendingOutlined,
+    PlusOutlined,
+    MoreOutlined,
+    SearchOutlined
+} from '@ant-design/icons';
 import PlayerCard from './PlayerCard';
 
 const { Text } = Typography;
@@ -43,12 +64,161 @@ const Stat = ({ label, value, percent }) => (
 const PlayerStats = () => {
     const { getAccessTokenSilently } = useAuth0();
     const [players, setPlayers] = useState([]);
+    const [filteredPlayers, setFilteredPlayers] = useState([]);
     const [loading, setLoading] = useState(true);
     const [sortBy, setSortBy] = useState('wins');
     const [sortOrder, setSortOrder] = useState('desc'); // 'asc' or 'desc'
     const [showPercentages, setShowPercentages] = useState(false); // Toggle for percentage vs actual numbers
+    const [searchTerm, setSearchTerm] = useState("");
+
+    // Player management states
+    const [newPlayerName, setNewPlayerName] = useState("");
+    const [editingPlayer, setEditingPlayer] = useState(null);
+    const [editingPlayerName, setEditingPlayerName] = useState("");
+    const [isAddModalVisible, setIsAddModalVisible] = useState(false);
+    const [isEditModalVisible, setIsEditModalVisible] = useState(false);
+    const [isDeleteModalVisible, setIsDeleteModalVisible] = useState(false);
+    const [playerToDelete, setPlayerToDelete] = useState(null);
+    const [playerLoading, setPlayerLoading] = useState(false);
 
     const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
+
+    // Player management functions
+    const addPlayer = async () => {
+        if (!newPlayerName.trim()) {
+            message.error("Player name cannot be empty");
+            return;
+        }
+
+        const duplicatePlayer = players.find(
+            (player) => player.name.toLowerCase() === newPlayerName.toLowerCase()
+        );
+        if (duplicatePlayer) {
+            message.error("Player name already exists");
+            return;
+        }
+
+        setPlayerLoading(true);
+        try {
+            const token = await getAccessTokenSilently();
+            await axios.post(
+                `${API_BASE_URL}/players`,
+                { name: newPlayerName },
+                {
+                    headers: {
+                        Authorization: `Bearer ${token}`,
+                    },
+                }
+            );
+            setNewPlayerName("");
+            await fetchPlayerStats();
+            setIsAddModalVisible(false);
+            message.success("Player added successfully");
+        } catch (error) {
+            console.error("Error adding player", error);
+            message.error(error.response?.data?.error || "Error adding player");
+        } finally {
+            setPlayerLoading(false);
+        }
+    };
+
+    const editPlayer = (player) => {
+        setEditingPlayer(player);
+        setEditingPlayerName(player.name);
+        setIsEditModalVisible(true);
+    };
+
+    const updatePlayer = async () => {
+        if (!editingPlayerName.trim()) {
+            message.error("Player name cannot be empty");
+            return;
+        }
+
+        const duplicatePlayer = players.find(
+            (player) =>
+                player.name.toLowerCase() === editingPlayerName.toLowerCase() &&
+                player.id !== editingPlayer.id
+        );
+        if (duplicatePlayer) {
+            message.error("Player name already exists");
+            return;
+        }
+
+        setPlayerLoading(true);
+        try {
+            const token = await getAccessTokenSilently();
+            await axios.put(
+                `${API_BASE_URL}/players/${editingPlayer.id}`,
+                { name: editingPlayerName },
+                {
+                    headers: {
+                        Authorization: `Bearer ${token}`,
+                    },
+                }
+            );
+            setIsEditModalVisible(false);
+            setEditingPlayer(null);
+            setEditingPlayerName("");
+            await fetchPlayerStats();
+            message.success("Player updated successfully");
+        } catch (error) {
+            console.error("Error updating player", error);
+            message.error("Error updating player");
+        } finally {
+            setPlayerLoading(false);
+        }
+    };
+
+    const showDeleteModal = (player) => {
+        setPlayerToDelete(player);
+        setIsDeleteModalVisible(true);
+    };
+
+    const handleDelete = async () => {
+        if (!playerToDelete) return;
+        setPlayerLoading(true);
+        try {
+            const token = await getAccessTokenSilently();
+            await axios.delete(`${API_BASE_URL}/players/${playerToDelete.id}`, {
+                headers: {
+                    Authorization: `Bearer ${token}`,
+                },
+            });
+            await fetchPlayerStats();
+            setIsDeleteModalVisible(false);
+            setPlayerToDelete(null);
+            message.success("Player deleted successfully");
+        } catch (error) {
+            console.error("Error deleting player", error);
+            message.error("Error deleting player");
+        } finally {
+            setPlayerLoading(false);
+        }
+    };
+
+    const viewPlayerDetails = (player) => {
+        // No longer needed - details are shown in expandable cards
+    };
+
+    const handleSearch = (value) => {
+        setSearchTerm(value);
+        const filtered = players.filter((player) =>
+            player.name.toLowerCase().includes(value.toLowerCase())
+        );
+        setFilteredPlayers(filtered);
+    };
+
+    const handleAddPlayerKeyPress = (e) => {
+        if (e.key === "Enter") {
+            addPlayer();
+        }
+    };
+
+    const handleUpdatePlayerKeyPress = (e) => {
+        if (e.key === "Enter") {
+            updatePlayer();
+        }
+    };
 
     const sortOptions = [
         { value: 'wins', label: 'Wins' },
@@ -138,7 +308,7 @@ const PlayerStats = () => {
         });
     };
 
-    const sortedPlayers = sortPlayers(players, sortBy, sortOrder, showPercentages);
+    const sortedPlayers = sortPlayers(filteredPlayers, sortBy, sortOrder, showPercentages);
 
     const toggleSortOrder = () => {
         setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc');
@@ -154,7 +324,9 @@ const PlayerStats = () => {
             const { data } = await axios.get(`${API_BASE_URL}/players`, {
                 headers: { Authorization: `Bearer ${token}` },
             });
-            setPlayers(data);
+            const sortedData = data.sort((a, b) => a.name.localeCompare(b.name));
+            setPlayers(sortedData);
+            setFilteredPlayers(sortedData);
         } catch (error) {
             console.error('Error fetching player stats', error);
         } finally {
@@ -168,24 +340,47 @@ const PlayerStats = () => {
     }, []);
 
     return (
-        <div style={{ maxHeight: '70vh', overflowY: 'auto', paddingRight: 8 }}>
-            <div style={{ marginBottom: 16, padding: '0 8px' }}>
-                <Space align="center" style={{ width: '100%', justifyContent: 'space-between', flexWrap: 'wrap' }}>
-                    <Text strong style={{ fontSize: 16 }}>Player Statistics</Text>
-                    <Space>
+        <Spin spinning={playerLoading}>
+            <div style={{ maxHeight: '70vh', overflowY: 'auto', paddingRight: 8 }}>
+                {/* Header with Add Player Button */}
+                <div style={{ marginBottom: 16, padding: '0 8px' }}>
+                    <Space align="center" style={{ width: '100%', justifyContent: 'space-between', flexWrap: 'wrap', marginBottom: 8 }}>
+                        <Text strong style={{ fontSize: 16 }}>Players</Text>
+                        <Button
+                            type="primary"
+                            icon={<PlusOutlined />}
+                            size="small"
+                            onClick={() => setIsAddModalVisible(true)}
+                        >
+                            Add Player
+                        </Button>
+                    </Space>
+
+                    {/* Search Input */}
+                    <Input
+                        placeholder="Search players..."
+                        value={searchTerm}
+                        onChange={(e) => handleSearch(e.target.value)}
+                        prefix={<SearchOutlined />}
+                        style={{ marginBottom: 8 }}
+                    />
+
+                    {/* Controls */}
+                    <Space align="center" style={{ width: '100%', justifyContent: 'flex-end', flexWrap: 'wrap' }}>
                         <Select
                             value={sortBy}
                             onChange={setSortBy}
-                            style={{ width: 200 }}
+                            style={{ width: 180 }}
+                            size="small"
                             placeholder="Sort by..."
                             options={sortOptions}
                         />
                         <Tooltip title={`Sort ${sortOrder === 'asc' ? 'Ascending' : 'Descending'} - Click to toggle`}>
                             <Button
                                 type="text"
+                                size="small"
                                 icon={sortOrder === 'asc' ? <SortAscendingOutlined /> : <SortDescendingOutlined />}
                                 onClick={toggleSortOrder}
-                                style={{ display: 'flex', alignItems: 'center' }}
                             />
                         </Tooltip>
                         {canShowPercentages && (
@@ -201,23 +396,76 @@ const PlayerStats = () => {
                             </Space>
                         )}
                     </Space>
-                </Space>
-            </div>
-            {loading ? (
-                <div style={{ textAlign: 'center', padding: '50px 0' }}>
-                    <Spin size="large" />
                 </div>
-            ) : (
-                sortedPlayers.map((player) => (
-                    <PlayerCard
-                        key={player.id}
-                        player={player}
-                        showPercentages={showPercentages}
-                        sortBy={sortBy}
+
+                {/* Content */}
+                {loading ? (
+                    <div style={{ textAlign: 'center', padding: '50px 0' }}>
+                        <Spin size="large" />
+                    </div>
+                ) : (
+                    // Stats Cards View
+                    sortedPlayers.map((player) => (
+                        <PlayerCard
+                            key={player.id}
+                            player={player}
+                            showPercentages={showPercentages}
+                            sortBy={sortBy}
+                            onEdit={editPlayer}
+                            onDelete={showDeleteModal}
+                        />
+                    ))
+                )}
+
+                {/* Add Player Modal */}
+                <Modal
+                    title="Add Player"
+                    visible={isAddModalVisible}
+                    onOk={addPlayer}
+                    onCancel={() => setIsAddModalVisible(false)}
+                    confirmLoading={playerLoading}
+                >
+                    <Input
+                        value={newPlayerName}
+                        onChange={(e) => setNewPlayerName(e.target.value)}
+                        onKeyPress={handleAddPlayerKeyPress}
+                        placeholder="Enter player name"
+                        autoFocus
                     />
-                ))
-            )}
-        </div>
+                </Modal>
+
+                {/* Edit Player Modal */}
+                <Modal
+                    title="Edit Player"
+                    visible={isEditModalVisible}
+                    onOk={updatePlayer}
+                    onCancel={() => setIsEditModalVisible(false)}
+                    confirmLoading={playerLoading}
+                >
+                    <Input
+                        value={editingPlayerName}
+                        onChange={(e) => setEditingPlayerName(e.target.value)}
+                        onKeyPress={handleUpdatePlayerKeyPress}
+                        placeholder="Enter new player name"
+                        autoFocus
+                    />
+                </Modal>
+
+                {/* Delete Player Modal */}
+                <Modal
+                    title="Confirm Delete"
+                    visible={isDeleteModalVisible}
+                    onOk={handleDelete}
+                    onCancel={() => setIsDeleteModalVisible(false)}
+                    okButtonProps={{ danger: true }}
+                    okText="Delete"
+                    confirmLoading={playerLoading}
+                >
+                    <p>Are you sure you want to delete this player? This action cannot be undone.</p>
+                    <p>To leave the room but have your player's rank and stats retained go to the Account Management tab</p>
+                </Modal>
+            </div>
+        </Spin>
     );
 };
 

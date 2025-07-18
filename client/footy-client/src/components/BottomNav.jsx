@@ -6,7 +6,7 @@ import useStore from '../useStore';
 import { Button } from 'antd';
 
 const BottomNav = ({ activeKey, onChange }) => {
-    const {logout, isAuthenticated, user } = useAuth0();
+    const { logout, isAuthenticated, user } = useAuth0();
     const { hasJoinedRoom } = useStore();
     // Define styles for the active tab
     const activeTabStyle = {
@@ -14,37 +14,31 @@ const BottomNav = ({ activeKey, onChange }) => {
     };
 
     return (isAuthenticated && hasJoinedRoom ?
-        <TabBar style={{zIndex:9}} activeKey={activeKey} onChange={onChange}>
-            <TabBar.Item 
-                key="players" 
-                icon={<UserOutline />} 
-                title="Players" 
-                style={activeKey === 'players' ? activeTabStyle : {}}
-            />
-            <TabBar.Item 
-                key="gameweeks" 
-                icon={<CalendarOutline />} 
-                title="Gameweeks" 
-                style={activeKey === 'gameweeks' ? activeTabStyle : {}}
-            />
-            <TabBar.Item 
-                key="playerStats" 
-                icon={<PieOutline />} 
-                title="Player Stats" 
+        <TabBar style={{ zIndex: 9 }} activeKey={activeKey} onChange={onChange}>
+            <TabBar.Item
+                key="playerStats"
+                icon={<UserOutline />}
+                title="Players"
                 style={activeKey === 'playerStats' ? activeTabStyle : {}}
             />
-            <TabBar.Item 
-                key="account" 
-                icon={<SetOutline />} 
-                title="Account" 
+            <TabBar.Item
+                key="gameweeks"
+                icon={<CalendarOutline />}
+                title="Gameweeks"
+                style={activeKey === 'gameweeks' ? activeTabStyle : {}}
+            />
+            <TabBar.Item
+                key="account"
+                icon={<SetOutline />}
+                title="Account"
                 style={activeKey === 'account' ? activeTabStyle : {}}
             />
-        </TabBar> : 
-                
-              isAuthenticated && <Button  onClick={() => logout({ returnTo: window.location.origin })} block>Log Out</Button> 
-              
-              
-           
+        </TabBar> :
+
+        isAuthenticated && <Button onClick={() => logout({ returnTo: window.location.origin })} block>Log Out</Button>
+
+
+
     );
 };
 

@@ -1,7 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { BrowserRouter as Router, Route, Routes } from "react-router-dom"; // Import updated routing components
 import "./App.css";
-import AddPlayer from "./components/AddPlayer";
 import axios from "axios";
 import GameweekManager from "./components/GameweekManager";
 import BottomNav from "./components/BottomNav";
@@ -53,7 +52,7 @@ function App() {
   const { loginWithRedirect, isAuthenticated, getAccessTokenSilently, error } =
     useAuth0();
   const [players, setPlayers] = useState([]);
-  const [activeKey, setActiveKey] = useState("players");
+  const [activeKey, setActiveKey] = useState("playerStats");
   const [loading, setLoading] = useState(true);
   const {
     hasJoinedRoom,
@@ -118,7 +117,7 @@ function App() {
       },
     });
     setPlayers(response.data);
-    setActiveKey("players"); // Set active component to "AddPlayer"
+    setActiveKey("playerStats"); // Set active component to "PlayerStats"
   };
 
   const fetchPlayers = async () => {
@@ -137,8 +136,6 @@ function App() {
 
   const renderContent = () => {
     switch (activeKey) {
-      case "players":
-        return <AddPlayer fetchPlayers={fetchPlayers} players={players} />;
       case "gameweeks":
         return <GameweekManager />;
       case "playerStats":
@@ -146,7 +143,7 @@ function App() {
       case "account":
         return <AccountManager />;
       default:
-        return null;
+        return <PlayerStats />;
     }
   };
 

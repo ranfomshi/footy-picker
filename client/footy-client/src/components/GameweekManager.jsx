@@ -1,10 +1,11 @@
-// src/components/GameweekManager.jsx
 import React, { useEffect, useState } from "react";
 import axios from "axios";
-import { Button, DatePicker, message, Form, Modal, Space, Input, Row, Col, TimePicker, InputNumber, AutoComplete } from "antd";
-import { PlusOutlined } from "@ant-design/icons";
+import { Button, DatePicker, message, Form, Modal, Space, Input, Row, Col, TimePicker, InputNumber, AutoComplete, Typography } from "antd";
+import { PlusOutlined, CalendarOutlined } from "@ant-design/icons";
 import GameweekList from "./GameweekList";
 import { useAuth0 } from "@auth0/auth0-react";
+
+const { Text } = Typography;
 
 const GameweekManager = () => {
   const { getAccessTokenSilently } = useAuth0();
@@ -166,16 +167,28 @@ const GameweekManager = () => {
     });
 
   return (
-    <>
-      <Button
-        block
-        type="primary"
-        icon={<PlusOutlined />}
-        onClick={() => setIsAddVisible(true)}
-        style={{ marginBottom: 16 }}
-      >
-        Add Gameweek
-      </Button>
+    <div style={{ maxHeight: '70vh', overflowY: 'auto', paddingRight: 8 }}>
+      {/* Header with Add Button */}
+      <div style={{ marginBottom: 16, padding: '0 8px' }}>
+        <Space align="center" style={{ width: '100%', justifyContent: 'space-between', flexWrap: 'wrap' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <CalendarOutlined style={{ fontSize: 18, color: '#00b96b' }} />
+            <Text strong style={{ fontSize: 16 }}>Gameweeks</Text>
+          </div>
+          <Button
+            type="primary"
+            icon={<PlusOutlined />}
+            size="small"
+            onClick={() => setIsAddVisible(true)}
+            style={{
+              borderRadius: '8px',
+              boxShadow: '0 2px 4px rgba(0,185,107,0.2)'
+            }}
+          >
+            Add Gameweek
+          </Button>
+        </Space>
+      </div>
 
       <GameweekList
         sortedGameweeks={sorted}
@@ -202,13 +215,19 @@ const GameweekManager = () => {
         setSearchTerm={setSearchTerm}
       />
 
-      {/* Add Gameweek */}
+      {/* Add Gameweek Modal */}
       <Modal
-        title="Add Gameweek"
+        title={
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <CalendarOutlined style={{ color: '#00b96b' }} />
+            <span>Add New Gameweek</span>
+          </div>
+        }
         open={isAddVisible}
         onCancel={() => setIsAddVisible(false)}
         footer={null}
         destroyOnClose
+        style={{ top: 20 }}
       >
         <Form
           form={addForm}
@@ -279,9 +298,11 @@ const GameweekManager = () => {
             />
           </Form.Item>
 
-          <Form.Item>
-            <Space>
-              <Button onClick={() => { setIsAddVisible(false); addForm.resetFields(); }}>Cancel</Button>
+          <Form.Item style={{ marginBottom: 0, paddingTop: 16 }}>
+            <Space style={{ width: '100%', justifyContent: 'flex-end' }}>
+              <Button onClick={() => { setIsAddVisible(false); addForm.resetFields(); }}>
+                Cancel
+              </Button>
               <Button type="primary" htmlType="submit">
                 Add Gameweek
               </Button>
@@ -290,26 +311,26 @@ const GameweekManager = () => {
         </Form>
       </Modal>
 
-      {/* Manual Override */}
+      {/* Manual Override Modal */}
       <Modal
-        title="Override Assignments"
+        title="Override Team Assignments"
         visible={isManualVisible}
         onCancel={() => setIsManualVisible(false)}
         footer={null}
       >
         <Form form={form} layout="vertical" onFinish={handleManual}>
           {/* your override UI */}
-          <Form.Item>
-            <Space>
+          <Form.Item style={{ marginBottom: 0 }}>
+            <Space style={{ width: '100%', justifyContent: 'flex-end' }}>
               <Button onClick={() => setIsManualVisible(false)}>Cancel</Button>
               <Button type="primary" htmlType="submit">
-                Save
+                Save Changes
               </Button>
             </Space>
           </Form.Item>
         </Form>
       </Modal>
-    </>
+    </div>
   );
 };
 

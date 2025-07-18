@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Card, Tooltip, Typography, Row, Col, Collapse, Divider, Progress, Avatar, List } from 'antd';
+import { Card, Tooltip, Typography, Row, Col, Collapse, Divider, Progress, Avatar, List, Button, Dropdown, Menu } from 'antd';
 import {
     CheckCircleOutlined,
     SafetyCertificateOutlined,
@@ -17,6 +17,9 @@ import {
     TrophyOutlined,
     UserOutlined,
     TeamOutlined,
+    MoreOutlined,
+    EditOutlined,
+    DeleteOutlined,
 } from '@ant-design/icons';
 
 const { Text } = Typography;
@@ -27,7 +30,7 @@ const colorMap = {
     loss: '#ff4d4f',
 };
 
-const PlayerCard = ({ player, showPercentages = false, sortBy = null }) => {
+const PlayerCard = ({ player, showPercentages = false, sortBy = null, onEdit, onDelete }) => {
     const [expanded, setExpanded] = useState(false);
     const totalGames = player.wins + player.losses + player.draws;
     const goalDiff = player.goalsFor - player.goalsAgainst;
@@ -170,6 +173,38 @@ const PlayerCard = ({ player, showPercentages = false, sortBy = null }) => {
                             </Tooltip>
                         )}
                     </div>
+                    {onEdit && onDelete && (
+                        <Dropdown
+                            overlay={
+                                <Menu>
+                                    <Menu.Item
+                                        key="edit"
+                                        icon={<EditOutlined />}
+                                        onClick={() => onEdit(player)}
+                                    >
+                                        Edit
+                                    </Menu.Item>
+                                    <Menu.Item
+                                        key="delete"
+                                        icon={<DeleteOutlined />}
+                                        onClick={() => onDelete(player)}
+                                        danger
+                                    >
+                                        Delete
+                                    </Menu.Item>
+                                </Menu>
+                            }
+                            trigger={['click']}
+                        >
+                            <Button
+                                type="text"
+                                size="small"
+                                icon={<MoreOutlined />}
+                                onClick={(e) => e.stopPropagation()}
+                                style={{ marginRight: 4 }}
+                            />
+                        </Dropdown>
+                    )}
                     <Tooltip title={expanded ? 'Collapse details' : 'Expand details'}>
                         {expanded ?
                             <CompressOutlined style={{ fontSize: 14, color: '#666' }} /> :
