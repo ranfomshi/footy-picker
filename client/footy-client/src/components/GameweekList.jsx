@@ -152,7 +152,7 @@ const GameweekList = ({
                   <Text style={{ fontSize: 11, color: '#999' }}>
                     {startTime}
                   </Text>
-                  
+
                   {location && (
                     <Tooltip title={location.length > 15 ? location : null}>
                       <Text style={{ fontSize: 11, color: '#999' }}>
@@ -160,7 +160,7 @@ const GameweekList = ({
                       </Text>
                     </Tooltip>
                   )}
-                  
+
                   {maxPlayers && !gameResult && (
                     <Text style={{ fontSize: 11, color: '#999' }}>
                       • {availablePlayersCount}/{maxPlayers}
@@ -178,12 +178,12 @@ const GameweekList = ({
                     backgroundColor: '#00b96b'
                   }} />
                 )}
-                
+
                 {/* Game result - right aligned next to expand icon */}
                 {gameResult && (
-                  <div style={{ 
-                    display: 'flex', 
-                    alignItems: 'center', 
+                  <div style={{
+                    display: 'flex',
+                    alignItems: 'center',
                     justifyContent: 'center',
                     minWidth: 40,
                     background: '#e6fffb',
@@ -200,7 +200,7 @@ const GameweekList = ({
                     <span style={{ width: 12, textAlign: 'left' }}>{gameResult.teamB_score}</span>
                   </div>
                 )}
-                
+
                 {menuItems.length > 0 && (
                   <Dropdown
                     overlay={<Menu>{menuItems}</Menu>}
@@ -211,9 +211,9 @@ const GameweekList = ({
                       size="small"
                       icon={<EllipsisOutlined />}
                       onClick={(e) => e.stopPropagation()}
-                      style={{ 
-                        width: 24, 
-                        height: 24, 
+                      style={{
+                        width: 24,
+                        height: 24,
                         minWidth: 24,
                         color: '#999'
                       }}
@@ -238,8 +238,8 @@ const GameweekList = ({
                   // Game Results View
                   <>
                     {playerOfTheMatch?.length > 0 && (
-                      <div style={{ 
-                        marginBottom: 16, 
+                      <div style={{
+                        marginBottom: 16,
                         padding: '12px 16px',
                         background: '#fff7e6',
                         borderRadius: 8,
@@ -276,7 +276,7 @@ const GameweekList = ({
                         onChange={(e) => setSearchTerm(e.target.value)}
                         style={{ marginBottom: 12 }}
                       />
-                      
+
                       <div style={{
                         maxHeight: 200,
                         overflowY: 'auto',
@@ -364,7 +364,7 @@ const GameweekList = ({
                         </div>
                       </div>
                     </Col>
-                    
+
                     <Col span={12}>
                       <div style={{
                         background: '#fff',

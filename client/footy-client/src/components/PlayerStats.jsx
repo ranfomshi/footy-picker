@@ -341,7 +341,7 @@ const PlayerStats = () => {
 
     return (
         <Spin spinning={playerLoading}>
-            <div style={{ maxHeight: '70vh', overflowY: 'auto', paddingRight: 8 }}>
+            <div style={{ overflowY: 'auto', paddingRight: 8 }}>
                 {/* Header with Add Player Button */}
                 <div style={{ marginBottom: 16, padding: '0 8px' }}>
                     <Space align="center" style={{ width: '100%', justifyContent: 'space-between', flexWrap: 'wrap', marginBottom: 8 }}>

@@ -11,9 +11,9 @@ const useStore = create((set) => ({
   setRoomCode: (roomCode) => set({ roomCode }),
   setRoomName: (roomName) => set({ roomName }),
   setTeamColors: (teamAColor, teamBColor) => set({ teamAColor, teamBColor }),
-  setRoomMembership: (hasJoinedRoom, roomCode, roomName, teamAColor, teamBColor) => set({ 
-    hasJoinedRoom, 
-    roomCode, 
+  setRoomMembership: (hasJoinedRoom, roomCode, roomName, teamAColor, teamBColor) => set({
+    hasJoinedRoom,
+    roomCode,
     roomName,
     teamAColor: teamAColor || '#1890ff',
     teamBColor: teamBColor || '#f5222d'

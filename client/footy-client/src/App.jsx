@@ -164,8 +164,8 @@ function App() {
       <Router>
         <div className="App">
           {isAuthenticated && <Avatar />}
-          <div className="header" style={{ marginLeft: '60px' }}>
-            {!isAuthenticated && (
+          {!isAuthenticated && (
+            <div className="header" style={{ marginLeft: '60px' }}>
               <div style={{
                 display: 'flex',
                 flexDirection: 'column',
@@ -202,8 +202,8 @@ function App() {
                   Get Started
                 </Button>
               </div>
-            )}
-          </div>
+            </div>
+          )}
           <Routes>
             <Route path="/privacy" element={<Privacy />} />
             <Route path="/support" element={<Support />} />
@@ -214,9 +214,9 @@ function App() {
                   {hasJoinedRoom && (
                     <div
                       style={{
-                        padding: '8px 12px',
+                        padding: '6px 12px',
                         borderRadius: '6px',
-                        marginBottom: '12px',
+                        marginBottom: '8px',
                         backgroundColor: '#f6ffed',
                         border: '1px solid #b7eb8f',
                         marginLeft: '60px'
@@ -241,10 +241,10 @@ function App() {
                     <div
                       style={{
                         textAlign: 'center',
-                        padding: '12px 16px',
+                        padding: '8px 16px',
                         borderRadius: '6px',
                         backgroundColor: '#fafafa',
-                        marginBottom: '12px',
+                        marginBottom: '8px',
                         border: '1px solid #f0f0f0',
                         marginLeft: '60px'
                       }}

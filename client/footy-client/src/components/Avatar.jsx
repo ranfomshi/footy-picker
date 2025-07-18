@@ -14,7 +14,7 @@ const Avatar = () => {
         height: 40,
         width: 40,
         position: "absolute",
-        top: 16,
+        top: 8,
         left: 16,
       }}
     />
