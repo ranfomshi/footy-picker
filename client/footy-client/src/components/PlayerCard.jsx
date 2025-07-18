@@ -1,5 +1,5 @@
-import React from 'react';
-import { Card, Tooltip, Typography, Row, Col } from 'antd';
+import React, { useState } from 'react';
+import { Card, Tooltip, Typography, Row, Col, Collapse, Divider, Progress, Avatar, List } from 'antd';
 import {
     CheckCircleOutlined,
     SafetyCertificateOutlined,
@@ -10,6 +10,13 @@ import {
     MinusOutlined,
     FileTextOutlined,
     StarFilled,
+    ExpandOutlined,
+    CompressOutlined,
+    PercentageOutlined,
+    CalendarOutlined,
+    TrophyOutlined,
+    UserOutlined,
+    TeamOutlined,
 } from '@ant-design/icons';
 
 const { Text } = Typography;
@@ -21,6 +28,7 @@ const colorMap = {
 };
 
 const PlayerCard = ({ player, showPercentages = false, sortBy = null }) => {
+    const [expanded, setExpanded] = useState(false);
     const totalGames = player.wins + player.losses + player.draws;
     const goalDiff = player.goalsFor - player.goalsAgainst;
     const form = player.lastFiveGames || [];
@@ -37,6 +45,10 @@ const PlayerCard = ({ player, showPercentages = false, sortBy = null }) => {
             return calculatePercentage(count, totalGames);
         }
         return count;
+    };
+
+    const toggleExpanded = () => {
+        setExpanded(!expanded);
     };
 
     const StatPill = ({ icon, label, value, background, style = {}, tooltip }) => {
@@ -64,6 +76,33 @@ const PlayerCard = ({ player, showPercentages = false, sortBy = null }) => {
         return tooltip ? <Tooltip title={tooltip}>{content}</Tooltip> : content;
     };
 
+    const DetailedStatRow = ({ icon, label, value, percentage, color }) => (
+        <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            padding: '8px 0',
+            borderBottom: '1px solid #f0f0f0'
+        }}>
+            <div style={{
+                display: 'flex',
+                alignItems: 'center',
+                minWidth: '140px',
+                gap: 8
+            }}>
+                {icon}
+                <Text style={{ fontSize: 13, fontWeight: 500 }}>{label}</Text>
+            </div>
+            <div style={{ flex: 1, textAlign: 'right' }}>
+                <Text strong style={{ fontSize: 14, color: color || '#000' }}>{value}</Text>
+                {percentage && (
+                    <div style={{ fontSize: 11, color: '#666', marginTop: 2 }}>
+                        {percentage}
+                    </div>
+                )}
+            </div>
+        </div>
+    );
+
     return (
         <Card
             style={{
@@ -86,26 +125,36 @@ const PlayerCard = ({ player, showPercentages = false, sortBy = null }) => {
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'space-between',
+                    cursor: 'pointer',
                 }}
+                onClick={toggleExpanded}
             >
                 <Text strong style={{ fontSize: 16 }}>
                     {player.name}
                 </Text>
-                <div>
-                    {player.auth0Id && (
-                        <Tooltip title="Linked to user">
-                            <CheckCircleOutlined
-                                style={{ color: '#00b96b', fontSize: 18, marginRight: 8 }}
-                            />
-                        </Tooltip>
-                    )}
-                    {player.isAdmin && (
-                        <Tooltip title="Admin">
-                            <SafetyCertificateOutlined
-                                style={{ color: '#722ed1', fontSize: 18 }}
-                            />
-                        </Tooltip>
-                    )}
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                    <div>
+                        {player.auth0Id && (
+                            <Tooltip title="Linked to user">
+                                <CheckCircleOutlined
+                                    style={{ color: '#00b96b', fontSize: 18, marginRight: 8 }}
+                                />
+                            </Tooltip>
+                        )}
+                        {player.isAdmin && (
+                            <Tooltip title="Admin">
+                                <SafetyCertificateOutlined
+                                    style={{ color: '#722ed1', fontSize: 18, marginRight: 8 }}
+                                />
+                            </Tooltip>
+                        )}
+                    </div>
+                    <Tooltip title={expanded ? 'Collapse details' : 'Expand details'}>
+                        {expanded ?
+                            <CompressOutlined style={{ fontSize: 16, color: '#666' }} /> :
+                            <ExpandOutlined style={{ fontSize: 16, color: '#666' }} />
+                        }
+                    </Tooltip>
                 </div>
             </div>
 
@@ -184,6 +233,151 @@ const PlayerCard = ({ player, showPercentages = false, sortBy = null }) => {
                         />
                     ))}
                 </div>
+
+                {/* Expanded Details */}
+                {expanded && (
+                    <>
+                        <Divider style={{ margin: '16px 0' }} />
+                        <div style={{ marginBottom: 16 }}>
+                            <Text strong style={{ fontSize: 14, color: '#333', marginBottom: 12, display: 'block' }}>
+                                📊 Detailed Statistics
+                            </Text>
+
+                            <DetailedStatRow
+                                icon={<TrophyOutlined style={{ color: '#00b96b' }} />}
+                                label="Win Rate"
+                                value={calculatePercentage(player.wins, totalGames)}
+                                color="#00b96b"
+                            />
+
+                            <DetailedStatRow
+                                icon={<CalendarOutlined style={{ color: '#1890ff' }} />}
+                                label="Total Games"
+                                value={totalGames}
+                                percentage={totalGames > 0 ? 'Games played' : 'No games yet'}
+                                color="#1890ff"
+                            />
+
+                            <DetailedStatRow
+                                icon={<PlusOutlined style={{ color: '#52c41a' }} />}
+                                label="Goals For"
+                                value={player.goalsFor}
+                                percentage={totalGames > 0 ? `${(player.goalsFor / totalGames).toFixed(1)} per game` : ''}
+                                color="#52c41a"
+                            />
+
+                            <DetailedStatRow
+                                icon={<MinusOutlined style={{ color: '#f5222d' }} />}
+                                label="Goals Against"
+                                value={player.goalsAgainst}
+                                percentage={totalGames > 0 ? `${(player.goalsAgainst / totalGames).toFixed(1)} per game` : ''}
+                                color="#f5222d"
+                            />
+
+                            <DetailedStatRow
+                                icon={<FileTextOutlined style={{ color: goalDiff >= 0 ? '#52c41a' : '#f5222d' }} />}
+                                label="Goal Difference"
+                                value={`${goalDiff >= 0 ? '+' : ''}${goalDiff}`}
+                                percentage={totalGames > 0 ? `${(goalDiff / totalGames).toFixed(1)} per game` : ''}
+                                color={goalDiff >= 0 ? '#52c41a' : '#f5222d'}
+                            />
+
+                            {player.playerOfTheMatchCount > 0 && (
+                                <DetailedStatRow
+                                    icon={<StarFilled style={{ color: '#fa8c16' }} />}
+                                    label="Player of the Match"
+                                    value={player.playerOfTheMatchCount}
+                                    percentage={calculatePercentage(player.playerOfTheMatchCount, totalGames)}
+                                    color="#fa8c16"
+                                />
+                            )}
+                        </div>
+
+                        {/* Performance Bars */}
+                        <div style={{ marginBottom: 16 }}>
+                            <Text strong style={{ fontSize: 14, color: '#333', marginBottom: 12, display: 'block' }}>
+                                📈 Performance Breakdown
+                            </Text>
+
+                            <div style={{ marginBottom: 8 }}>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
+                                    <Text style={{ fontSize: 12 }}>Wins</Text>
+                                    <Text style={{ fontSize: 12 }}>{player.wins}/{totalGames}</Text>
+                                </div>
+                                <Progress
+                                    percent={totalGames > 0 ? (player.wins / totalGames) * 100 : 0}
+                                    strokeColor="#00b96b"
+                                    showInfo={false}
+                                    size="small"
+                                />
+                            </div>
+
+                            <div style={{ marginBottom: 8 }}>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
+                                    <Text style={{ fontSize: 12 }}>Draws</Text>
+                                    <Text style={{ fontSize: 12 }}>{player.draws}/{totalGames}</Text>
+                                </div>
+                                <Progress
+                                    percent={totalGames > 0 ? (player.draws / totalGames) * 100 : 0}
+                                    strokeColor="#faad14"
+                                    showInfo={false}
+                                    size="small"
+                                />
+                            </div>
+
+                            <div>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
+                                    <Text style={{ fontSize: 12 }}>Losses</Text>
+                                    <Text style={{ fontSize: 12 }}>{player.losses}/{totalGames}</Text>
+                                </div>
+                                <Progress
+                                    percent={totalGames > 0 ? (player.losses / totalGames) * 100 : 0}
+                                    strokeColor="#ff4d4f"
+                                    showInfo={false}
+                                    size="small"
+                                />
+                            </div>
+                        </div>
+
+                        {/* Favorite Teammates Section */}
+                        {player.favoriteTeammates && player.favoriteTeammates.length > 0 && (
+                            <div style={{ marginBottom: 16 }}>
+                                <Text strong style={{ fontSize: 14, color: '#333', marginBottom: 12, display: 'block' }}>
+                                    🤝 Favorite Teammates by Win Percentage
+                                </Text>
+                                <List
+                                    size="small"
+                                    dataSource={player.favoriteTeammates.slice(0, 3)} // Show top 3
+                                    renderItem={(teammate) => (
+                                        <List.Item style={{ padding: '8px 0', borderBottom: '1px solid #f0f0f0' }}>
+                                            <List.Item.Meta
+                                                avatar={<Avatar size={32} icon={<UserOutlined />} />}
+                                                title={
+                                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                                        <Text strong style={{ fontSize: 13 }}>{teammate.name}</Text>
+                                                        <Text style={{ fontSize: 12, color: '#52c41a', fontWeight: 'bold' }}>
+                                                            {(teammate.winRate * 100).toFixed(1)}%
+                                                        </Text>
+                                                    </div>
+                                                }
+                                                description={
+                                                    <div style={{ fontSize: 11, color: '#666' }}>
+                                                        {teammate.matchesPlayedTogether} games • GD: {teammate.goalDifferenceTogether >= 0 ? '+' : ''}{teammate.goalDifferenceTogether}
+                                                    </div>
+                                                }
+                                            />
+                                        </List.Item>
+                                    )}
+                                />
+                                {player.favoriteTeammates.length === 0 && (
+                                    <Text style={{ fontSize: 12, color: '#999', fontStyle: 'italic' }}>
+                                        No favorite teammates yet (need 3+ games with a teammate)
+                                    </Text>
+                                )}
+                            </div>
+                        )}
+                    </>
+                )}
             </div>
         </Card>
     );
