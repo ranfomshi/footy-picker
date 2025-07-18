@@ -20,10 +20,24 @@ const colorMap = {
     loss: '#ff4d4f',
 };
 
-const PlayerCard = ({ player }) => {
+const PlayerCard = ({ player, showPercentages = false, sortBy = null }) => {
     const totalGames = player.wins + player.losses + player.draws;
     const goalDiff = player.goalsFor - player.goalsAgainst;
     const form = player.lastFiveGames || [];
+
+    // Helper function to calculate percentage
+    const calculatePercentage = (count, total) => {
+        if (total === 0) return '0%';
+        return `${((count / total) * 100).toFixed(1)}%`;
+    };
+
+    // Helper function to get display value based on showPercentages flag
+    const getDisplayValue = (stat, count) => {
+        if (showPercentages && ['wins', 'draws', 'losses'].includes(stat)) {
+            return calculatePercentage(count, totalGames);
+        }
+        return count;
+    };
 
     const StatPill = ({ icon, label, value, background, style = {}, tooltip }) => {
         const content = (
@@ -102,7 +116,7 @@ const PlayerCard = ({ player }) => {
                         <StatPill
                             icon={<CrownOutlined style={{ color: '#00b96b' }} />}
                             label="Win"
-                            value={player.wins}
+                            value={getDisplayValue('wins', player.wins)}
                             background="#e6fffb"
                         />
                     </Col>
@@ -110,7 +124,7 @@ const PlayerCard = ({ player }) => {
                         <StatPill
                             icon={<LockOutlined style={{ color: '#faad14' }} />}
                             label="Draw"
-                            value={player.draws}
+                            value={getDisplayValue('draws', player.draws)}
                             background="#fffbe6"
                         />
                     </Col>
@@ -118,7 +132,7 @@ const PlayerCard = ({ player }) => {
                         <StatPill
                             icon={<CloseCircleOutlined style={{ color: '#ff4d4f' }} />}
                             label="Loss"
-                            value={player.losses}
+                            value={getDisplayValue('losses', player.losses)}
                             background="#fff1f0"
                         />
                     </Col>

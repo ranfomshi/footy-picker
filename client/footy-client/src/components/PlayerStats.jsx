@@ -1,8 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import axios from 'axios';
-import { Spin, Card, Tooltip, Select, Space, Typography } from 'antd';
+import { Spin, Card, Tooltip, Select, Space, Typography, Button, Switch } from 'antd';
 import { useAuth0 } from '@auth0/auth0-react';
-import { CheckCircleOutlined } from '@ant-design/icons';
+import { CheckCircleOutlined, SortAscendingOutlined, SortDescendingOutlined } from '@ant-design/icons';
 import PlayerCard from './PlayerCard';
 
 const { Text } = Typography;
@@ -44,13 +44,16 @@ const PlayerStats = () => {
     const { getAccessTokenSilently } = useAuth0();
     const [players, setPlayers] = useState([]);
     const [loading, setLoading] = useState(true);
-    const [sortBy, setSortBy] = useState('winPercentage');
+    const [sortBy, setSortBy] = useState('wins');
+    const [sortOrder, setSortOrder] = useState('desc'); // 'asc' or 'desc'
+    const [showPercentages, setShowPercentages] = useState(false); // Toggle for percentage vs actual numbers
 
     const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
 
     const sortOptions = [
-        { value: 'winPercentage', label: 'Win Percentage' },
         { value: 'wins', label: 'Wins' },
+        { value: 'draws', label: 'Draws' },
+        { value: 'losses', label: 'Losses' },
         { value: 'totalGames', label: 'Total Games' },
         { value: 'goalsFor', label: 'Goals For' },
         { value: 'goalsAgainst', label: 'Goals Against' },
@@ -59,11 +62,21 @@ const PlayerStats = () => {
         { value: 'name', label: 'Name (A-Z)' },
     ];
 
-    const sortPlayers = (players, sortBy) => {
+    const sortPlayers = (players, sortBy, sortOrder, showPercentages) => {
         return [...players].sort((a, b) => {
             const calculateWinPercentage = (player) => {
                 const totalGames = player.wins + player.losses + player.draws;
                 return totalGames > 0 ? (player.wins / totalGames) * 100 : 0;
+            };
+
+            const calculateDrawPercentage = (player) => {
+                const totalGames = player.wins + player.losses + player.draws;
+                return totalGames > 0 ? (player.draws / totalGames) * 100 : 0;
+            };
+
+            const calculateLossPercentage = (player) => {
+                const totalGames = player.wins + player.losses + player.draws;
+                return totalGames > 0 ? (player.losses / totalGames) * 100 : 0;
             };
 
             const calculateTotalGames = (player) => {
@@ -74,30 +87,66 @@ const PlayerStats = () => {
                 return player.goalsFor - player.goalsAgainst;
             };
 
+            let comparison = 0;
+
             switch (sortBy) {
-                case 'winPercentage':
-                    return calculateWinPercentage(b) - calculateWinPercentage(a);
                 case 'wins':
-                    return b.wins - a.wins;
+                    if (showPercentages) {
+                        comparison = calculateWinPercentage(b) - calculateWinPercentage(a);
+                    } else {
+                        comparison = b.wins - a.wins;
+                    }
+                    break;
+                case 'draws':
+                    if (showPercentages) {
+                        comparison = calculateDrawPercentage(b) - calculateDrawPercentage(a);
+                    } else {
+                        comparison = b.draws - a.draws;
+                    }
+                    break;
+                case 'losses':
+                    if (showPercentages) {
+                        comparison = calculateLossPercentage(a) - calculateLossPercentage(b); // Lower loss percentage is better
+                    } else {
+                        comparison = a.losses - b.losses; // Lower losses is better
+                    }
+                    break;
                 case 'totalGames':
-                    return calculateTotalGames(b) - calculateTotalGames(a);
+                    comparison = calculateTotalGames(b) - calculateTotalGames(a);
+                    break;
                 case 'goalsFor':
-                    return b.goalsFor - a.goalsFor;
+                    comparison = b.goalsFor - a.goalsFor;
+                    break;
                 case 'goalsAgainst':
-                    return a.goalsAgainst - b.goalsAgainst; // Lower is better
+                    comparison = a.goalsAgainst - b.goalsAgainst; // Lower is better
+                    break;
                 case 'goalDifference':
-                    return calculateGoalDifference(b) - calculateGoalDifference(a);
+                    comparison = calculateGoalDifference(b) - calculateGoalDifference(a);
+                    break;
                 case 'playerOfTheMatchCount':
-                    return (b.playerOfTheMatchCount || 0) - (a.playerOfTheMatchCount || 0);
+                    comparison = (b.playerOfTheMatchCount || 0) - (a.playerOfTheMatchCount || 0);
+                    break;
                 case 'name':
-                    return a.name.localeCompare(b.name);
+                    comparison = a.name.localeCompare(b.name);
+                    break;
                 default:
-                    return 0;
+                    comparison = 0;
             }
+
+            // Reverse comparison for ascending order
+            return sortOrder === 'asc' ? -comparison : comparison;
         });
     };
 
-    const sortedPlayers = sortPlayers(players, sortBy);
+    const sortedPlayers = sortPlayers(players, sortBy, sortOrder, showPercentages);
+
+    const toggleSortOrder = () => {
+        setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc');
+    };
+
+    // Stats that can be shown as percentages
+    const percentageStats = ['wins', 'draws', 'losses'];
+    const canShowPercentages = percentageStats.includes(sortBy);
 
     const fetchPlayerStats = async () => {
         try {
@@ -121,15 +170,37 @@ const PlayerStats = () => {
     return (
         <div style={{ maxHeight: '70vh', overflowY: 'auto', paddingRight: 8 }}>
             <div style={{ marginBottom: 16, padding: '0 8px' }}>
-                <Space align="center" style={{ width: '100%', justifyContent: 'space-between' }}>
+                <Space align="center" style={{ width: '100%', justifyContent: 'space-between', flexWrap: 'wrap' }}>
                     <Text strong style={{ fontSize: 16 }}>Player Statistics</Text>
-                    <Select
-                        value={sortBy}
-                        onChange={setSortBy}
-                        style={{ width: 200 }}
-                        placeholder="Sort by..."
-                        options={sortOptions}
-                    />
+                    <Space>
+                        <Select
+                            value={sortBy}
+                            onChange={setSortBy}
+                            style={{ width: 200 }}
+                            placeholder="Sort by..."
+                            options={sortOptions}
+                        />
+                        <Tooltip title={`Sort ${sortOrder === 'asc' ? 'Ascending' : 'Descending'} - Click to toggle`}>
+                            <Button
+                                type="text"
+                                icon={sortOrder === 'asc' ? <SortAscendingOutlined /> : <SortDescendingOutlined />}
+                                onClick={toggleSortOrder}
+                                style={{ display: 'flex', alignItems: 'center' }}
+                            />
+                        </Tooltip>
+                        {canShowPercentages && (
+                            <Space>
+                                <Text style={{ fontSize: 12 }}>%</Text>
+                                <Tooltip title={`Show ${showPercentages ? 'Numbers' : 'Percentages'} - Click to toggle`}>
+                                    <Switch
+                                        checked={showPercentages}
+                                        onChange={setShowPercentages}
+                                        size="small"
+                                    />
+                                </Tooltip>
+                            </Space>
+                        )}
+                    </Space>
                 </Space>
             </div>
             {loading ? (
@@ -137,7 +208,14 @@ const PlayerStats = () => {
                     <Spin size="large" />
                 </div>
             ) : (
-                sortedPlayers.map((player) => <PlayerCard key={player.id} player={player} />)
+                sortedPlayers.map((player) => (
+                    <PlayerCard
+                        key={player.id}
+                        player={player}
+                        showPercentages={showPercentages}
+                        sortBy={sortBy}
+                    />
+                ))
             )}
         </div>
     );
