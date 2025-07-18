@@ -105,7 +105,10 @@ const GameweekManager = () => {
       },
       { headers: { Authorization: `Bearer ${token}` } }
     );
-    fetchAvailability(gwId);
+    // 1) refresh availability
+    await fetchAvailability(gwId);
+    // 2) then refresh the team assignments
+    await fetchTeams(gwId);
   };
 
 
