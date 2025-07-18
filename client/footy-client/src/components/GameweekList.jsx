@@ -56,7 +56,7 @@ const GameweekList = ({
   searchTerm,
   setSearchTerm,
 }) => {
-  const { openGameweek, setOpenGameweek } = useStore();
+  const { openGameweek, setOpenGameweek, teamAColor, teamBColor } = useStore();
 
   const handleCardClick = (gwId) => {
     const nextOpen = openGameweek === gwId ? null : gwId;
@@ -345,9 +345,9 @@ const GameweekList = ({
                         border: '1px solid #f0f0f0'
                       }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
-                          <TeamOutlined style={{ color: '#1890ff' }} />
-                          <Text strong style={{ color: '#1890ff' }}>Team A</Text>
-                          <Badge count={teamA.length} style={{ backgroundColor: '#1890ff' }} />
+                          <TeamOutlined style={{ color: teamAColor }} />
+                          <Text strong style={{ color: teamAColor }}>Team A</Text>
+                          <Badge count={teamA.length} style={{ backgroundColor: teamAColor }} />
                         </div>
                         <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
                           {teamA.map((p) => (
@@ -373,9 +373,9 @@ const GameweekList = ({
                         border: '1px solid #f0f0f0'
                       }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
-                          <TeamOutlined style={{ color: '#f5222d' }} />
-                          <Text strong style={{ color: '#f5222d' }}>Team B</Text>
-                          <Badge count={teamB.length} style={{ backgroundColor: '#f5222d' }} />
+                          <TeamOutlined style={{ color: teamBColor }} />
+                          <Text strong style={{ color: teamBColor }}>Team B</Text>
+                          <Badge count={teamB.length} style={{ backgroundColor: teamBColor }} />
                         </div>
                         <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
                           {teamB.map((p) => (

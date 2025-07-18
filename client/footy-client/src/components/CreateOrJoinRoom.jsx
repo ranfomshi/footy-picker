@@ -34,7 +34,7 @@ const CreateOrJoinRoom = ({ onRoomJoined, checkMembership }) => {
     const [selectedPlayer, setSelectedPlayer] = useState(null);
     const [playerModalVisible, setPlayerModalVisible] = useState(false);
 
-    const { setHasJoinedRoom, setRoomCode: setGlobalCode, setRoomName: setGlobalName } = useStore();
+    const { setHasJoinedRoom, setRoomCode: setGlobalCode, setRoomName: setGlobalName, setTeamColors } = useStore();
     const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
 
     // Handle auth errors
@@ -71,6 +71,7 @@ const CreateOrJoinRoom = ({ onRoomJoined, checkMembership }) => {
             message.success(`Room '${data.room.name}' created! Code: ${data.room.code}`);
             setGlobalCode(data.room.code);
             setGlobalName(data.room.name);
+            setTeamColors(data.room.teamAColor, data.room.teamBColor);
             setHasJoinedRoom(true);
             onRoomJoined();
         } catch (err) {

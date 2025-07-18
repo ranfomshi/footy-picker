@@ -76,10 +76,10 @@ function App() {
 
       // If we have an activeRoom object, mark joined and pull its code & name
       if (data.activeRoom) {
-        const { code, name } = data.activeRoom;
-        setRoomMembership(true, code, name);
+        const { code, name, teamAColor, teamBColor } = data.activeRoom;
+        setRoomMembership(true, code, name, teamAColor, teamBColor);
       } else {
-        setRoomMembership(false, '', '');
+        setRoomMembership(false, '', '', null, null);
       }
     } catch (error) {
       console.error("Error checking room membership", error);
