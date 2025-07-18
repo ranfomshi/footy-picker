@@ -1200,33 +1200,93 @@ router.post('/availability', protect, async (req, res) => {
       return res.status(404).json({ error: 'Gameweek not found' });
     }
 
-    // Count current available players
-    const currentAvailability = await Availability.count({
+    // 1) Count before change and guard against exceeding maxPlayers
+    const beforeCount = await Availability.count({
       where: { gameweekId, status: true, roomId },
     });
-
-    if (status && gameweek.maxPlayers && currentAvailability + playerIds.length > gameweek.maxPlayers) {
-      return res.status(400).json({ error: `Max players (${gameweek.maxPlayers}) exceeded.` });
+    if (status && gameweek.maxPlayers && beforeCount + playerIds.length > gameweek.maxPlayers) {
+      return res
+        .status(400)
+        .json({ error: `Max players (${gameweek.maxPlayers}) exceeded.` });
     }
 
-    const availability = await Promise.all(
+    // 2) Upsert the availability rows
+    await Promise.all(
       playerIds.map(async (playerId) => {
         const player = await Player.findOne({
-          include: { model: RoomMembership, where: { roomId } },
+          include: { model: RoomMembership, where: { roomId, isMember: true } },
           where: { id: playerId },
         });
         if (!player) throw new Error(`Player not found: ${playerId}`);
-
         return Availability.upsert({ gameweekId, playerId, status, roomId });
       })
     );
 
-    res.json(availability);
+    // 3) Always auto‑pick teams
+    //    (fetch the now‑available players, run your threshold logic, pick & store)
+    const playersAvail = await Player.findAll({
+      include: [
+        { model: Availability, where: { gameweekId, status: true, roomId } },
+        {
+          model: RoomMembership,
+          where: { roomId, isMember: true },
+          attributes: ['favoritePositions'],
+        },
+      ],
+      order: [['rating', 'DESC']],
+    });
+    const enriched = playersAvail.map((p) => ({
+      id: p.id,
+      rating: parseFloat(p.rating || 0),
+      favoritePositions: p.RoomMemberships[0]?.favoritePositions || [],
+    }));
+    // compute threshold as before...
+    const threshold = (() => {
+      const n = enriched.length;
+      if (n === 6) return 0.5;
+      if (n <= 8) return 0.4;
+      if (n <= 10) return 0.3;
+      if (n <= 12) return 0.25;
+      return 0.15;
+    })();
+    const picked = await pickBalancedTeams(enriched, threshold);
+    if (picked) {
+      await TeamAssignment.destroy({ where: { gameweekId, roomId } });
+      await TeamAssignment.bulkCreate([
+        ...picked.teamA.map((p) => ({
+          playerId: p.id,
+          gameweekId,
+          team: 'A',
+          roomId,
+        })),
+        ...picked.teamB.map((p) => ({
+          playerId: p.id,
+          gameweekId,
+          team: 'B',
+          roomId,
+        })),
+      ]);
+    }
+
+    // 4) Re‑count and return the new state
+    const totalAvailable = await Availability.count({
+      where: { gameweekId, status: true, roomId },
+    });
+    return res.json({
+      available: totalAvailable,
+      teams: picked
+        ? {
+          teamA: picked.teamA.map((p) => p.id),
+          teamB: picked.teamB.map((p) => p.id),
+        }
+        : null,
+    });
   } catch (error) {
     console.error('Error recording availability:', error);
     res.status(500).json({ error: 'Internal Server Error' });
   }
 });
+
 
 
 router.post('/manual-teamassignment', protect, async (req, res) => {
