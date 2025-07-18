@@ -6,15 +6,41 @@
   background-color: #f3f3f3;
 }
 
+/* WebKit browsers (Chrome, Safari, Edge) */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+  /* ✅ Makes the track transparent */
+}
+
+::-webkit-scrollbar-thumb {
+  background-color: rgba(0, 0, 0, 0.3);
+  /* Thumb with subtle contrast */
+  border-radius: 4px;
+}
+
+/* Optional: Firefox */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(0, 0, 0, 0.3) transparent;
+  /* thumb, track */
+}
+
 .logo {
   height: 6em;
   padding: 1.5em;
   will-change: filter;
   transition: filter 300ms;
 }
+
 .logo:hover {
   filter: drop-shadow(0 0 2em #646cffaa);
 }
+
 .logo.react:hover {
   filter: drop-shadow(0 0 2em #61dafbaa);
 }
@@ -33,12 +59,10 @@
 .content {
   flex: 1;
   padding: 20px;
-  background: linear-gradient(
-    180deg,
-    rgba(242, 242, 242, 1) 0%,
-    rgba(242, 242, 242, 1) 62%,
-    rgba(52, 176, 119, 0.711922268907563) 100%
-  );
+  background: linear-gradient(180deg,
+      rgba(242, 242, 242, 1) 0%,
+      rgba(242, 242, 242, 1) 62%,
+      rgba(52, 176, 119, 0.711922268907563) 100%);
 }
 
 .bottom-nav {
@@ -55,6 +79,7 @@
   from {
     transform: rotate(0deg);
   }
+
   to {
     transform: rotate(360deg);
   }
