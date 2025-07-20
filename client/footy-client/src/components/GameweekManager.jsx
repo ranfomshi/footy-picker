@@ -238,9 +238,9 @@ const GameweekManager = () => {
     });
 
   return (
-    <div style={{ overflowY: 'auto', paddingRight: 8 }}>
+    <div style={{ overflowY: 'auto' }}>
       {/* Header with Add Button */}
-      <div style={{ marginBottom: 16, padding: '0 8px' }}>
+      <div style={{ marginBottom: 16, padding: '0 8px 0 8px' }}>
         <Space align="center" style={{ width: '100%', justifyContent: 'space-between', flexWrap: 'wrap' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
             <CalendarOutlined style={{ fontSize: 18, color: '#00b96b' }} />

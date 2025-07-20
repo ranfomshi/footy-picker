@@ -96,7 +96,7 @@ const GameweekList = ({
   };
 
   return (
-    <div style={{ paddingRight: 8 }}>
+    <div>
       {sortedGameweeks.map((gw) => {
         const {
           id,
