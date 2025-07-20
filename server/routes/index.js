@@ -27,8 +27,14 @@ let tokenExpiry = null;
 const getManagementToken = async () => {
   // Check if we have a valid token
   if (managementToken && tokenExpiry && Date.now() < tokenExpiry) {
+    console.log('🔄 Using cached Auth0 management token');
     return managementToken;
   }
+
+  console.log('🔑 Requesting new Auth0 management token...');
+  console.log('Auth0 Domain:', process.env.AUTH0_DOMAIN);
+  console.log('Auth0 Client ID:', process.env.AUTH0_CLIENT_ID ? 'SET' : 'NOT SET');
+  console.log('Auth0 Client Secret:', process.env.AUTH0_CLIENT_SECRET ? 'SET' : 'NOT SET');
 
   try {
     const response = await axios.post(`https://${process.env.AUTH0_DOMAIN}/oauth/token`, {
@@ -41,19 +47,28 @@ const getManagementToken = async () => {
     managementToken = response.data.access_token;
     // Set expiry to 5 minutes before actual expiry for safety
     tokenExpiry = Date.now() + (response.data.expires_in - 300) * 1000;
-
+    
+    console.log('✅ Auth0 management token obtained successfully');
+    console.log('Token expires in:', response.data.expires_in, 'seconds');
     return managementToken;
   } catch (error) {
-    console.error('Failed to get Auth0 management token:', error.message);
+    console.error('❌ Failed to get Auth0 management token:');
+    console.error('Error message:', error.message);
+    console.error('Response status:', error.response?.status);
+    console.error('Response data:', error.response?.data);
     return null;
   }
-};
-
-const getAuth0UserProfile = async (auth0Id) => {
+};const getAuth0UserProfile = async (auth0Id) => {
+  console.log('👤 Fetching Auth0 profile for user:', auth0Id);
+  
   try {
     const token = await getManagementToken();
-    if (!token) return null;
+    if (!token) {
+      console.log('❌ No management token available for user:', auth0Id);
+      return null;
+    }
 
+    console.log('🌐 Making Auth0 Management API call for user:', auth0Id);
     const response = await axios.get(
       `https://${process.env.AUTH0_DOMAIN}/api/v2/users/${encodeURIComponent(auth0Id)}`,
       {
@@ -63,13 +78,21 @@ const getAuth0UserProfile = async (auth0Id) => {
       }
     );
 
+    console.log('✅ Auth0 profile data received for user:', auth0Id);
+    console.log('Profile picture URL:', response.data.picture || 'NO PICTURE');
+    console.log('Profile name:', response.data.name || 'NO NAME');
+    console.log('Profile email:', response.data.email || 'NO EMAIL');
+
     return {
       picture: response.data.picture,
       name: response.data.name,
       email: response.data.email,
     };
   } catch (error) {
-    console.error(`Failed to fetch Auth0 profile for ${auth0Id}:`, error.message);
+    console.error(`❌ Failed to fetch Auth0 profile for ${auth0Id}:`);
+    console.error('Error message:', error.message);
+    console.error('Response status:', error.response?.status);
+    console.error('Response data:', error.response?.data);
     return null;
   }
 };
@@ -656,6 +679,13 @@ router.post('/set-active-room', protect, async (req, res) => {
 router.get('/players', protect, async (req, res) => {
   try {
     const { roomId } = req.user;
+    
+    console.log('🎮 Players endpoint called for room:', roomId);
+    console.log('🔧 Environment check:');
+    console.log('   AUTH0_DOMAIN:', process.env.AUTH0_DOMAIN || 'NOT SET');
+    console.log('   AUTH0_CLIENT_ID:', process.env.AUTH0_CLIENT_ID ? 'SET' : 'NOT SET');
+    console.log('   AUTH0_CLIENT_SECRET:', process.env.AUTH0_CLIENT_SECRET ? 'SET' : 'NOT SET');
+    console.log('   AUTH0_AUDIENCE:', process.env.AUTH0_AUDIENCE || 'NOT SET');
 
     if (!roomId) {
       return res.status(400).json({ error: 'User is not associated with any room' });
@@ -742,15 +772,20 @@ router.get('/players', protect, async (req, res) => {
       players.map(async (player) => {
         const auth0Id = player.RoomMemberships?.[0]?.auth0Id || null;
         const isAdmin = player.RoomMemberships?.[0]?.isAdmin || false;
-
+        
+        console.log(`🏃 Processing player: ${player.name} (ID: ${player.id})`);
+        console.log(`   Auth0 ID: ${auth0Id || 'NOT SET'}`);
+        
         // Fetch Auth0 profile picture if auth0Id exists
         let profilePicture = null;
         if (auth0Id) {
+          console.log(`📸 Fetching profile picture for ${player.name}...`);
           const auth0Profile = await getAuth0UserProfile(auth0Id);
           profilePicture = auth0Profile?.picture || null;
-        }
-
-        const teamAssignments = player.TeamAssignments || [];
+          console.log(`   Result: ${profilePicture || 'NO PICTURE FOUND'}`);
+        } else {
+          console.log(`   Skipping Auth0 lookup - no auth0Id`);
+        }        const teamAssignments = player.TeamAssignments || [];
 
         let wins = 0,
           draws = 0,
@@ -846,9 +881,16 @@ router.get('/players', protect, async (req, res) => {
               // Fetch Auth0 profile picture for teammate
               let teammateProfilePicture = null;
               const teammateAuth0Id = teammate?.RoomMemberships?.[0]?.auth0Id;
+              console.log(`👥 Processing teammate: ${teammate?.name} (ID: ${id})`);
+              console.log(`   Teammate Auth0 ID: ${teammateAuth0Id || 'NOT SET'}`);
+              
               if (teammateAuth0Id) {
+                console.log(`📸 Fetching teammate profile picture...`);
                 const teammateAuth0Profile = await getAuth0UserProfile(teammateAuth0Id);
                 teammateProfilePicture = teammateAuth0Profile?.picture || null;
+                console.log(`   Teammate result: ${teammateProfilePicture || 'NO PICTURE FOUND'}`);
+              } else {
+                console.log(`   Skipping Auth0 lookup for teammate - no auth0Id`);
               }
 
               return {
