@@ -160,8 +160,9 @@ const GameweekManager = () => {
   const handleVote = async (gameweekId, selectedPlayer) => {
     try {
       const token = await getAccessTokenSilently();
+      console.log('Submitting vote:', { gameweekId, selectedPlayer });
       // Implement voting API call
-      await axios.post(
+      const response = await axios.post(
         `${API}/votes`,
         {
           gameweekId: gameweekId,
@@ -169,13 +170,16 @@ const GameweekManager = () => {
         },
         { headers: { Authorization: `Bearer ${token}` } }
       );
-      setIsVotePlayerVisible(false);
-      setSelectedGameweekData(null);
+      console.log('Vote response:', response.data);
+      message.success("Vote submitted successfully!");
       // Refresh voting status and gameweeks to show updated Player of the Match
       await checkVotingStatus(gameweekId);
       await fetchGameweeks();
     } catch (error) {
       console.error('Error submitting vote:', error);
+      console.error('Error details:', error.response?.data);
+      message.error(error.response?.data?.error || 'Failed to submit vote');
+      throw error; // Re-throw so the modal can handle the error state
     }
   };
 

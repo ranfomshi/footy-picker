@@ -31,10 +31,12 @@ const VotePlayerModal = ({
         setLoading(true);
         try {
             await onVote(gameweekId, selectedPlayer);
+            // Only close and reset if vote was successful
             setSelectedPlayer(null);
             onClose();
         } catch (error) {
             console.error('Error voting:', error);
+            // Don't close modal on error - let user try again
         } finally {
             setLoading(false);
         }
