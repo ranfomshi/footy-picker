@@ -783,6 +783,9 @@ router.get('/players', protect, async (req, res) => {
             })
         );
 
+        // Sort favorite teammates by win rate (descending)
+        favoriteTeammates.sort((a, b) => b.winRate - a.winRate);
+
         return {
           ...player.toJSON(),
           auth0Id,
