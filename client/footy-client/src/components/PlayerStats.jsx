@@ -22,8 +22,11 @@ import {
     SortDescendingOutlined,
     PlusOutlined,
     MoreOutlined,
-    SearchOutlined
+    SearchOutlined,
+    CloseOutlined,
+    CompressOutlined
 } from '@ant-design/icons';
+import { Badge } from 'antd';
 import PlayerCard from './PlayerCard';
 
 const { Text } = Typography;
@@ -71,6 +74,7 @@ const PlayerStats = () => {
     const [showPercentages, setShowPercentages] = useState(false); // Toggle for percentage vs actual numbers
     const [searchTerm, setSearchTerm] = useState("");
     const [expandedPlayerId, setExpandedPlayerId] = useState(null); // Track which player card is expanded
+    const [searchExpanded, setSearchExpanded] = useState(false); // Track if search is expanded
 
     // Player management states
     const [newPlayerName, setNewPlayerName] = useState("");
@@ -205,6 +209,16 @@ const PlayerStats = () => {
         setFilteredPlayers(filtered);
         // Close any expanded cards when searching
         setExpandedPlayerId(null);
+
+        // Auto-collapse search if cleared
+        if (!value) {
+            setSearchExpanded(false);
+        }
+    };
+
+    const handleSearchToggle = () => {
+        // Just toggle search expansion without clearing
+        setSearchExpanded(!searchExpanded);
     };
 
     const handlePlayerCardToggle = (playerId) => {
@@ -379,57 +393,114 @@ const PlayerStats = () => {
     return (
         <Spin spinning={playerLoading}>
             <div style={{ overflowY: 'auto', paddingRight: 8 }}>
-                {/* Modern Header Section */}
+                {/* Compact Header Section */}
                 <div style={{
                     background: 'linear-gradient(135deg, #00b96b 0%, #52c41a 100%)',
-                    borderRadius: 16,
-                    padding: '24px 20px',
-                    marginBottom: 20,
+                    borderRadius: 12,
+                    padding: '16px',
+                    marginBottom: 16,
                     color: 'white',
-                    boxShadow: '0 -4px 20px rgba(0, 185, 107, 0.15)'
+                    boxShadow: '0 -2px 12px rgba(0, 185, 107, 0.12)'
                 }}>
-                    {/* Title Row */}
+                    {/* Main Controls Row */}
                     <div style={{
                         display: 'flex',
-                        justifyContent: 'space-between',
                         alignItems: 'center',
-                        marginBottom: 20
+                        gap: 12,
+                        justifyContent: 'space-between'
                     }}>
-                        <div>
-                            <Text strong style={{ fontSize: 20, color: 'white', marginBottom: 4, display: 'block' }}>
-                                Players
-                            </Text>
-                            <Text style={{ fontSize: 14, color: 'rgba(255, 255, 255, 0.8)' }}>
-                                {filteredPlayers.length} {filteredPlayers.length === 1 ? 'player' : 'players'}
-                            </Text>
-                        </div>
+                        {/* Search Toggle Button */}
+                        <Tooltip title={searchTerm ? `Search: "${searchTerm}"` : "Search players"}>
+                            <Badge
+                                dot={!!searchTerm && !searchExpanded}
+                                offset={[-8, 8]}
+                                style={{
+                                    backgroundColor: '#52c41a'
+                                }}
+                            >
+                                <Button
+                                    icon={<SearchOutlined />}
+                                    onClick={handleSearchToggle}
+                                    style={{
+                                        background: searchExpanded ? 'rgba(255, 255, 255, 0.3)' : 'rgba(255, 255, 255, 0.2)',
+                                        borderColor: 'rgba(255, 255, 255, 0.3)',
+                                        color: 'white',
+                                        height: 36
+                                    }}
+                                />
+                            </Badge>
+                        </Tooltip>
+
+                        {/* Sort and Filter Controls */}
+                        <Select
+                            value={sortBy}
+                            onChange={setSortBy}
+                            style={{ width: 140 }}
+                            placeholder="Sort by..."
+                            options={sortOptions}
+                            size="middle"
+                        />
+
+                        <Tooltip title={`Sort ${sortOrder === 'asc' ? 'Ascending' : 'Descending'} - Click to toggle`}>
+                            <Button
+                                size="middle"
+                                icon={sortOrder === 'asc' ? <SortAscendingOutlined /> : <SortDescendingOutlined />}
+                                onClick={toggleSortOrder}
+                                style={{
+                                    background: 'rgba(255, 255, 255, 0.2)',
+                                    borderColor: 'rgba(255, 255, 255, 0.3)',
+                                    color: 'white',
+                                    height: 36
+                                }}
+                            />
+                        </Tooltip>
+
+                        {canShowPercentages && (
+                            <div style={{
+                                background: 'rgba(255, 255, 255, 0.15)',
+                                borderRadius: 16,
+                                padding: '6px 10px',
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: 6
+                            }}>
+                                <Text style={{ fontSize: 11, color: 'white', fontWeight: 500 }}>%</Text>
+                                <Switch
+                                    checked={showPercentages}
+                                    onChange={setShowPercentages}
+                                    size="small"
+                                />
+                            </div>
+                        )}
+
+                        {/* Add Player Button */}
                         <Button
                             type="primary"
                             icon={<PlusOutlined />}
-                            size="large"
                             onClick={() => setIsAddModalVisible(true)}
                             style={{
                                 background: 'rgba(255, 255, 255, 0.2)',
                                 borderColor: 'rgba(255, 255, 255, 0.3)',
                                 backdropFilter: 'blur(10px)',
                                 color: 'white',
-                                fontWeight: 500
+                                fontWeight: 500,
+                                height: 36
                             }}
                         >
-                            Add Player
+                            New
                         </Button>
                     </div>
 
-                    {/* Search and Controls Row */}
-                    <div style={{
-                        display: 'grid',
-                        gridTemplateColumns: '1fr auto',
-                        gap: 16,
-                        alignItems: 'end'
-                    }}>
-                        {/* Search Section */}
-                        <div>
-
+                    {/* Search Row - Appears below when expanded */}
+                    {searchExpanded && (
+                        <div style={{
+                            marginTop: 12,
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: 8,
+                            borderTop: '1px solid rgba(255, 255, 255, 0.2)',
+                            paddingTop: 12
+                        }}>
                             <Input
                                 placeholder="Find players..."
                                 value={searchTerm}
@@ -439,56 +510,25 @@ const PlayerStats = () => {
                                     borderRadius: 8,
                                     border: 'none',
                                     background: 'rgba(255, 255, 255, 0.95)',
-                                    height: 40
+                                    height: 36,
+                                    flex: 1
                                 }}
+                                autoFocus
                             />
-                        </div>
-
-                        {/* Sort and Filter Controls */}
-                        <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
-                            <div>
-                                <Select
-                                    value={sortBy}
-                                    onChange={setSortBy}
-                                    style={{ width: 160 }}
-                                    placeholder="Sort by..."
-                                    options={sortOptions}
-                                    size="large"
-                                />
-                            </div>
-
-                            <Tooltip title={`Sort ${sortOrder === 'asc' ? 'Ascending' : 'Descending'} - Click to toggle`}>
+                            {searchTerm && (
                                 <Button
-                                    size="large"
-                                    icon={sortOrder === 'asc' ? <SortAscendingOutlined /> : <SortDescendingOutlined />}
-                                    onClick={toggleSortOrder}
+                                    icon={<CloseOutlined />}
+                                    onClick={() => handleSearch("")}
+                                    size="small"
                                     style={{
                                         background: 'rgba(255, 255, 255, 0.2)',
                                         borderColor: 'rgba(255, 255, 255, 0.3)',
                                         color: 'white'
                                     }}
                                 />
-                            </Tooltip>
-
-                            {canShowPercentages && (
-                                <div style={{
-                                    background: 'rgba(255, 255, 255, 0.15)',
-                                    borderRadius: 20,
-                                    padding: '8px 12px',
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    gap: 8
-                                }}>
-                                    <Text style={{ fontSize: 12, color: 'white', fontWeight: 500 }}>%</Text>
-                                    <Switch
-                                        checked={showPercentages}
-                                        onChange={setShowPercentages}
-                                        size="small"
-                                    />
-                                </div>
                             )}
                         </div>
-                    </div>
+                    )}
                 </div>
 
                 {/* Content */}
