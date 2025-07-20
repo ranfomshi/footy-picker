@@ -1589,7 +1589,7 @@ router.get('/availability', protect, async (req, res) => {
     // 5) Merge: one entry per member, defaulting status=false, with profile pictures
     const merged = memberships.map(m => {
       const rec = availRows.find(a => a.playerId === m.playerId);
-      
+
       // Get profile picture from cache
       let profilePicture = null;
       if (m.auth0Id && auth0ProfileCache.has(m.auth0Id)) {
@@ -1931,7 +1931,7 @@ router.get('/teamassignments', protect, async (req, res) => {
     const enrichedAssignments = assignments.map(assignment => {
       const auth0Id = assignment.Player?.RoomMemberships?.[0]?.auth0Id;
       let profilePicture = null;
-      
+
       if (auth0Id && auth0ProfileCache.has(auth0Id)) {
         const auth0Profile = auth0ProfileCache.get(auth0Id);
         profilePicture = auth0Profile?.picture || null;

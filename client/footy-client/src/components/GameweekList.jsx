@@ -133,14 +133,14 @@ const GameweekList = ({
             data-gameweek-id={id}
             style={{
               borderRadius: 12,
-              boxShadow: gameResult 
-                ? '0 4px 12px rgba(0, 185, 107, 0.15)' 
+              boxShadow: gameResult
+                ? '0 4px 12px rgba(0, 185, 107, 0.15)'
                 : '0 2px 8px rgba(0, 0, 0, 0.08)',
               padding: 0,
               marginBottom: 16,
               background: '#ffffff',
-              border: gameResult 
-                ? '1px solid rgba(0, 185, 107, 0.2)' 
+              border: gameResult
+                ? '1px solid rgba(0, 185, 107, 0.2)'
                 : '1px solid rgba(0, 0, 0, 0.06)',
               overflow: 'hidden',
               transition: 'all 0.2s ease'
@@ -150,7 +150,7 @@ const GameweekList = ({
             {/* Header */}
             <div
               style={{
-                background: gameResult 
+                background: gameResult
                   ? 'linear-gradient(135deg, #e6fffb 0%, #f0fffc 100%)'
                   : 'linear-gradient(135deg, #fafbfc 0%, #f5f7fa 100%)',
                 borderTopLeftRadius: 12,
@@ -160,8 +160,8 @@ const GameweekList = ({
                 alignItems: 'center',
                 justifyContent: 'space-between',
                 cursor: 'pointer',
-                borderBottom: gameResult 
-                  ? '1px solid rgba(0, 185, 107, 0.1)' 
+                borderBottom: gameResult
+                  ? '1px solid rgba(0, 185, 107, 0.1)'
                   : '1px solid rgba(0, 0, 0, 0.06)',
                 minHeight: 60
               }}
@@ -170,8 +170,8 @@ const GameweekList = ({
               <div style={{ display: 'flex', alignItems: 'center', gap: 20 }}>
                 {/* Main date - prominent */}
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                  <Text strong style={{ 
-                    fontSize: 16, 
+                  <Text strong style={{
+                    fontSize: 16,
                     color: gameResult ? '#00b96b' : '#1f2937',
                     fontWeight: 600
                   }}>
@@ -201,11 +201,11 @@ const GameweekList = ({
 
                   {maxPlayers && !gameResult && (
                     <div style={{
-                      background: availablePlayersCount >= maxPlayers 
-                        ? 'rgba(0, 185, 107, 0.1)' 
+                      background: availablePlayersCount >= maxPlayers
+                        ? 'rgba(0, 185, 107, 0.1)'
                         : 'rgba(107, 114, 128, 0.1)',
-                      color: availablePlayersCount >= maxPlayers 
-                        ? '#00b96b' 
+                      color: availablePlayersCount >= maxPlayers
+                        ? '#00b96b'
                         : '#6b7280',
                       padding: '2px 6px',
                       borderRadius: 10,
@@ -286,8 +286,8 @@ const GameweekList = ({
                 )}
 
                 {/* Expand/collapse indicator */}
-                <div style={{ 
-                  color: '#6b7280', 
+                <div style={{
+                  color: '#6b7280',
                   fontSize: 14,
                   display: 'flex',
                   alignItems: 'center',
@@ -344,22 +344,22 @@ const GameweekList = ({
                       </div>
                     )}
 
-                    <div style={{ 
+                    <div style={{
                       marginBottom: 24,
                       padding: '12px 16px',
-                      background: isVotingOpen(gw) 
-                        ? 'rgba(82, 196, 26, 0.08)' 
+                      background: isVotingOpen(gw)
+                        ? 'rgba(82, 196, 26, 0.08)'
                         : 'rgba(107, 114, 128, 0.08)',
                       borderRadius: 8,
                       border: `1px solid ${isVotingOpen(gw) ? 'rgba(82, 196, 26, 0.2)' : 'rgba(107, 114, 128, 0.2)'}`
                     }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                        <ClockCircleOutlined style={{ 
-                          color: isVotingOpen(gw) ? '#52c41a' : '#6b7280', 
-                          fontSize: 14 
+                        <ClockCircleOutlined style={{
+                          color: isVotingOpen(gw) ? '#52c41a' : '#6b7280',
+                          fontSize: 14
                         }} />
-                        <Text style={{ 
-                          fontSize: 13, 
+                        <Text style={{
+                          fontSize: 13,
                           color: isVotingOpen(gw) ? '#52c41a' : '#6b7280',
                           fontWeight: 500
                         }}>
@@ -384,7 +384,7 @@ const GameweekList = ({
                           placeholder="Search players..."
                           value={searchTerm}
                           onChange={(e) => setSearchTerm(e.target.value)}
-                          style={{ 
+                          style={{
                             borderRadius: 8,
                             boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1)'
                           }}
@@ -433,12 +433,12 @@ const GameweekList = ({
                                   {p.auth0Id && (
                                     <div style={{ marginTop: 2 }}>
                                       <Tooltip title="Linked user account">
-                                        <CheckCircleOutlined 
-                                          style={{ 
-                                            fontSize: 12, 
+                                        <CheckCircleOutlined
+                                          style={{
+                                            fontSize: 12,
                                             color: '#00b96b',
                                             cursor: 'help'
-                                          }} 
+                                          }}
                                         />
                                       </Tooltip>
                                     </div>
@@ -470,8 +470,8 @@ const GameweekList = ({
                           );
                         })}
                         {filteredPlayers(id).length === 0 && (
-                          <div style={{ 
-                            padding: '32px 16px', 
+                          <div style={{
+                            padding: '32px 16px',
                             textAlign: 'center',
                             color: '#9ca3af'
                           }}>
@@ -514,21 +514,21 @@ const GameweekList = ({
                           </div>
                           <div>
                             <Text strong style={{ color: teamAColor, fontSize: 14 }}>Team A</Text>
-                            <Badge 
-                              count={teamA.length} 
-                              style={{ 
+                            <Badge
+                              count={teamA.length}
+                              style={{
                                 backgroundColor: teamAColor,
                                 marginLeft: 8,
                                 fontSize: 10
-                              }} 
+                              }}
                             />
                           </div>
                         </div>
                         <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                           {teamA.map((p) => (
-                            <div key={p.id} style={{ 
-                              display: 'flex', 
-                              alignItems: 'center', 
+                            <div key={p.id} style={{
+                              display: 'flex',
+                              alignItems: 'center',
                               gap: 10,
                               padding: '6px 8px',
                               borderRadius: 8,
@@ -539,7 +539,7 @@ const GameweekList = ({
                             </div>
                           ))}
                           {teamA.length === 0 && (
-                            <div style={{ 
+                            <div style={{
                               padding: '16px 8px',
                               textAlign: 'center',
                               color: '#9ca3af',
@@ -580,21 +580,21 @@ const GameweekList = ({
                           </div>
                           <div>
                             <Text strong style={{ color: teamBColor, fontSize: 14 }}>Team B</Text>
-                            <Badge 
-                              count={teamB.length} 
-                              style={{ 
+                            <Badge
+                              count={teamB.length}
+                              style={{
                                 backgroundColor: teamBColor,
                                 marginLeft: 8,
                                 fontSize: 10
-                              }} 
+                              }}
                             />
                           </div>
                         </div>
                         <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                           {teamB.map((p) => (
-                            <div key={p.id} style={{ 
-                              display: 'flex', 
-                              alignItems: 'center', 
+                            <div key={p.id} style={{
+                              display: 'flex',
+                              alignItems: 'center',
                               gap: 10,
                               padding: '6px 8px',
                               borderRadius: 8,
@@ -605,7 +605,7 @@ const GameweekList = ({
                             </div>
                           ))}
                           {teamB.length === 0 && (
-                            <div style={{ 
+                            <div style={{
                               padding: '16px 8px',
                               textAlign: 'center',
                               color: '#9ca3af',
