@@ -312,32 +312,27 @@ const GameweekList = ({
                   <>
                     {playerOfTheMatch?.length > 0 && (
                       <div style={{
-                        marginBottom: 24,
-                        padding: '16px 20px',
-                        background: 'linear-gradient(135deg, #fff7e6 0%, #fef3e2 100%)',
-                        borderRadius: 12,
-                        border: '1px solid rgba(250, 140, 22, 0.2)',
-                        boxShadow: '0 2px 8px rgba(250, 140, 22, 0.08)'
+                        marginBottom: 20,
+                        padding: '12px 16px',
+                        borderRadius: 8,
+                        border: '1px solid rgba(0, 0, 0, 0.06)',
+                        background: '#ffffff'
                       }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                           <div style={{
-                            width: 40,
-                            height: 40,
+                            width: 32,
+                            height: 32,
                             borderRadius: '50%',
-                            background: 'linear-gradient(135deg, #fa8c16 0%, #ff9c3d 100%)',
+                            background: '#00b96b',
                             display: 'flex',
                             alignItems: 'center',
-                            justifyContent: 'center',
-                            boxShadow: '0 2px 8px rgba(250, 140, 22, 0.2)'
+                            justifyContent: 'center'
                           }}>
-                            <TrophyTwoTone twoToneColor={["#ffffff", "#ffd591"]} style={{ fontSize: 20 }} />
+                            <TrophyTwoTone twoToneColor={["#ffffff", "#ffffff"]} style={{ fontSize: 16 }} />
                           </div>
                           <div>
-                            <Text strong style={{ color: '#d48806', fontSize: 14, display: 'block' }}>
-                              Player of the Match
-                            </Text>
-                            <Text style={{ color: '#fa8c16', fontSize: 16, fontWeight: 600 }}>
-                              {playerOfTheMatch.join(", ")}
+                            <Text strong style={{ color: '#374151', fontSize: 13 }}>
+                              Player of the Match: <span style={{ color: '#00b96b' }}>{playerOfTheMatch.join(", ")}</span>
                             </Text>
                           </div>
                         </div>
