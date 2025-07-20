@@ -47,7 +47,7 @@ const getManagementToken = async () => {
     managementToken = response.data.access_token;
     // Set expiry to 5 minutes before actual expiry for safety
     tokenExpiry = Date.now() + (response.data.expires_in - 300) * 1000;
-    
+
     console.log('✅ Auth0 management token obtained successfully');
     console.log('Token expires in:', response.data.expires_in, 'seconds');
     return managementToken;
@@ -58,9 +58,9 @@ const getManagementToken = async () => {
     console.error('Response data:', error.response?.data);
     return null;
   }
-};const getAuth0UserProfile = async (auth0Id) => {
+}; const getAuth0UserProfile = async (auth0Id) => {
   console.log('👤 Fetching Auth0 profile for user:', auth0Id);
-  
+
   try {
     const token = await getManagementToken();
     if (!token) {
@@ -679,7 +679,7 @@ router.post('/set-active-room', protect, async (req, res) => {
 router.get('/players', protect, async (req, res) => {
   try {
     const { roomId } = req.user;
-    
+
     console.log('🎮 Players endpoint called for room:', roomId);
     console.log('🔧 Environment check:');
     console.log('   AUTH0_DOMAIN:', process.env.AUTH0_DOMAIN || 'NOT SET');
@@ -772,10 +772,10 @@ router.get('/players', protect, async (req, res) => {
       players.map(async (player) => {
         const auth0Id = player.RoomMemberships?.[0]?.auth0Id || null;
         const isAdmin = player.RoomMemberships?.[0]?.isAdmin || false;
-        
+
         console.log(`🏃 Processing player: ${player.name} (ID: ${player.id})`);
         console.log(`   Auth0 ID: ${auth0Id || 'NOT SET'}`);
-        
+
         // Fetch Auth0 profile picture if auth0Id exists
         let profilePicture = null;
         if (auth0Id) {
@@ -785,7 +785,7 @@ router.get('/players', protect, async (req, res) => {
           console.log(`   Result: ${profilePicture || 'NO PICTURE FOUND'}`);
         } else {
           console.log(`   Skipping Auth0 lookup - no auth0Id`);
-        }        const teamAssignments = player.TeamAssignments || [];
+        } const teamAssignments = player.TeamAssignments || [];
 
         let wins = 0,
           draws = 0,
@@ -883,7 +883,7 @@ router.get('/players', protect, async (req, res) => {
               const teammateAuth0Id = teammate?.RoomMemberships?.[0]?.auth0Id;
               console.log(`👥 Processing teammate: ${teammate?.name} (ID: ${id})`);
               console.log(`   Teammate Auth0 ID: ${teammateAuth0Id || 'NOT SET'}`);
-              
+
               if (teammateAuth0Id) {
                 console.log(`📸 Fetching teammate profile picture...`);
                 const teammateAuth0Profile = await getAuth0UserProfile(teammateAuth0Id);
