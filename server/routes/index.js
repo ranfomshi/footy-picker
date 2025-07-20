@@ -18,8 +18,63 @@ const { pickBalancedTeams } = require('../services/teamPicker'); // team picking
 const router = express.Router();
 const { Op } = require('sequelize');
 const jwt = require('jsonwebtoken');
-const jwksRsa = require('jwks-rsa');
 const axios = require('axios');
+
+// Auth0 Management API helper functions
+let managementToken = null;
+let tokenExpiry = null;
+
+const getManagementToken = async () => {
+  // Check if we have a valid token
+  if (managementToken && tokenExpiry && Date.now() < tokenExpiry) {
+    return managementToken;
+  }
+
+  try {
+    const response = await axios.post(`https://${process.env.AUTH0_DOMAIN}/oauth/token`, {
+      client_id: process.env.AUTH0_CLIENT_ID,
+      client_secret: process.env.AUTH0_CLIENT_SECRET,
+      audience: `https://${process.env.AUTH0_DOMAIN}/api/v2/`,
+      grant_type: 'client_credentials'
+    });
+
+    managementToken = response.data.access_token;
+    // Set expiry to 5 minutes before actual expiry for safety
+    tokenExpiry = Date.now() + (response.data.expires_in - 300) * 1000;
+
+    return managementToken;
+  } catch (error) {
+    console.error('Failed to get Auth0 management token:', error.message);
+    return null;
+  }
+};
+
+const getAuth0UserProfile = async (auth0Id) => {
+  try {
+    const token = await getManagementToken();
+    if (!token) return null;
+
+    const response = await axios.get(
+      `https://${process.env.AUTH0_DOMAIN}/api/v2/users/${encodeURIComponent(auth0Id)}`,
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      }
+    );
+
+    return {
+      picture: response.data.picture,
+      name: response.data.name,
+      email: response.data.email,
+    };
+  } catch (error) {
+    console.error(`Failed to fetch Auth0 profile for ${auth0Id}:`, error.message);
+    return null;
+  }
+};
+
+const jwksRsa = require('jwks-rsa');
 const achievements = require('../references/achievementConditions');
 const { saveFcmToken, sendRoomNotification } = require('../services/notifications'); // Import only the save function
 const { getUnlinkedPlayers, completeRoomJoin } = require('../services/roomService');
@@ -687,6 +742,14 @@ router.get('/players', protect, async (req, res) => {
       players.map(async (player) => {
         const auth0Id = player.RoomMemberships?.[0]?.auth0Id || null;
         const isAdmin = player.RoomMemberships?.[0]?.isAdmin || false;
+
+        // Fetch Auth0 profile picture if auth0Id exists
+        let profilePicture = null;
+        if (auth0Id) {
+          const auth0Profile = await getAuth0UserProfile(auth0Id);
+          profilePicture = auth0Profile?.picture || null;
+        }
+
         const teamAssignments = player.TeamAssignments || [];
 
         let wins = 0,
@@ -771,11 +834,28 @@ router.get('/players', protect, async (req, res) => {
               const teammate = await Player.findOne({
                 where: { id: parseInt(id, 10) },
                 attributes: ['name'],
+                include: [
+                  {
+                    model: RoomMembership,
+                    where: { roomId },
+                    attributes: ['auth0Id'],
+                  },
+                ],
               });
+
+              // Fetch Auth0 profile picture for teammate
+              let teammateProfilePicture = null;
+              const teammateAuth0Id = teammate?.RoomMemberships?.[0]?.auth0Id;
+              if (teammateAuth0Id) {
+                const teammateAuth0Profile = await getAuth0UserProfile(teammateAuth0Id);
+                teammateProfilePicture = teammateAuth0Profile?.picture || null;
+              }
 
               return {
                 id: parseInt(id, 10),
                 name: teammate?.name || 'Unknown',
+                auth0Id: teammateAuth0Id || null,
+                profilePicture: teammateProfilePicture,
                 winRate: parseFloat((stats.wins / stats.matchesPlayed).toFixed(2)),
                 matchesPlayedTogether: stats.matchesPlayed,
                 goalDifferenceTogether: stats.goalDifference,
@@ -790,6 +870,7 @@ router.get('/players', protect, async (req, res) => {
           ...player.toJSON(),
           auth0Id,
           isAdmin,
+          profilePicture,
           wins,
           draws,
           losses,
