@@ -10,7 +10,7 @@ import { useAuth0 } from "@auth0/auth0-react";
 const { Text } = Typography;
 
 const GameweekManager = () => {
-  const { getAccessTokenSilently } = useAuth0();
+  const { getAccessTokenSilently, user } = useAuth0();
   const API = import.meta.env.VITE_API_BASE_URL;
 
   const [gameweeks, setGameweeks] = useState({});
@@ -93,7 +93,7 @@ const GameweekManager = () => {
   const checkVotingStatus = async (gwId) => {
     const token = await getAccessTokenSilently();
     const { data } = await axios.get(
-      `${API}/votes/status?gameweekId=${gwId}`,
+      `${API}/has-voted?gameweekId=${gwId}`,
       { headers: { Authorization: `Bearer ${token}` } }
     );
     setHasVoted((prev) => ({ ...prev, [gwId]: data.hasVoted }));
@@ -119,7 +119,7 @@ const GameweekManager = () => {
 
   // Record Result Modal handlers
   const showRecordResultModal = (gameweekId) => {
-    const gameweek = gameweeks.find(gw => gw.id === gameweekId);
+    const gameweek = gameweeks[gameweekId];
     if (gameweek) {
       setSelectedGameweekData(gameweek);
       setIsRecordResultVisible(true);
@@ -129,10 +129,14 @@ const GameweekManager = () => {
   const handleRecordResult = async (resultData) => {
     try {
       const token = await getAccessTokenSilently();
-      // Implement result recording API call
+      // Use the correct endpoint and data structure based on backend
       await axios.post(
-        `${API}/gameweeks/${selectedGameweekData.id}/result`,
-        resultData,
+        `${API}/gameresults`,
+        {
+          gameweekId: selectedGameweekData.id,
+          teamA_score: resultData.teamA_score,
+          teamB_score: resultData.teamB_score
+        },
         { headers: { Authorization: `Bearer ${token}` } }
       );
       setIsRecordResultVisible(false);
@@ -146,29 +150,30 @@ const GameweekManager = () => {
 
   // Vote Player Modal handlers
   const showVotePlayerModal = (gameweekId) => {
-    const gameweek = gameweeks.find(gw => gw.id === gameweekId);
+    const gameweek = gameweeks[gameweekId];
     if (gameweek) {
       setSelectedGameweekData(gameweek);
       setIsVotePlayerVisible(true);
     }
   };
 
-  const handleVote = async (voteData) => {
+  const handleVote = async (gameweekId, selectedPlayer) => {
     try {
       const token = await getAccessTokenSilently();
       // Implement voting API call
       await axios.post(
         `${API}/votes`,
-        { 
-          gameweekId: selectedGameweekData.id,
-          playerId: voteData.playerId 
+        {
+          gameweekId: gameweekId,
+          votedPlayerId: selectedPlayer
         },
         { headers: { Authorization: `Bearer ${token}` } }
       );
       setIsVotePlayerVisible(false);
       setSelectedGameweekData(null);
-      // Refresh voting status
-      await checkVotingStatus(selectedGameweekData.id);
+      // Refresh voting status and gameweeks to show updated Player of the Match
+      await checkVotingStatus(gameweekId);
+      await fetchGameweeks();
     } catch (error) {
       console.error('Error submitting vote:', error);
     }
@@ -399,14 +404,15 @@ const GameweekManager = () => {
       {selectedGameweekData && (
         <RecordResultModal
           visible={isRecordResultVisible}
-          onCancel={() => {
+          onClose={() => {
             setIsRecordResultVisible(false);
             setSelectedGameweekData(null);
           }}
           onSubmit={handleRecordResult}
-          gameweek={selectedGameweekData}
+          gameweekId={selectedGameweekData.id}
           teamA={teams[selectedGameweekData.id]?.teamA || []}
           teamB={teams[selectedGameweekData.id]?.teamB || []}
+          currentUserId={user?.sub}
         />
       )}
 
@@ -414,15 +420,15 @@ const GameweekManager = () => {
       {selectedGameweekData && (
         <VotePlayerModal
           visible={isVotePlayerVisible}
-          onCancel={() => {
+          onClose={() => {
             setIsVotePlayerVisible(false);
             setSelectedGameweekData(null);
           }}
-          onSubmit={handleVote}
-          gameweek={selectedGameweekData}
+          onVote={handleVote}
+          gameweekId={selectedGameweekData.id}
           teamA={teams[selectedGameweekData.id]?.teamA || []}
           teamB={teams[selectedGameweekData.id]?.teamB || []}
-          currentUser={user}
+          currentUserId={user?.sub}
         />
       )}
     </div>

@@ -374,7 +374,7 @@ const GameweekList = ({
                           </Text>
                         </div>
 
-                        {isVotingOpen(gw) && !(typeof hasVoted === 'function' ? hasVoted(id) : hasVoted) && (
+                        {isVotingOpen(gw) && !hasVoted[id] && (
                           <Button
                             type="primary"
                             size="small"
@@ -393,7 +393,7 @@ const GameweekList = ({
                           </Button>
                         )}
 
-                        {(typeof hasVoted === 'function' ? hasVoted(id) : hasVoted) && (
+                        {hasVoted[id] && (
                           <div style={{
                             color: '#6b7280',
                             fontSize: 12,
