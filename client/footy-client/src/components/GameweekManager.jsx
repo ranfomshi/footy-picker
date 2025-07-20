@@ -3,6 +3,8 @@ import axios from "axios";
 import { Button, DatePicker, message, Form, Modal, Space, Input, Row, Col, TimePicker, InputNumber, AutoComplete, Typography } from "antd";
 import { PlusOutlined, CalendarOutlined } from "@ant-design/icons";
 import GameweekList from "./GameweekList";
+import RecordResultModal from "./RecordResultModal";
+import VotePlayerModal from "./VotePlayerModal";
 import { useAuth0 } from "@auth0/auth0-react";
 
 const { Text } = Typography;
@@ -21,6 +23,9 @@ const GameweekManager = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [isAddVisible, setIsAddVisible] = useState(false);
   const [isManualVisible, setIsManualVisible] = useState(false);
+  const [isRecordResultVisible, setIsRecordResultVisible] = useState(false);
+  const [isVotePlayerVisible, setIsVotePlayerVisible] = useState(false);
+  const [selectedGameweekData, setSelectedGameweekData] = useState(null);
   const [form] = Form.useForm();
   const [addForm] = Form.useForm();
   const [manualForm] = Form.useForm();
@@ -110,6 +115,63 @@ const GameweekManager = () => {
     await fetchAvailability(gwId);
     // 2) then refresh the team assignments
     await fetchTeams(gwId);
+  };
+
+  // Record Result Modal handlers
+  const showRecordResultModal = (gameweekId) => {
+    const gameweek = gameweeks.find(gw => gw.id === gameweekId);
+    if (gameweek) {
+      setSelectedGameweekData(gameweek);
+      setIsRecordResultVisible(true);
+    }
+  };
+
+  const handleRecordResult = async (resultData) => {
+    try {
+      const token = await getAccessTokenSilently();
+      // Implement result recording API call
+      await axios.post(
+        `${API}/gameweeks/${selectedGameweekData.id}/result`,
+        resultData,
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      setIsRecordResultVisible(false);
+      setSelectedGameweekData(null);
+      // Refresh gameweeks to show updated result
+      fetchGameweeks();
+    } catch (error) {
+      console.error('Error recording result:', error);
+    }
+  };
+
+  // Vote Player Modal handlers
+  const showVotePlayerModal = (gameweekId) => {
+    const gameweek = gameweeks.find(gw => gw.id === gameweekId);
+    if (gameweek) {
+      setSelectedGameweekData(gameweek);
+      setIsVotePlayerVisible(true);
+    }
+  };
+
+  const handleVote = async (voteData) => {
+    try {
+      const token = await getAccessTokenSilently();
+      // Implement voting API call
+      await axios.post(
+        `${API}/votes`,
+        { 
+          gameweekId: selectedGameweekData.id,
+          playerId: voteData.playerId 
+        },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      setIsVotePlayerVisible(false);
+      setSelectedGameweekData(null);
+      // Refresh voting status
+      await checkVotingStatus(selectedGameweekData.id);
+    } catch (error) {
+      console.error('Error submitting vote:', error);
+    }
   };
 
 
@@ -207,6 +269,8 @@ const GameweekManager = () => {
           setSelectedGameweekId(id);
           setIsManualVisible(true);
         }}
+        showRecordResultModal={showRecordResultModal}
+        showVotePlayerModal={showVotePlayerModal}
         hasVoted={hasVoted}
         isVotingOpen={(gw) => new Date() < new Date(gw.votingCloseTime)}
         formatDate={formatDate}
@@ -330,6 +394,37 @@ const GameweekManager = () => {
           </Form.Item>
         </Form>
       </Modal>
+
+      {/* Record Result Modal */}
+      {selectedGameweekData && (
+        <RecordResultModal
+          visible={isRecordResultVisible}
+          onCancel={() => {
+            setIsRecordResultVisible(false);
+            setSelectedGameweekData(null);
+          }}
+          onSubmit={handleRecordResult}
+          gameweek={selectedGameweekData}
+          teamA={teams[selectedGameweekData.id]?.teamA || []}
+          teamB={teams[selectedGameweekData.id]?.teamB || []}
+        />
+      )}
+
+      {/* Vote Player Modal */}
+      {selectedGameweekData && (
+        <VotePlayerModal
+          visible={isVotePlayerVisible}
+          onCancel={() => {
+            setIsVotePlayerVisible(false);
+            setSelectedGameweekData(null);
+          }}
+          onSubmit={handleVote}
+          gameweek={selectedGameweekData}
+          teamA={teams[selectedGameweekData.id]?.teamA || []}
+          teamB={teams[selectedGameweekData.id]?.teamB || []}
+          currentUser={user}
+        />
+      )}
     </div>
   );
 };

@@ -48,6 +48,8 @@ const GameweekList = ({
   setPlayerAvailability,
   removePlayerAvailability,
   showManualAssignmentModal,
+  showVotePlayerModal,
+  showRecordResultModal,
   deleteGameweek,
   isAdmin,
   hasVoted,
@@ -114,14 +116,19 @@ const GameweekList = ({
         const menuItems = [];
         if (!gameResult) {
           menuItems.push(
-            <Menu.Item key="override" onClick={() => showManualAssignmentModal(id)}>
+            <Menu.Item key="record" onClick={(e) => { e.domEvent.stopPropagation(); showRecordResultModal && showRecordResultModal(id); }}>
+              Record Result
+            </Menu.Item>
+          );
+          menuItems.push(
+            <Menu.Item key="override" onClick={(e) => { e.domEvent.stopPropagation(); showManualAssignmentModal(id); }}>
               Override Assignments
             </Menu.Item>
           );
         }
         if (isAdmin) {
           menuItems.push(
-            <Menu.Item key="delete" danger icon={<DeleteOutlined />} onClick={() => deleteGameweek(id)}>
+            <Menu.Item key="delete" danger icon={<DeleteOutlined />} onClick={(e) => { e.domEvent.stopPropagation(); deleteGameweek(id); }}>
               Delete Gameweek
             </Menu.Item>
           );
@@ -348,22 +355,57 @@ const GameweekList = ({
                       borderRadius: 8,
                       border: `1px solid ${isVotingOpen(gw) ? 'rgba(82, 196, 26, 0.2)' : 'rgba(107, 114, 128, 0.2)'}`
                     }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                        <ClockCircleOutlined style={{
-                          color: isVotingOpen(gw) ? '#52c41a' : '#6b7280',
-                          fontSize: 14
-                        }} />
-                        <Text style={{
-                          fontSize: 13,
-                          color: isVotingOpen(gw) ? '#52c41a' : '#6b7280',
-                          fontWeight: 500
-                        }}>
-                          {isVotingOpen(gw) ? (
-                            <>Voting closes: {formatVotingCloseTime(votingCloseTime)}</>
-                          ) : (
-                            <>Voting closed</>
-                          )}
-                        </Text>
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                          <ClockCircleOutlined style={{
+                            color: isVotingOpen(gw) ? '#52c41a' : '#6b7280',
+                            fontSize: 14
+                          }} />
+                          <Text style={{
+                            fontSize: 13,
+                            color: isVotingOpen(gw) ? '#52c41a' : '#6b7280',
+                            fontWeight: 500
+                          }}>
+                            {isVotingOpen(gw) ? (
+                              <>Voting closes: {formatVotingCloseTime(votingCloseTime)}</>
+                            ) : (
+                              <>Voting closed</>
+                            )}
+                          </Text>
+                        </div>
+
+                        {isVotingOpen(gw) && !(typeof hasVoted === 'function' ? hasVoted(id) : hasVoted) && (
+                          <Button
+                            type="primary"
+                            size="small"
+                            icon={<TrophyTwoTone twoToneColor={["#ffffff", "#ffffff"]} />}
+                            onClick={() => showVotePlayerModal && showVotePlayerModal(id, teamA, teamB)}
+                            style={{
+                              backgroundColor: '#00b96b',
+                              borderColor: '#00b96b',
+                              fontSize: 12,
+                              height: 28,
+                              borderRadius: 6,
+                              fontWeight: 500
+                            }}
+                          >
+                            Vote
+                          </Button>
+                        )}
+
+                        {(typeof hasVoted === 'function' ? hasVoted(id) : hasVoted) && (
+                          <div style={{
+                            color: '#6b7280',
+                            fontSize: 12,
+                            fontWeight: 500,
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: 4
+                          }}>
+                            <CheckCircleOutlined style={{ fontSize: 12 }} />
+                            Voted
+                          </div>
+                        )}
                       </div>
                     </div>
                   </>
