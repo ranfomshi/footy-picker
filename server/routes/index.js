@@ -767,6 +767,40 @@ router.get('/players', protect, async (req, res) => {
       return acc;
     }, {});
 
+    // First, collect all unique Auth0 IDs to batch fetch profiles
+    console.log('🔍 Collecting all Auth0 IDs for batch processing...');
+    const allAuth0Ids = new Set();
+
+    players.forEach(player => {
+      const auth0Id = player.RoomMemberships?.[0]?.auth0Id;
+      if (auth0Id) {
+        allAuth0Ids.add(auth0Id);
+      }
+    });
+
+    // We'll also need teammate Auth0 IDs, but we'll collect those after processing teammate stats
+    // to avoid complex nested logic here
+
+    // Batch fetch Auth0 profiles with rate limiting
+    console.log(`📦 Batch fetching ${allAuth0Ids.size} Auth0 profiles...`);
+    const auth0ProfileCache = new Map();
+
+    for (const auth0Id of allAuth0Ids) {
+      try {
+        console.log(`📸 Fetching profile for: ${auth0Id}`);
+        const profile = await getAuth0UserProfile(auth0Id);
+        auth0ProfileCache.set(auth0Id, profile);
+
+        // Add small delay to respect rate limits (100ms between calls)
+        await new Promise(resolve => setTimeout(resolve, 100));
+      } catch (error) {
+        console.error(`❌ Failed to fetch profile for ${auth0Id}:`, error.message);
+        auth0ProfileCache.set(auth0Id, null);
+      }
+    }
+
+    console.log(`✅ Completed batch Auth0 profile fetching. ${auth0ProfileCache.size} profiles cached.`);
+
     // Calculate player stats
     const playerStats = await Promise.all(
       players.map(async (player) => {
@@ -776,13 +810,14 @@ router.get('/players', protect, async (req, res) => {
         console.log(`🏃 Processing player: ${player.name} (ID: ${player.id})`);
         console.log(`   Auth0 ID: ${auth0Id || 'NOT SET'}`);
 
-        // Fetch Auth0 profile picture if auth0Id exists
+        // Get Auth0 profile picture from cache
         let profilePicture = null;
-        if (auth0Id) {
-          console.log(`📸 Fetching profile picture for ${player.name}...`);
-          const auth0Profile = await getAuth0UserProfile(auth0Id);
+        if (auth0Id && auth0ProfileCache.has(auth0Id)) {
+          const auth0Profile = auth0ProfileCache.get(auth0Id);
           profilePicture = auth0Profile?.picture || null;
-          console.log(`   Result: ${profilePicture || 'NO PICTURE FOUND'}`);
+          console.log(`   Cached result: ${profilePicture || 'NO PICTURE FOUND'}`);
+        } else if (auth0Id) {
+          console.log(`   No cached profile found for Auth0 ID`);
         } else {
           console.log(`   Skipping Auth0 lookup - no auth0Id`);
         } const teamAssignments = player.TeamAssignments || [];
@@ -878,17 +913,34 @@ router.get('/players', protect, async (req, res) => {
                 ],
               });
 
-              // Fetch Auth0 profile picture for teammate
+              // Get Auth0 profile picture for teammate from cache or fetch if needed
               let teammateProfilePicture = null;
               const teammateAuth0Id = teammate?.RoomMemberships?.[0]?.auth0Id;
               console.log(`👥 Processing teammate: ${teammate?.name} (ID: ${id})`);
               console.log(`   Teammate Auth0 ID: ${teammateAuth0Id || 'NOT SET'}`);
 
               if (teammateAuth0Id) {
-                console.log(`📸 Fetching teammate profile picture...`);
-                const teammateAuth0Profile = await getAuth0UserProfile(teammateAuth0Id);
-                teammateProfilePicture = teammateAuth0Profile?.picture || null;
-                console.log(`   Teammate result: ${teammateProfilePicture || 'NO PICTURE FOUND'}`);
+                // Check cache first
+                if (auth0ProfileCache.has(teammateAuth0Id)) {
+                  const teammateAuth0Profile = auth0ProfileCache.get(teammateAuth0Id);
+                  teammateProfilePicture = teammateAuth0Profile?.picture || null;
+                  console.log(`   Teammate cached result: ${teammateProfilePicture || 'NO PICTURE FOUND'}`);
+                } else {
+                  // Fetch if not in cache (with rate limiting)
+                  console.log(`📸 Fetching teammate profile picture (not in cache)...`);
+                  try {
+                    const teammateAuth0Profile = await getAuth0UserProfile(teammateAuth0Id);
+                    teammateProfilePicture = teammateAuth0Profile?.picture || null;
+                    auth0ProfileCache.set(teammateAuth0Id, teammateAuth0Profile);
+                    console.log(`   Teammate fresh result: ${teammateProfilePicture || 'NO PICTURE FOUND'}`);
+
+                    // Add delay to respect rate limits
+                    await new Promise(resolve => setTimeout(resolve, 100));
+                  } catch (error) {
+                    console.error(`❌ Failed to fetch teammate profile for ${teammateAuth0Id}:`, error.message);
+                    auth0ProfileCache.set(teammateAuth0Id, null);
+                  }
+                }
               } else {
                 console.log(`   Skipping Auth0 lookup for teammate - no auth0Id`);
               }
