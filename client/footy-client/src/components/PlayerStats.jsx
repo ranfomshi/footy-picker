@@ -70,6 +70,7 @@ const PlayerStats = () => {
     const [sortOrder, setSortOrder] = useState('desc'); // 'asc' or 'desc'
     const [showPercentages, setShowPercentages] = useState(false); // Toggle for percentage vs actual numbers
     const [searchTerm, setSearchTerm] = useState("");
+    const [expandedPlayerId, setExpandedPlayerId] = useState(null); // Track which player card is expanded
 
     // Player management states
     const [newPlayerName, setNewPlayerName] = useState("");
@@ -196,16 +197,52 @@ const PlayerStats = () => {
         }
     };
 
-    const viewPlayerDetails = (player) => {
-        // No longer needed - details are shown in expandable cards
-    };
-
     const handleSearch = (value) => {
         setSearchTerm(value);
         const filtered = players.filter((player) =>
             player.name.toLowerCase().includes(value.toLowerCase())
         );
         setFilteredPlayers(filtered);
+        // Close any expanded cards when searching
+        setExpandedPlayerId(null);
+    };
+
+    const handlePlayerCardToggle = (playerId) => {
+        // Get the current scroll position and the element being clicked
+        const scrollContainer = document.querySelector('[style*="overflowY: auto"]') || window;
+        const currentScrollTop = scrollContainer.scrollTop || window.pageYOffset;
+        const clickedCard = document.querySelector(`[data-player-id="${playerId}"]`);
+        const clickedCardTop = clickedCard ? clickedCard.offsetTop : 0;
+
+        // If we're closing the currently expanded card, just close it
+        if (expandedPlayerId === playerId) {
+            setExpandedPlayerId(null);
+            return;
+        }
+
+        // If there's already an expanded card above the clicked card, we need to preserve scroll position
+        const shouldPreserveScroll = expandedPlayerId !== null && clickedCardTop > currentScrollTop;
+
+        // Set the new expanded card
+        setExpandedPlayerId(playerId);
+
+        // If we need to preserve scroll, adjust after the DOM updates
+        if (shouldPreserveScroll) {
+            requestAnimationFrame(() => {
+                // Scroll to keep the clicked card header in view
+                const updatedClickedCard = document.querySelector(`[data-player-id="${playerId}"]`);
+                if (updatedClickedCard) {
+                    const headerElement = updatedClickedCard.querySelector('[style*="cursor: pointer"]') || updatedClickedCard;
+                    const appHeaderHeight = 80; // Reduced offset for the green header section
+                    const targetPosition = headerElement.getBoundingClientRect().top + window.pageYOffset - appHeaderHeight;
+
+                    window.scrollTo({
+                        top: targetPosition,
+                        behavior: 'smooth'
+                    });
+                }
+            });
+        }
     };
 
     const handleAddPlayerKeyPress = (e) => {
@@ -467,6 +504,8 @@ const PlayerStats = () => {
                             player={player}
                             showPercentages={showPercentages}
                             sortBy={sortBy}
+                            expanded={expandedPlayerId === player.id}
+                            onToggle={() => handlePlayerCardToggle(player.id)}
                             onEdit={editPlayer}
                             onDelete={showDeleteModal}
                         />

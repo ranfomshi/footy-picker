@@ -31,8 +31,7 @@ const colorMap = {
     loss: '#ff4d4f',
 };
 
-const PlayerCard = ({ player, showPercentages = false, sortBy = null, onEdit, onDelete }) => {
-    const [expanded, setExpanded] = useState(false);
+const PlayerCard = ({ player, showPercentages = false, sortBy = null, expanded = false, onToggle, onEdit, onDelete }) => {
     const totalGames = player.wins + player.losses + player.draws;
     const goalDiff = player.goalsFor - player.goalsAgainst;
     const form = player.lastFiveGames || [];
@@ -52,7 +51,9 @@ const PlayerCard = ({ player, showPercentages = false, sortBy = null, onEdit, on
     };
 
     const toggleExpanded = () => {
-        setExpanded(!expanded);
+        if (onToggle) {
+            onToggle();
+        }
     };
 
     const StatPill = ({ icon, label, value, background, style = {}, tooltip }) => {
@@ -110,6 +111,7 @@ const PlayerCard = ({ player, showPercentages = false, sortBy = null, onEdit, on
 
     return (
         <Card
+            data-player-id={player.id}
             style={{
                 borderRadius: 12,
                 boxShadow: '0 2px 8px rgba(0,0,0,0.04)',
@@ -282,7 +284,7 @@ const PlayerCard = ({ player, showPercentages = false, sortBy = null, onEdit, on
                         <Divider style={{ margin: '16px 0' }} />
                         <div style={{ marginBottom: 16 }}>
                             <Text strong style={{ fontSize: 14, color: '#333', marginBottom: 12, display: 'block' }}>
-                                📊 Detailed Statistics
+                                📊 Additional Statistics
                             </Text>
 
                             <DetailedStatRow
@@ -302,25 +304,25 @@ const PlayerCard = ({ player, showPercentages = false, sortBy = null, onEdit, on
 
                             <DetailedStatRow
                                 icon={<PlusOutlined style={{ color: '#52c41a' }} />}
-                                label="Goals For"
-                                value={player.goalsFor}
-                                percentage={totalGames > 0 ? `${(player.goalsFor / totalGames).toFixed(1)} per game` : ''}
+                                label="Goals per Game"
+                                value={totalGames > 0 ? `${(player.goalsFor / totalGames).toFixed(1)}` : '0'}
+                                percentage="Average scored"
                                 color="#52c41a"
                             />
 
                             <DetailedStatRow
                                 icon={<MinusOutlined style={{ color: '#f5222d' }} />}
-                                label="Goals Against"
-                                value={player.goalsAgainst}
-                                percentage={totalGames > 0 ? `${(player.goalsAgainst / totalGames).toFixed(1)} per game` : ''}
+                                label="Goals Conceded per Game"
+                                value={totalGames > 0 ? `${(player.goalsAgainst / totalGames).toFixed(1)}` : '0'}
+                                percentage="Average conceded"
                                 color="#f5222d"
                             />
 
                             <DetailedStatRow
                                 icon={<FileTextOutlined style={{ color: goalDiff >= 0 ? '#52c41a' : '#f5222d' }} />}
-                                label="Goal Difference"
-                                value={`${goalDiff >= 0 ? '+' : ''}${goalDiff}`}
-                                percentage={totalGames > 0 ? `${(goalDiff / totalGames).toFixed(1)} per game` : ''}
+                                label="Goal Difference per Game"
+                                value={totalGames > 0 ? `${(goalDiff / totalGames).toFixed(1)}` : '0'}
+                                percentage="Average per game"
                                 color={goalDiff >= 0 ? '#52c41a' : '#f5222d'}
                             />
 
@@ -329,56 +331,10 @@ const PlayerCard = ({ player, showPercentages = false, sortBy = null, onEdit, on
                                     icon={<StarFilled style={{ color: '#fa8c16' }} />}
                                     label="Player of the Match"
                                     value={player.playerOfTheMatchCount}
-                                    percentage={calculatePercentage(player.playerOfTheMatchCount, totalGames)}
+                                    percentage="Total awards"
                                     color="#fa8c16"
                                 />
                             )}
-                        </div>
-
-                        {/* Performance Bars */}
-                        <div style={{ marginBottom: 16 }}>
-                            <Text strong style={{ fontSize: 14, color: '#333', marginBottom: 12, display: 'block' }}>
-                                📈 Performance Breakdown
-                            </Text>
-
-                            <div style={{ marginBottom: 8 }}>
-                                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
-                                    <Text style={{ fontSize: 12 }}>Wins</Text>
-                                    <Text style={{ fontSize: 12 }}>{player.wins}/{totalGames}</Text>
-                                </div>
-                                <Progress
-                                    percent={totalGames > 0 ? (player.wins / totalGames) * 100 : 0}
-                                    strokeColor="#00b96b"
-                                    showInfo={false}
-                                    size="small"
-                                />
-                            </div>
-
-                            <div style={{ marginBottom: 8 }}>
-                                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
-                                    <Text style={{ fontSize: 12 }}>Draws</Text>
-                                    <Text style={{ fontSize: 12 }}>{player.draws}/{totalGames}</Text>
-                                </div>
-                                <Progress
-                                    percent={totalGames > 0 ? (player.draws / totalGames) * 100 : 0}
-                                    strokeColor="#faad14"
-                                    showInfo={false}
-                                    size="small"
-                                />
-                            </div>
-
-                            <div>
-                                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
-                                    <Text style={{ fontSize: 12 }}>Losses</Text>
-                                    <Text style={{ fontSize: 12 }}>{player.losses}/{totalGames}</Text>
-                                </div>
-                                <Progress
-                                    percent={totalGames > 0 ? (player.losses / totalGames) * 100 : 0}
-                                    strokeColor="#ff4d4f"
-                                    showInfo={false}
-                                    size="small"
-                                />
-                            </div>
                         </div>
 
                         {/* Favorite Teammates Section */}
