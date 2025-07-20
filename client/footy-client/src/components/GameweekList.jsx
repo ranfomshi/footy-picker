@@ -32,6 +32,7 @@ import {
   UsergroupAddOutlined,
 } from "@ant-design/icons";
 import useStore from "../useStore";
+import PlayerAvatar from "./PlayerAvatar";
 
 const { Text, Title } = Typography;
 
@@ -299,7 +300,7 @@ const GameweekList = ({
                               }}
                             >
                               <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                                <Avatar size={24} icon={<UserOutlined />} />
+                                <PlayerAvatar player={p} size={24} />
                                 <span>
                                   {p.name}
                                   {p.auth0Id && (
@@ -352,7 +353,7 @@ const GameweekList = ({
                         <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
                           {teamA.map((p) => (
                             <div key={p.id} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                              <Avatar size={20} icon={<UserOutlined />} />
+                              <PlayerAvatar player={p} size={20} />
                               <Text style={{ fontSize: 13 }}>{p.name}</Text>
                             </div>
                           ))}
@@ -380,7 +381,7 @@ const GameweekList = ({
                         <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
                           {teamB.map((p) => (
                             <div key={p.id} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                              <Avatar size={20} icon={<UserOutlined />} />
+                              <PlayerAvatar player={p} size={20} />
                               <Text style={{ fontSize: 13 }}>{p.name}</Text>
                             </div>
                           ))}

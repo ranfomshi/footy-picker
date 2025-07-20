@@ -21,6 +21,7 @@ import {
     EditOutlined,
     DeleteOutlined,
 } from '@ant-design/icons';
+import PlayerAvatar from './PlayerAvatar';
 
 const { Text } = Typography;
 
@@ -215,7 +216,7 @@ const PlayerCard = ({ player, showPercentages = false, sortBy = null, onEdit, on
             </div>
 
             {/* Stat grid */}
-            <div style={{ padding: 12 }}>
+            <div style={{ padding: 12, paddingBottom: 0 }}>
                 <Row gutter={[6, 6]} style={{ marginBottom: 8 }}>
                     <Col flex="1">
                         <StatPill
@@ -392,7 +393,7 @@ const PlayerCard = ({ player, showPercentages = false, sortBy = null, onEdit, on
                                     renderItem={(teammate) => (
                                         <List.Item style={{ padding: '8px 0', borderBottom: '1px solid #f0f0f0' }}>
                                             <List.Item.Meta
-                                                avatar={<Avatar size={32} icon={<UserOutlined />} />}
+                                                avatar={<PlayerAvatar player={teammate} size={32} />}
                                                 title={
                                                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                                                         <Text strong style={{ fontSize: 13 }}>{teammate.name}</Text>
