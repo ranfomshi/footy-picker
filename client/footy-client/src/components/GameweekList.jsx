@@ -184,7 +184,7 @@ const GameweekList = ({
                   <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
                     <ClockCircleOutlined style={{ color: '#6b7280', fontSize: 12 }} />
                     <Text style={{ fontSize: 12, color: '#6b7280', fontWeight: 500 }}>
-                      {startTime}
+                      {formatTime(startTime)}
                     </Text>
                   </div>
 

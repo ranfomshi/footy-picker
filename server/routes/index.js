@@ -1555,7 +1555,8 @@ router.get('/availability', protect, async (req, res) => {
     // 1) Load all current members of this room
     const memberships = await RoomMembership.findAll({
       where: { roomId, isMember: true },
-      include: [{ model: Player, attributes: ['id', 'name', 'rating'] }]
+      include: [{ model: Player, attributes: ['id', 'name', 'rating'] }],
+      attributes: ['playerId', 'auth0Id']
     });
 
     // 2) Load any existing availability rows for that gameweek
@@ -1563,13 +1564,47 @@ router.get('/availability', protect, async (req, res) => {
       where: { gameweekId, roomId }
     });
 
-    // 3) Merge: one entry per member, defaulting status=false
+    // 3) Collect all unique Auth0 IDs for batch processing
+    const allAuth0Ids = new Set();
+    memberships.forEach(membership => {
+      if (membership.auth0Id) {
+        allAuth0Ids.add(membership.auth0Id);
+      }
+    });
+
+    // 4) Batch fetch Auth0 profiles with rate limiting
+    const auth0ProfileCache = new Map();
+    for (const auth0Id of allAuth0Ids) {
+      try {
+        const profile = await getAuth0UserProfile(auth0Id);
+        auth0ProfileCache.set(auth0Id, profile);
+        // Add small delay to respect rate limits
+        await new Promise(resolve => setTimeout(resolve, 100));
+      } catch (error) {
+        console.error(`Failed to fetch profile for ${auth0Id}:`, error.message);
+        auth0ProfileCache.set(auth0Id, null);
+      }
+    }
+
+    // 5) Merge: one entry per member, defaulting status=false, with profile pictures
     const merged = memberships.map(m => {
       const rec = availRows.find(a => a.playerId === m.playerId);
+      
+      // Get profile picture from cache
+      let profilePicture = null;
+      if (m.auth0Id && auth0ProfileCache.has(m.auth0Id)) {
+        const auth0Profile = auth0ProfileCache.get(m.auth0Id);
+        profilePicture = auth0Profile?.picture || null;
+      }
+
       return {
         playerId: m.playerId,
         status: rec ? rec.status : false,
-        Player: m.Player,      // so front‑end can show name, icon, etc.
+        Player: {
+          ...m.Player.toJSON(),
+          profilePicture,
+          auth0Id: m.auth0Id
+        },
         gameweekId
       };
     });
@@ -1863,11 +1898,56 @@ router.get('/teamassignments', protect, async (req, res) => {
           include: {
             model: RoomMembership,
             where: { roomId },
+            attributes: ['auth0Id'],
           },
         },
       ],
     });
-    res.json(assignments);
+
+    // Collect all unique Auth0 IDs for batch processing
+    const allAuth0Ids = new Set();
+    assignments.forEach(assignment => {
+      const auth0Id = assignment.Player?.RoomMemberships?.[0]?.auth0Id;
+      if (auth0Id) {
+        allAuth0Ids.add(auth0Id);
+      }
+    });
+
+    // Batch fetch Auth0 profiles with rate limiting
+    const auth0ProfileCache = new Map();
+    for (const auth0Id of allAuth0Ids) {
+      try {
+        const profile = await getAuth0UserProfile(auth0Id);
+        auth0ProfileCache.set(auth0Id, profile);
+        // Add small delay to respect rate limits
+        await new Promise(resolve => setTimeout(resolve, 100));
+      } catch (error) {
+        console.error(`Failed to fetch profile for ${auth0Id}:`, error.message);
+        auth0ProfileCache.set(auth0Id, null);
+      }
+    }
+
+    // Enrich assignments with profile pictures
+    const enrichedAssignments = assignments.map(assignment => {
+      const auth0Id = assignment.Player?.RoomMemberships?.[0]?.auth0Id;
+      let profilePicture = null;
+      
+      if (auth0Id && auth0ProfileCache.has(auth0Id)) {
+        const auth0Profile = auth0ProfileCache.get(auth0Id);
+        profilePicture = auth0Profile?.picture || null;
+      }
+
+      return {
+        ...assignment.toJSON(),
+        Player: {
+          ...assignment.Player.toJSON(),
+          profilePicture,
+          auth0Id
+        }
+      };
+    });
+
+    res.json(enrichedAssignments);
   } catch (error) {
     console.error('Error fetching team assignments:', error);
     res.status(500).json({ error: 'Internal Server Error' });
