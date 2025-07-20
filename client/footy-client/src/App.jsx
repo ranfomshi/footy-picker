@@ -163,7 +163,67 @@ function App() {
     >
       <Router>
         <div className="App">
-          {isAuthenticated && <Avatar />}
+          {isAuthenticated && hasJoinedRoom && (
+            <div style={{
+              position: 'fixed',
+              top: 0,
+              left: 0,
+              right: 0,
+              zIndex: 10,
+              background: 'linear-gradient(135deg, #00b96b 0%, #52c41a 100%)',
+              boxShadow: '0 4px 20px rgba(0, 185, 107, 0.15)',
+
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              width: '100vw',
+              borderBottomLeftRadius: '16px',
+              borderBottomRightRadius: '16px'
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10, margin: 5 }}>
+                <Avatar />
+                <div>
+                  <Text strong style={{
+                    fontSize: '14px',
+                    color: 'white',
+                    textShadow: '0 1px 2px rgba(0,0,0,0.1)',
+                    display: 'block',
+                    lineHeight: 1.2
+                  }}>
+                    {roomName}
+                  </Text>
+                </div>
+              </div>
+              <div style={{
+                background: 'rgba(255,255,255,0.2)',
+                backdropFilter: 'blur(10px)',
+                padding: '6px 10px',
+                borderRadius: '10px',
+                border: '1px solid rgba(255,255,255,0.3)',
+                marginRight: '16px'
+              }}>
+                <Text style={{
+                  fontSize: '12px',
+                  fontFamily: 'Monaco, Consolas, monospace',
+                  fontWeight: 'bold',
+                  color: 'white',
+                  letterSpacing: '1px'
+                }}>
+                  {roomCode}
+                </Text>
+              </div>
+            </div>
+          )}
+          {isAuthenticated && !hasJoinedRoom && (
+            <div style={{
+              position: 'fixed',
+              top: 16,
+              left: 16,
+              zIndex: 10
+            }}>
+              <Avatar />
+            </div>
+          )}
           {!isAuthenticated && (
             <div className="header" style={{ marginLeft: '60px' }}>
               <div style={{
@@ -210,50 +270,9 @@ function App() {
             <Route
               path="/"
               element={
-                <div className="content scroll-list">
-                  {hasJoinedRoom && (
-                    <div
-                      style={{
-                        padding: '6px 12px',
-                        borderRadius: '6px',
-                        marginBottom: '8px',
-                        backgroundColor: '#f6ffed',
-                        border: '1px solid #b7eb8f',
-                        marginLeft: '60px'
-                      }}
-                    >
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                        <Text strong style={{ fontSize: '14px', color: '#389e0d' }}>
-                          {roomName}
-                        </Text>
-                        <Text
-                          code
-                          style={{
-                            fontSize: '12px'
-                          }}
-                        >
-                          {roomCode}
-                        </Text>
-                      </div>
-                    </div>
-                  )}
-                  {!hasJoinedRoom && (
-                    <div
-                      style={{
-                        textAlign: 'center',
-                        padding: '8px 16px',
-                        borderRadius: '6px',
-                        backgroundColor: '#fafafa',
-                        marginBottom: '8px',
-                        border: '1px solid #f0f0f0',
-                        marginLeft: '60px'
-                      }}
-                    >
-                      <Text style={{ fontSize: '14px', color: '#666' }}>
-                        Welcome to Teamix
-                      </Text>
-                    </div>
-                  )}
+                <div className="content scroll-list" style={{
+                  paddingTop: hasJoinedRoom ? '64px' : '8px'
+                }}>
                   {isAuthenticated ? (
                     loading ? (
                       <Spin size="large" />
