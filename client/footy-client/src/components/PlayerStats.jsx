@@ -342,60 +342,116 @@ const PlayerStats = () => {
     return (
         <Spin spinning={playerLoading}>
             <div style={{ overflowY: 'auto', paddingRight: 8 }}>
-                {/* Header with Add Player Button */}
-                <div style={{ marginBottom: 16, padding: '0 8px' }}>
-                    <Space align="center" style={{ width: '100%', justifyContent: 'space-between', flexWrap: 'wrap', marginBottom: 8 }}>
-                        <Text strong style={{ fontSize: 16 }}>Players</Text>
+                {/* Modern Header Section */}
+                <div style={{
+                    background: 'linear-gradient(135deg, #00b96b 0%, #52c41a 100%)',
+                    borderRadius: 16,
+                    padding: '24px 20px',
+                    marginBottom: 20,
+                    color: 'white',
+                    boxShadow: '0 -4px 20px rgba(0, 185, 107, 0.15)'
+                }}>
+                    {/* Title Row */}
+                    <div style={{
+                        display: 'flex',
+                        justifyContent: 'space-between',
+                        alignItems: 'center',
+                        marginBottom: 20
+                    }}>
+                        <div>
+                            <Text strong style={{ fontSize: 20, color: 'white', marginBottom: 4, display: 'block' }}>
+                                Players
+                            </Text>
+                            <Text style={{ fontSize: 14, color: 'rgba(255, 255, 255, 0.8)' }}>
+                                {filteredPlayers.length} {filteredPlayers.length === 1 ? 'player' : 'players'}
+                            </Text>
+                        </div>
                         <Button
                             type="primary"
                             icon={<PlusOutlined />}
-                            size="small"
+                            size="large"
                             onClick={() => setIsAddModalVisible(true)}
+                            style={{
+                                background: 'rgba(255, 255, 255, 0.2)',
+                                borderColor: 'rgba(255, 255, 255, 0.3)',
+                                backdropFilter: 'blur(10px)',
+                                color: 'white',
+                                fontWeight: 500
+                            }}
                         >
                             Add Player
                         </Button>
-                    </Space>
+                    </div>
 
-                    {/* Search Input */}
-                    <Input
-                        placeholder="Search players..."
-                        value={searchTerm}
-                        onChange={(e) => handleSearch(e.target.value)}
-                        prefix={<SearchOutlined />}
-                        style={{ marginBottom: 8 }}
-                    />
+                    {/* Search and Controls Row */}
+                    <div style={{
+                        display: 'grid',
+                        gridTemplateColumns: '1fr auto',
+                        gap: 16,
+                        alignItems: 'end'
+                    }}>
+                        {/* Search Section */}
+                        <div>
 
-                    {/* Controls */}
-                    <Space align="center" style={{ width: '100%', justifyContent: 'flex-end', flexWrap: 'wrap' }}>
-                        <Select
-                            value={sortBy}
-                            onChange={setSortBy}
-                            style={{ width: 180 }}
-                            size="small"
-                            placeholder="Sort by..."
-                            options={sortOptions}
-                        />
-                        <Tooltip title={`Sort ${sortOrder === 'asc' ? 'Ascending' : 'Descending'} - Click to toggle`}>
-                            <Button
-                                type="text"
-                                size="small"
-                                icon={sortOrder === 'asc' ? <SortAscendingOutlined /> : <SortDescendingOutlined />}
-                                onClick={toggleSortOrder}
+                            <Input
+                                placeholder="Find players..."
+                                value={searchTerm}
+                                onChange={(e) => handleSearch(e.target.value)}
+                                prefix={<SearchOutlined style={{ color: '#666' }} />}
+                                style={{
+                                    borderRadius: 8,
+                                    border: 'none',
+                                    background: 'rgba(255, 255, 255, 0.95)',
+                                    height: 40
+                                }}
                             />
-                        </Tooltip>
-                        {canShowPercentages && (
-                            <Space>
-                                <Text style={{ fontSize: 12 }}>%</Text>
-                                <Tooltip title={`Show ${showPercentages ? 'Numbers' : 'Percentages'} - Click to toggle`}>
+                        </div>
+
+                        {/* Sort and Filter Controls */}
+                        <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
+                            <div>
+                                <Select
+                                    value={sortBy}
+                                    onChange={setSortBy}
+                                    style={{ width: 160 }}
+                                    placeholder="Sort by..."
+                                    options={sortOptions}
+                                    size="large"
+                                />
+                            </div>
+
+                            <Tooltip title={`Sort ${sortOrder === 'asc' ? 'Ascending' : 'Descending'} - Click to toggle`}>
+                                <Button
+                                    size="large"
+                                    icon={sortOrder === 'asc' ? <SortAscendingOutlined /> : <SortDescendingOutlined />}
+                                    onClick={toggleSortOrder}
+                                    style={{
+                                        background: 'rgba(255, 255, 255, 0.2)',
+                                        borderColor: 'rgba(255, 255, 255, 0.3)',
+                                        color: 'white'
+                                    }}
+                                />
+                            </Tooltip>
+
+                            {canShowPercentages && (
+                                <div style={{
+                                    background: 'rgba(255, 255, 255, 0.15)',
+                                    borderRadius: 20,
+                                    padding: '8px 12px',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: 8
+                                }}>
+                                    <Text style={{ fontSize: 12, color: 'white', fontWeight: 500 }}>%</Text>
                                     <Switch
                                         checked={showPercentages}
                                         onChange={setShowPercentages}
                                         size="small"
                                     />
-                                </Tooltip>
-                            </Space>
-                        )}
-                    </Space>
+                                </div>
+                            )}
+                        </div>
+                    </div>
                 </div>
 
                 {/* Content */}
