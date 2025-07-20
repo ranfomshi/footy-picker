@@ -37,20 +37,15 @@ export const getPlayerColor = (player) => {
  * Get avatar URL for a player
  * @param {Object} player - The player object
  * @param {string} player.auth0Id - The Auth0 ID
- * @param {string} player.picture - Optional direct picture URL
+ * @param {string} player.profilePicture - Auth0 profile picture URL
  * @param {string} player.name - Player name for fallback
  * @returns {string|null} Avatar URL or null for fallback icon
  */
 export const getPlayerAvatarUrl = (player) => {
-    // If we have a direct picture URL, use it
-    if (player.picture) {
-        return player.picture;
+    // If we have a profile picture from Auth0, use it
+    if (player.profilePicture) {
+        return player.profilePicture;
     }
-
-    // For future: could implement Auth0 Management API calls here
-    // if (player.auth0Id) {
-    //   return await fetchAuth0ProfilePicture(player.auth0Id);
-    // }
 
     // No avatar available, use fallback
     return null;
