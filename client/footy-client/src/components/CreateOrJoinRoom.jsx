@@ -15,6 +15,7 @@ import {
 } from 'antd';
 import useStore from '../useStore';
 import { invalidatePlayersCache } from '../utils/playerCache';
+import { trackRoomCreated, trackRoomJoined, trackPlayerCreated, trackPlayerLinked, trackError, trackPerformance } from '../utils/mixpanel';
 
 const { Title, Paragraph } = Typography;
 const { Option } = Select;
@@ -66,6 +67,7 @@ const CreateOrJoinRoom = ({ onRoomJoined, checkMembership }) => {
         if (!roomName.trim()) return message.error('Enter a room name');
         if (!selectedSport) return message.error('Select a sport');
 
+        const startTime = Date.now();
         setLoading(l => ({ ...l, create: true }));
         try {
             const token = await getAccessTokenSilently();
@@ -74,6 +76,10 @@ const CreateOrJoinRoom = ({ onRoomJoined, checkMembership }) => {
                 { name: roomName, sportId: selectedSport, teamAColor, teamBColor },
                 { headers: { Authorization: `Bearer ${token}` } }
             );
+
+            // Track room creation
+            trackRoomCreated(data.room.code, data.room.name, false); // Assuming rooms are public by default
+            trackPerformance('create_room', Date.now() - startTime, true);
 
             message.success(`Room '${data.room.name}' created! Code: ${data.room.code}`);
             setGlobalCode(data.room.code);
@@ -84,6 +90,14 @@ const CreateOrJoinRoom = ({ onRoomJoined, checkMembership }) => {
         } catch (err) {
             handleAuthError(err);
             console.error(err);
+            
+            // Track error
+            trackError('create_room_failed', err.message, {
+                room_name: roomName,
+                sport_id: selectedSport
+            });
+            trackPerformance('create_room', Date.now() - startTime, false);
+            
             message.error('Unable to create room');
         } finally {
             setLoading(l => ({ ...l, create: false }));
@@ -96,6 +110,7 @@ const CreateOrJoinRoom = ({ onRoomJoined, checkMembership }) => {
             return message.error('Enter a valid 5‑char room code');
         }
 
+        const startTime = Date.now();
         setLoading(l => ({ ...l, join: true }));
         try {
             const token = await getAccessTokenSilently();
@@ -105,12 +120,22 @@ const CreateOrJoinRoom = ({ onRoomJoined, checkMembership }) => {
                 { headers: { Authorization: `Bearer ${token}` } }
             );
 
+            // Track successful room join attempt (showing player selection modal)
+            trackPerformance('join_room_attempt', Date.now() - startTime, true);
+
             // Ensure we always have an array
             setUnlinkedPlayers(data.unlinkedPlayers || []);
             setPlayerModalVisible(true);
         } catch (err) {
             handleAuthError(err);
             console.error(err);
+            
+            // Track error
+            trackError('join_room_failed', err.message, {
+                room_code: roomCode
+            });
+            trackPerformance('join_room_attempt', Date.now() - startTime, false);
+            
             message.error('Failed to join room');
         } finally {
             setLoading(l => ({ ...l, join: false }));
@@ -119,6 +144,7 @@ const CreateOrJoinRoom = ({ onRoomJoined, checkMembership }) => {
 
     // Finalize join: link or create player
     const handleFinalize = async (playerId) => {
+        const startTime = Date.now();
         setLoading(l => ({ ...l, finalize: true }));
         try {
             const token = await getAccessTokenSilently();
@@ -130,6 +156,16 @@ const CreateOrJoinRoom = ({ onRoomJoined, checkMembership }) => {
 
             // Invalidate cache when player is created or linked
             invalidatePlayersCache();
+
+            // Track room join completion and player actions
+            if (playerId) {
+                trackPlayerLinked(playerId, 'existing_player', user.sub);
+                trackRoomJoined(roomCode, 'unknown', 'link_existing_player');
+            } else {
+                trackPlayerCreated('new_player', user.name, roomCode);
+                trackRoomJoined(roomCode, 'unknown', 'create_new_player');
+            }
+            trackPerformance('finalize_join_room', Date.now() - startTime, true);
 
             message.success('Welcome to the room!');
             setGlobalCode(roomCode);

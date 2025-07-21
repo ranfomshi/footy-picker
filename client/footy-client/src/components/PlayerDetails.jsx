@@ -1,12 +1,20 @@
-import React from "react";
+import React, { useEffect } from "react";
 import { Card, Row, Col, Typography, Divider, List, Statistic, Avatar, Tooltip, Modal, Button } from "antd";
 import { TrophyOutlined, TeamOutlined, MinusCircleOutlined, PlusCircleOutlined, UserOutlined, InfoCircleOutlined } from "@ant-design/icons";
 import PlayerAvatar from './PlayerAvatar';
+import { trackPlayerDetailsViewed } from '../utils/mixpanel';
 
 const { Title, Text } = Typography;
 
 const PlayerDetails = ({ player, onClose }) => {
   const coreColor = '#00b96b'; // Core color
+
+  // Track when player details are viewed
+  useEffect(() => {
+    if (player) {
+      trackPlayerDetailsViewed(player.id, player.name, player.roomId || 'unknown');
+    }
+  }, [player]);
 
   // Modal for explanation
   const showExplanation = () => {

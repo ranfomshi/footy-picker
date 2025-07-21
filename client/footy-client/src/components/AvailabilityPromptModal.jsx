@@ -1,6 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Modal, Button, Typography, Card, Space, Divider, message } from 'antd';
 import { CalendarOutlined, ClockCircleOutlined, EnvironmentOutlined, CheckCircleOutlined, CloseOutlined } from '@ant-design/icons';
+import { trackAvailabilityPromptShown, trackAvailabilityPromptCompleted, trackAvailabilitySet } from '../utils/mixpanel';
 
 const { Title, Text } = Typography;
 
@@ -15,6 +16,15 @@ const AvailabilityPromptModal = ({
 }) => {
     const [loading, setLoading] = useState({});
     const [respondedGameweeks, setRespondedGameweeks] = useState(new Set());
+    const [modalOpenTime, setModalOpenTime] = useState(null);
+
+    // Track when modal is shown
+    useEffect(() => {
+        if (visible && gameweeks.length > 0) {
+            setModalOpenTime(Date.now());
+            trackAvailabilityPromptShown(gameweeks.length, currentPlayer?.roomId || 'unknown');
+        }
+    }, [visible, gameweeks.length, currentPlayer?.roomId]);
 
     // Early return if no data
     if (!visible || !currentPlayer || gameweeks.length === 0) {
@@ -31,12 +41,19 @@ const AvailabilityPromptModal = ({
             await setPlayerAvailability(currentPlayer.id, gameweekId, available);
             message.success(available ? 'Marked as available' : 'Marked as not available');
 
+            // Track availability setting
+            trackAvailabilitySet(currentPlayer.id, gameweekId, available, currentPlayer?.roomId || 'unknown');
+
             // Mark this gameweek as responded to
             setRespondedGameweeks(prev => new Set([...prev, gameweekId]));
 
             // Check if all gameweeks have been responded to
             const newRespondedSet = new Set([...respondedGameweeks, gameweekId]);
             if (newRespondedSet.size === gameweeks.length) {
+                // Track completion
+                const timeToComplete = modalOpenTime ? (Date.now() - modalOpenTime) / 1000 : 0;
+                trackAvailabilityPromptCompleted(gameweeks.length, currentPlayer?.roomId || 'unknown', timeToComplete);
+                
                 // Close modal after a brief delay to show the success message
                 setTimeout(() => {
                     onClose();

@@ -14,6 +14,7 @@ import { Auth0Provider, useAuth0 } from "@auth0/auth0-react";
 import useStore from "./useStore";
 import Avatar from "./components/Avatar";
 import { fetchPlayersWithCache } from "./utils/playerCache";
+import { initMixpanel, identifyUser, trackUserLogin, trackPageView, trackTabChanged, trackRoomJoined } from "./utils/mixpanel";
 
 const { Title, Text, Paragraph } = Typography;
 
@@ -116,6 +117,35 @@ const AppContent = () => {
     performInitialChecks();
   }, [isAuthenticated, roomCode]);
 
+  // Initialize Mixpanel and identify user when authenticated
+  useEffect(() => {
+    // Initialize Mixpanel on app load
+    initMixpanel();
+  }, []);
+
+  useEffect(() => {
+    if (isAuthenticated) {
+      // Get user info from Auth0 and identify in Mixpanel
+      getAccessTokenSilently().then(() => {
+        // You might want to get more user info from Auth0 here
+        identifyUser('authenticated_user', {
+          has_joined_room: hasJoinedRoom,
+          room_code: roomCode,
+          room_name: roomName,
+        });
+        trackUserLogin('authenticated_user');
+      }).catch(console.error);
+    }
+  }, [isAuthenticated, hasJoinedRoom, roomCode, roomName]);
+
+  // Track page views
+  useEffect(() => {
+    trackPageView(getActiveKeyFromPath(location.pathname), {
+      room_code: roomCode,
+      has_joined_room: hasJoinedRoom,
+    });
+  }, [location.pathname, roomCode, hasJoinedRoom]);
+
   useEffect(() => {
     if (error) {
       console.error("Auth0 Error:", error);
@@ -131,6 +161,10 @@ const AppContent = () => {
 
   const handleRoomJoined = async () => {
     setHasJoinedRoom(true);
+    
+    // Track room join event
+    trackRoomJoined(roomCode, roomName, 'app_navigation');
+    
     try {
       await fetchPlayersWithCache(getAccessTokenSilently, setPlayers, () => { });
     } catch (error) {
@@ -140,6 +174,11 @@ const AppContent = () => {
   };
 
   const handleNavigation = (key) => {
+    const currentTab = getActiveKeyFromPath(location.pathname);
+    
+    // Track tab change
+    trackTabChanged(currentTab, key, roomCode);
+    
     switch (key) {
       case 'playerStats':
         navigate('/players');

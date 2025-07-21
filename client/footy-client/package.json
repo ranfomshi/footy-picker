@@ -16,6 +16,7 @@
     "antd": "^5.19.3",
     "antd-mobile": "^5.37.1",
     "axios": "^1.7.2",
+    "mixpanel-browser": "^2.67.0",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "react-otp-input": "^3.1.1",

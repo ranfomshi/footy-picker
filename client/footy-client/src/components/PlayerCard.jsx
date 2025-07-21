@@ -22,6 +22,7 @@ import {
     DeleteOutlined,
 } from '@ant-design/icons';
 import PlayerAvatar from './PlayerAvatar';
+import { trackPlayerCardExpanded, trackFavoriteTeammatesViewed, trackFormidableOpponentsViewed } from '../utils/mixpanel';
 
 const { Text } = Typography;
 
@@ -53,6 +54,19 @@ const PlayerCard = ({ player, showPercentages = false, sortBy = null, expanded =
     const toggleExpanded = () => {
         if (onToggle) {
             onToggle();
+        }
+        
+        // Track player card expansion
+        if (!expanded) {
+            trackPlayerCardExpanded(player.id, player.name);
+            
+            // Track if user is viewing teammates/opponents sections
+            if (player.favoriteTeammates && player.favoriteTeammates.length > 0) {
+                trackFavoriteTeammatesViewed(player.id, player.favoriteTeammates.length);
+            }
+            if (player.formidableOpponents && player.formidableOpponents.length > 0) {
+                trackFormidableOpponentsViewed(player.id, player.formidableOpponents.length);
+            }
         }
     };
 
