@@ -8,12 +8,14 @@ import VotePlayerModal from "./VotePlayerModal";
 import PlayerAvatar from "./PlayerAvatar";
 import { useAuth0 } from "@auth0/auth0-react";
 import { fetchPlayersWithCache } from "../utils/playerCache";
+import useStore from "../useStore";
 
 const { Text } = Typography;
 const { Option } = Select;
 
 const GameweekManager = () => {
   const { getAccessTokenSilently, user } = useAuth0();
+  const { setOpenGameweek } = useStore();
   const API = import.meta.env.VITE_API_BASE_URL;
 
   const [gameweeks, setGameweeks] = useState({});
@@ -25,7 +27,7 @@ const GameweekManager = () => {
   const [teamsLoading, setTeamsLoading] = useState({}); // Track loading state per gameweek
   const [availability, setAvailability] = useState({});
   const [hasVoted, setHasVoted] = useState({});
-  
+
   // Track which gameweeks have been fetched to prevent redundant API calls
   const [fetchedGameweeks, setFetchedGameweeks] = useState({
     teams: new Set(),
@@ -106,7 +108,7 @@ const GameweekManager = () => {
         else grouped.teamB.push(p);
       });
       setTeams((prev) => ({ ...prev, [gwId]: grouped }));
-      
+
       // Mark as fetched
       setFetchedGameweeks(prev => ({
         ...prev,
@@ -138,7 +140,7 @@ const GameweekManager = () => {
       return acc;
     }, {});
     setAvailability((prev) => ({ ...prev, [gwId]: availabilityMap }));
-    
+
     // Mark as fetched
     setFetchedGameweeks(prev => ({
       ...prev,
@@ -159,7 +161,7 @@ const GameweekManager = () => {
       { headers: { Authorization: `Bearer ${token}` } }
     );
     setHasVoted((prev) => ({ ...prev, [gwId]: data.hasVoted }));
-    
+
     // Mark as fetched
     setFetchedGameweeks(prev => ({
       ...prev,
@@ -366,6 +368,11 @@ const GameweekManager = () => {
     setIsManualVisible(false);
     manualForm.resetFields();
   };
+
+  // Reset openGameweek state when component mounts to ensure all fixtures are collapsed
+  useEffect(() => {
+    setOpenGameweek(null);
+  }, [setOpenGameweek]);
 
   useEffect(() => {
     // Start both fetches in parallel for better performance
