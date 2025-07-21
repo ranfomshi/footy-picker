@@ -1619,7 +1619,9 @@ router.get('/availability', protect, async (req, res) => {
       }
     }
 
-    // 5) Merge: one entry per member, defaulting status=false, with profile pictures
+    // 5) Merge: one entry per member, with profile pictures
+    // Note: status is null for players who haven't set availability, 
+    // false for those who explicitly set "not available", true for "available"
     const merged = memberships.map(m => {
       const rec = availRows.find(a => a.playerId === m.playerId);
 
@@ -1632,7 +1634,7 @@ router.get('/availability', protect, async (req, res) => {
 
       return {
         playerId: m.playerId,
-        status: rec ? rec.status : false,
+        status: rec ? rec.status : null, // null instead of false for unset availability
         Player: {
           ...m.Player.toJSON(),
           profilePicture,
