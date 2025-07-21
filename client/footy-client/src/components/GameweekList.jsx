@@ -164,7 +164,7 @@ const GameweekList = ({
                   : 'linear-gradient(135deg, #fafbfc 0%, #f5f7fa 100%)',
                 borderTopLeftRadius: 12,
                 borderTopRightRadius: 12,
-                padding: '8px 20px',
+                padding: '6px 10px',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'space-between',
