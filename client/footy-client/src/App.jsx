@@ -50,7 +50,7 @@ const Auth0ProviderWithHistory = ({ children }) => {
 
 // Main app content component that uses routing
 const AppContent = () => {
-  const { isAuthenticated, getAccessTokenSilently, error } = useAuth0();
+  const { isAuthenticated, getAccessTokenSilently, error, loginWithRedirect } = useAuth0();
   const [players, setPlayers] = useState([]);
   const [loading, setLoading] = useState(true);
   const location = useLocation();
@@ -289,8 +289,6 @@ const AppContent = () => {
 };
 
 function App() {
-  const { loginWithRedirect } = useAuth0();
-
   return (
     <ConfigProvider
       componentSize="small"
