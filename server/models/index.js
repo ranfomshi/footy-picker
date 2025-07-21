@@ -28,6 +28,10 @@ const Player = sequelize.define('Player', {
     rating: {
         type: DataTypes.DECIMAL,
         defaultValue: 0
+    },
+    profilePicture: {
+        type: DataTypes.STRING,
+        allowNull: true
     }
 });
 

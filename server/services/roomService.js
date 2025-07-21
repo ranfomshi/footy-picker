@@ -2,6 +2,9 @@
 const { Room, Player, RoomMembership, sequelize } = require('../models');
 const { Op } = require('sequelize');
 
+// Import the Auth0 profile fetching function
+const { getAuth0UserProfile } = require('../utils/auth0Utils');
+
 /**
  * Fetch unlinked players in the given room.
  * @param {number} roomId
@@ -40,6 +43,20 @@ async function completeRoomJoin({ roomCode, playerId, newPlayerName, auth0Id }) 
             }, { transaction: t });
             if (!membership) throw new Error('Invalid or already linked player');
 
+            // Fetch Auth0 profile and update player with profile picture
+            try {
+                const auth0Profile = await getAuth0UserProfile(auth0Id);
+                if (auth0Profile?.picture) {
+                    await Player.update(
+                        { profilePicture: auth0Profile.picture },
+                        { where: { id: playerId }, transaction: t }
+                    );
+                }
+            } catch (error) {
+                console.log('Failed to fetch Auth0 profile for existing player:', error.message);
+                // Continue without profile picture - not critical
+            }
+
             await membership.update(
                 { auth0Id, isActive: true },
                 { transaction: t }
@@ -47,10 +64,22 @@ async function completeRoomJoin({ roomCode, playerId, newPlayerName, auth0Id }) 
         } else {
             // 2b) Create new player & membership
             const finalName = newPlayerName || 'Unnamed Player';
+            let profilePicture = null;
 
-            // (Optional) fetch real user name from Auth0 in calling layer
+            // Fetch Auth0 profile for profile picture
+            try {
+                const auth0Profile = await getAuth0UserProfile(auth0Id);
+                profilePicture = auth0Profile?.picture || null;
+            } catch (error) {
+                console.log('Failed to fetch Auth0 profile for new player:', error.message);
+                // Continue without profile picture - not critical
+            }
+
             const newPlayer = await Player.create(
-                { name: finalName },
+                { 
+                    name: finalName, 
+                    profilePicture 
+                },
                 { transaction: t }
             );
 

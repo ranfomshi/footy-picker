@@ -15,88 +15,11 @@ const {
   PlayerAchievements
 } = require('../models');
 const { pickBalancedTeams } = require('../services/teamPicker'); // team picking logic
+const { getAuth0UserProfile } = require('../utils/auth0Utils');
 const router = express.Router();
 const { Op } = require('sequelize');
 const jwt = require('jsonwebtoken');
 const axios = require('axios');
-
-// Auth0 Management API helper functions
-let managementToken = null;
-let tokenExpiry = null;
-
-const getManagementToken = async () => {
-  // Check if we have a valid token
-  if (managementToken && tokenExpiry && Date.now() < tokenExpiry) {
-    console.log('🔄 Using cached Auth0 management token');
-    return managementToken;
-  }
-
-  console.log('🔑 Requesting new Auth0 management token...');
-  console.log('Auth0 Domain:', process.env.AUTH0_DOMAIN);
-  console.log('Auth0 Client ID:', process.env.AUTH0_CLIENT_ID ? 'SET' : 'NOT SET');
-  console.log('Auth0 Client Secret:', process.env.AUTH0_CLIENT_SECRET ? 'SET' : 'NOT SET');
-
-  try {
-    const response = await axios.post(`https://${process.env.AUTH0_DOMAIN}/oauth/token`, {
-      client_id: process.env.AUTH0_CLIENT_ID,
-      client_secret: process.env.AUTH0_CLIENT_SECRET,
-      audience: `https://${process.env.AUTH0_DOMAIN}/api/v2/`,
-      grant_type: 'client_credentials'
-    });
-
-    managementToken = response.data.access_token;
-    // Set expiry to 5 minutes before actual expiry for safety
-    tokenExpiry = Date.now() + (response.data.expires_in - 300) * 1000;
-
-    console.log('✅ Auth0 management token obtained successfully');
-    console.log('Token expires in:', response.data.expires_in, 'seconds');
-    return managementToken;
-  } catch (error) {
-    console.error('❌ Failed to get Auth0 management token:');
-    console.error('Error message:', error.message);
-    console.error('Response status:', error.response?.status);
-    console.error('Response data:', error.response?.data);
-    return null;
-  }
-}; const getAuth0UserProfile = async (auth0Id) => {
-  console.log('👤 Fetching Auth0 profile for user:', auth0Id);
-
-  try {
-    const token = await getManagementToken();
-    if (!token) {
-      console.log('❌ No management token available for user:', auth0Id);
-      return null;
-    }
-
-    console.log('🌐 Making Auth0 Management API call for user:', auth0Id);
-    const response = await axios.get(
-      `https://${process.env.AUTH0_DOMAIN}/api/v2/users/${encodeURIComponent(auth0Id)}`,
-      {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      }
-    );
-
-    console.log('✅ Auth0 profile data received for user:', auth0Id);
-    console.log('Profile picture URL:', response.data.picture || 'NO PICTURE');
-    console.log('Profile name:', response.data.name || 'NO NAME');
-    console.log('Profile email:', response.data.email || 'NO EMAIL');
-
-    return {
-      picture: response.data.picture,
-      name: response.data.name,
-      email: response.data.email,
-    };
-  } catch (error) {
-    console.error(`❌ Failed to fetch Auth0 profile for ${auth0Id}:`);
-    console.error('Error message:', error.message);
-    console.error('Response status:', error.response?.status);
-    console.error('Response data:', error.response?.data);
-    return null;
-  }
-};
-
 const jwksRsa = require('jwks-rsa');
 const achievements = require('../references/achievementConditions');
 const { saveFcmToken, sendRoomNotification } = require('../services/notifications'); // Import only the save function
@@ -294,12 +217,23 @@ router.post('/create-room', protect, async (req, res) => {
 
     // Determine player name from request or Auth0
     let finalPlayerName = playerName;
+    let profilePicture = null;
+    
     if (!finalPlayerName) {
       const token = req.headers.authorization.split(' ')[1];
       const userInfo = await axios.get(`https://${auth0Domain}/userinfo`, {
         headers: { Authorization: `Bearer ${token}` }
       });
       finalPlayerName = userInfo.data.name || 'Unnamed Player';
+    }
+
+    // Fetch Auth0 profile for profile picture
+    try {
+      const auth0Profile = await getAuth0UserProfile(auth0Id);
+      profilePicture = auth0Profile?.picture || null;
+    } catch (error) {
+      console.log('Failed to fetch Auth0 profile for room creator:', error.message);
+      // Continue without profile picture - not critical
     }
 
     // Create room with colours
@@ -312,7 +246,10 @@ router.post('/create-room', protect, async (req, res) => {
     );
 
     // Create creator player & membership
-    const newPlayer = await Player.create({ name: finalPlayerName });
+    const newPlayer = await Player.create({ 
+      name: finalPlayerName, 
+      profilePicture 
+    });
     const newMembership = await RoomMembership.create({
       playerId: newPlayer.id,
       roomId: room.id,
@@ -1585,60 +1522,36 @@ router.get('/availability', protect, async (req, res) => {
     const { gameweekId } = req.query;
     const { roomId } = req.user;
 
-    // 1) Load all current members of this room
-    const memberships = await RoomMembership.findAll({
-      where: { roomId, isMember: true },
-      include: [{ model: Player, attributes: ['id', 'name', 'rating'] }],
-      attributes: ['playerId', 'auth0Id']
+    // Parallel execution of database queries
+    const [memberships, availRows] = await Promise.all([
+      // 1) Load all current members of this room
+      RoomMembership.findAll({
+        where: { roomId, isMember: true },
+        include: [{ model: Player, attributes: ['id', 'name', 'rating', 'profilePicture'] }],
+        attributes: ['playerId', 'auth0Id']
+      }),
+      // 2) Load any existing availability rows for that gameweek
+      Availability.findAll({
+        where: { gameweekId, roomId }
+      })
+    ]);
+
+    // 3) Create availability lookup map for O(1) access
+    const availabilityMap = new Map();
+    availRows.forEach(row => {
+      availabilityMap.set(row.playerId, row.status);
     });
 
-    // 2) Load any existing availability rows for that gameweek
-    const availRows = await Availability.findAll({
-      where: { gameweekId, roomId }
-    });
-
-    // 3) Collect all unique Auth0 IDs for batch processing
-    const allAuth0Ids = new Set();
-    memberships.forEach(membership => {
-      if (membership.auth0Id) {
-        allAuth0Ids.add(membership.auth0Id);
-      }
-    });
-
-    // 4) Batch fetch Auth0 profiles with rate limiting
-    const auth0ProfileCache = new Map();
-    for (const auth0Id of allAuth0Ids) {
-      try {
-        const profile = await getAuth0UserProfile(auth0Id);
-        auth0ProfileCache.set(auth0Id, profile);
-        // Add small delay to respect rate limits
-        await new Promise(resolve => setTimeout(resolve, 100));
-      } catch (error) {
-        console.error(`Failed to fetch profile for ${auth0Id}:`, error.message);
-        auth0ProfileCache.set(auth0Id, null);
-      }
-    }
-
-    // 5) Merge: one entry per member, with profile pictures
-    // Note: status is null for players who haven't set availability, 
-    // false for those who explicitly set "not available", true for "available"
+    // 4) Include profile pictures from Player data (stored when user joins room)
+    // This avoids expensive Auth0 API calls for availability endpoint
     const merged = memberships.map(m => {
-      const rec = availRows.find(a => a.playerId === m.playerId);
-
-      // Get profile picture from cache
-      let profilePicture = null;
-      if (m.auth0Id && auth0ProfileCache.has(m.auth0Id)) {
-        const auth0Profile = auth0ProfileCache.get(m.auth0Id);
-        profilePicture = auth0Profile?.picture || null;
-      }
-
       return {
         playerId: m.playerId,
-        status: rec ? rec.status : null, // null instead of false for unset availability
+        status: availabilityMap.has(m.playerId) ? availabilityMap.get(m.playerId) : null,
         Player: {
           ...m.Player.toJSON(),
-          profilePicture,
           auth0Id: m.auth0Id
+          // profilePicture now included from Player data for performance
         },
         gameweekId
       };
