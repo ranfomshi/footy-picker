@@ -290,15 +290,14 @@ const GameweekList = ({
 
             {/* Expanded Content */}
             {isExpanded && (
-              <div style={{ padding: '20px 24px' }}>
-                {/* Actions Menu */}
+              <div style={{ padding: '20px 24px', position: 'relative' }}>
+                {/* Actions Menu - Positioned Absolutely */}
                 {menuItems.length > 0 && (
-                  <div style={{ 
-                    display: 'flex', 
-                    justifyContent: 'flex-end', 
-                    marginBottom: 16,
-                    paddingBottom: 12,
-                    borderBottom: '1px solid rgba(0, 0, 0, 0.06)'
+                  <div style={{
+                    position: 'absolute',
+                    top: 16,
+                    right: 16,
+                    zIndex: 2
                   }}>
                     <Dropdown
                       overlay={<Menu>{menuItems}</Menu>}
@@ -310,77 +309,80 @@ const GameweekList = ({
                         size="small"
                         icon={<EllipsisOutlined />}
                         style={{
+                          width: 28,
+                          height: 28,
+                          borderRadius: 6,
+                          color: '#6b7280',
                           display: 'flex',
                           alignItems: 'center',
-                          gap: 6,
-                          color: '#6b7280',
-                          fontSize: 13
+                          justifyContent: 'center'
                         }}
-                      >
-                        Actions
-                      </Button>
+                      />
                     </Dropdown>
                   </div>
                 )}
-                
+
                 {gameResult ? (
                   // Game Results View
                   <>
-                    {playerOfTheMatch?.length > 0 && (
-                      <div style={{
-                        marginBottom: 20,
-                        padding: '12px 16px',
-                        borderRadius: 8,
-                        border: '1px solid rgba(0, 0, 0, 0.06)',
-                        background: '#ffffff'
-                      }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                    {/* Consolidated Results & Voting Section */}
+                    <div style={{
+                      marginBottom: 20,
+                      padding: '12px 16px',
+                      borderRadius: 8,
+                      border: '1px solid rgba(0, 0, 0, 0.06)',
+                      background: '#ffffff'
+                    }}>
+                      {/* Player of the Match */}
+                      {playerOfTheMatch?.length > 0 && (
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 8 }}>
                           <div style={{
-                            width: 32,
-                            height: 32,
+                            width: 24,
+                            height: 24,
                             borderRadius: '50%',
                             background: '#00b96b',
                             display: 'flex',
                             alignItems: 'center',
                             justifyContent: 'center'
                           }}>
-                            <TrophyTwoTone twoToneColor={["#ffffff", "#ffffff"]} style={{ fontSize: 16 }} />
+                            <TrophyTwoTone twoToneColor={["#ffffff", "#ffffff"]} style={{ fontSize: 12 }} />
                           </div>
-                          <div>
-                            <Text strong style={{ color: '#374151', fontSize: 13 }}>
-                              Player of the Match: <span style={{ color: '#00b96b' }}>{playerOfTheMatch.join(", ")}</span>
-                            </Text>
-                          </div>
+                          <Text strong style={{ color: '#374151', fontSize: 13 }}>
+                            Player of the Match: <span style={{ color: '#00b96b' }}>{playerOfTheMatch.join(", ")}</span>
+                          </Text>
                         </div>
-                      </div>
-                    )}
+                      )}
 
-                    <div style={{
-                      marginBottom: 24,
-                      padding: '12px 16px',
-                      background: isVotingOpen(gw)
-                        ? 'rgba(82, 196, 26, 0.08)'
-                        : 'rgba(107, 114, 128, 0.08)',
-                      borderRadius: 8,
-                      border: `1px solid ${isVotingOpen(gw) ? 'rgba(82, 196, 26, 0.2)' : 'rgba(107, 114, 128, 0.2)'}`
-                    }}>
-                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                      {/* Voting Status Row */}
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                           <ClockCircleOutlined style={{
                             color: isVotingOpen(gw) ? '#52c41a' : '#6b7280',
-                            fontSize: 14
+                            fontSize: 12
                           }} />
                           <Text style={{
-                            fontSize: 13,
-                            color: isVotingOpen(gw) ? '#52c41a' : '#6b7280',
-                            fontWeight: 500
+                            fontSize: 11,
+                            color: isVotingOpen(gw) ? '#52c41a' : '#6b7280'
                           }}>
                             {isVotingOpen(gw) ? (
-                              <>Voting closes: {formatVotingCloseTime(votingCloseTime)}</>
+                              <>Closes: {formatVotingCloseTime(votingCloseTime)}</>
                             ) : (
                               <>Voting closed</>
                             )}
                           </Text>
+                          {hasVoted[id] && (
+                            <div style={{
+                              color: '#6b7280',
+                              fontSize: 11,
+                              marginLeft: 8,
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: 3
+                            }}>
+                              <CheckCircleOutlined style={{ fontSize: 10 }} />
+                              Voted
+                            </div>
+                          )}
                         </div>
 
                         {isVotingOpen(gw) && !hasVoted[id] && (
@@ -392,28 +394,15 @@ const GameweekList = ({
                             style={{
                               backgroundColor: '#00b96b',
                               borderColor: '#00b96b',
-                              fontSize: 12,
-                              height: 28,
+                              fontSize: 11,
+                              height: 26,
                               borderRadius: 6,
-                              fontWeight: 500
+                              fontWeight: 500,
+                              padding: '0 8px'
                             }}
                           >
                             Vote
                           </Button>
-                        )}
-
-                        {hasVoted[id] && (
-                          <div style={{
-                            color: '#6b7280',
-                            fontSize: 12,
-                            fontWeight: 500,
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: 4
-                          }}>
-                            <CheckCircleOutlined style={{ fontSize: 12 }} />
-                            Voted
-                          </div>
                         )}
                       </div>
                     </div>
@@ -531,10 +520,8 @@ const GameweekList = ({
                 )}
 
                 {/* Team Display */}
-                <div style={{ marginTop: 24 }}>
-                  <Text strong style={{ fontSize: 14, color: '#374151', marginBottom: 16, display: 'block' }}>
-                    Team Assignment
-                  </Text>
+                <div style={{ marginTop: 12 }}>
+
                   <Row gutter={16}>
                     <Col span={12}>
                       <div style={{
