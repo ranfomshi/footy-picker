@@ -208,7 +208,7 @@ const GameweekManager = () => {
     await axios.post(`${API}/gameweeks`, vals, {
       headers: { Authorization: `Bearer ${token}` },
     });
-    message.success("Gameweek added");
+    message.success("Fixture added");
     setIsAddVisible(false);
     fetchGameweeks();
   };
@@ -220,11 +220,11 @@ const GameweekManager = () => {
       await axios.delete(`${API}/gameweeks/${gameweekId}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
-      message.success("Gameweek deleted");
+      message.success("Fixture deleted");
       fetchGameweeks();
     } catch (error) {
       console.error('Error deleting gameweek:', error);
-      message.error("Failed to delete gameweek");
+      message.error("Failed to delete fixture");
     }
   };
 
@@ -331,7 +331,7 @@ const GameweekManager = () => {
         <Space align="center" style={{ width: '100%', justifyContent: 'space-between', flexWrap: 'wrap' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
             <CalendarOutlined style={{ fontSize: 18, color: '#00b96b' }} />
-            <Text strong style={{ fontSize: 16 }}>Gameweeks</Text>
+            <Text strong style={{ fontSize: 16 }}>Fixtures</Text>
           </div>
           <Button
             type="primary"
@@ -343,7 +343,7 @@ const GameweekManager = () => {
               boxShadow: '0 2px 4px rgba(0,185,107,0.2)'
             }}
           >
-            Add Gameweek
+            Add Fixture
           </Button>
         </Space>
       </div>
@@ -380,12 +380,12 @@ const GameweekManager = () => {
         setSearchTerm={setSearchTerm}
       />
 
-      {/* Add Gameweek Modal */}
+      {/* Add Fixture Modal */}
       <Modal
         title={
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
             <CalendarOutlined style={{ color: '#00b96b' }} />
-            <span>Add New Gameweek</span>
+            <span>Add New Fixture</span>
           </div>
         }
         open={isAddVisible}

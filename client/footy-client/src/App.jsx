@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { BrowserRouter as Router, Route, Routes } from "react-router-dom"; // Import updated routing components
+import { BrowserRouter as Router, Route, Routes, useLocation, useNavigate } from "react-router-dom"; // Import updated routing components
 import "./App.css";
 import axios from "axios";
 import GameweekManager from "./components/GameweekManager";
@@ -48,12 +48,13 @@ const Auth0ProviderWithHistory = ({ children }) => {
   );
 };
 
-function App() {
-  const { loginWithRedirect, isAuthenticated, getAccessTokenSilently, error } =
-    useAuth0();
+// Main app content component that uses routing
+const AppContent = () => {
+  const { isAuthenticated, getAccessTokenSilently, error } = useAuth0();
   const [players, setPlayers] = useState([]);
-  const [activeKey, setActiveKey] = useState("playerStats");
   const [loading, setLoading] = useState(true);
+  const location = useLocation();
+  const navigate = useNavigate();
   const {
     hasJoinedRoom,
     roomCode,
@@ -63,6 +64,22 @@ function App() {
   } = useStore();
 
   const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
+
+  // Get current active key from the route
+  const getActiveKeyFromPath = (pathname) => {
+    switch (pathname) {
+      case '/players':
+        return 'playerStats';
+      case '/fixtures':
+        return 'fixtures';
+      case '/account':
+        return 'account';
+      default:
+        return 'playerStats';
+    }
+  };
+
+  const activeKey = getActiveKeyFromPath(location.pathname);
 
   const checkRoomMembership = async () => {
     try {
@@ -86,7 +103,6 @@ function App() {
     }
   };
 
-
   useEffect(() => {
     const performInitialChecks = async () => {
       if (isAuthenticated) {
@@ -99,14 +115,17 @@ function App() {
   }, [isAuthenticated, roomCode]);
 
   useEffect(() => {
-    localStorage.setItem("activeKey", activeKey);
-  }, [activeKey]);
-
-  useEffect(() => {
     if (error) {
       console.error("Auth0 Error:", error);
     }
   }, [error]);
+
+  // Redirect to /players if on root and has joined room
+  useEffect(() => {
+    if (isAuthenticated && hasJoinedRoom && location.pathname === '/') {
+      navigate('/players', { replace: true });
+    }
+  }, [isAuthenticated, hasJoinedRoom, location.pathname, navigate]);
 
   const handleRoomJoined = async () => {
     setHasJoinedRoom(true);
@@ -117,39 +136,160 @@ function App() {
       },
     });
     setPlayers(response.data);
-    setActiveKey("playerStats"); // Set active component to "PlayerStats"
+    navigate('/players'); // Navigate to players page after joining room
   };
 
-  const fetchPlayers = async () => {
-    try {
-      const token = await getAccessTokenSilently();
-      const response = await axios.get(`${API_BASE_URL}/players`, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
-      setPlayers(response.data);
-    } catch (error) {
-      console.error("Error fetching players", error);
-    }
-  };
-
-  const renderContent = () => {
-    switch (activeKey) {
-      case "gameweeks":
-        return <GameweekManager />;
-      case "playerStats":
-        return <PlayerStats />;
-      case "account":
-        return <AccountManager />;
+  const handleNavigation = (key) => {
+    switch (key) {
+      case 'playerStats':
+        navigate('/players');
+        break;
+      case 'fixtures':
+        navigate('/fixtures');
+        break;
+      case 'account':
+        navigate('/account');
+        break;
       default:
-        return <PlayerStats />;
+        navigate('/players');
     }
   };
 
   if (loading) {
     return <Spin size="large" />;
   }
+
+  return (
+    <div className="App">
+      {isAuthenticated && hasJoinedRoom && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          zIndex: 10,
+          background: 'linear-gradient(135deg, #00b96b 0%, #52c41a 100%)',
+          boxShadow: '0 4px 20px rgba(0, 185, 107, 0.15)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          width: '100vw',
+          borderBottomLeftRadius: '16px',
+          borderBottomRightRadius: '16px'
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, margin: 5 }}>
+            <Avatar />
+            <div>
+              <Text strong style={{
+                fontSize: '14px',
+                color: 'white',
+                textShadow: '0 1px 2px rgba(0,0,0,0.1)',
+                display: 'block',
+                lineHeight: 1.2
+              }}>
+                {roomName}
+              </Text>
+            </div>
+          </div>
+          <div style={{
+            background: 'rgba(255,255,255,0.2)',
+            backdropFilter: 'blur(10px)',
+            padding: '6px 10px',
+            borderRadius: '10px',
+            border: '1px solid rgba(255,255,255,0.3)',
+            marginRight: '16px'
+          }}>
+            <Text style={{
+              fontSize: '12px',
+              fontFamily: 'Monaco, Consolas, monospace',
+              fontWeight: 'bold',
+              color: 'white',
+              letterSpacing: '1px'
+            }}>
+              {roomCode}
+            </Text>
+          </div>
+        </div>
+      )}
+      {isAuthenticated && !hasJoinedRoom && (
+        <div style={{
+          position: 'fixed',
+          top: 16,
+          left: 16,
+          zIndex: 10
+        }}>
+          <Avatar />
+        </div>
+      )}
+      {!isAuthenticated && (
+        <div className="header" style={{ marginLeft: '60px' }}>
+          <div style={{
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: '40px 20px',
+            textAlign: 'center'
+          }}>
+            <Image
+              width={80}
+              height={80}
+              preview={false}
+              src="fp_logo.png"
+              style={{ marginBottom: "16px" }}
+            />
+            <Title level={2} style={{ marginBottom: "8px", color: '#00b96b' }}>
+              Teamix
+            </Title>
+            <Paragraph style={{ marginBottom: "24px", color: '#666', maxWidth: '300px' }}>
+              Organize your football teams with ease. Track stats, manage players, and make every game count.
+            </Paragraph>
+            <Button
+              type="primary"
+              size="large"
+              onClick={() => loginWithRedirect()}
+              style={{
+                borderRadius: '8px',
+                height: '44px',
+                fontSize: '16px',
+                paddingLeft: '32px',
+                paddingRight: '32px'
+              }}
+            >
+              Get Started
+            </Button>
+          </div>
+        </div>
+      )}
+      
+      <div className="content scroll-list" style={{
+        paddingTop: hasJoinedRoom ? '64px' : '8px'
+      }}>
+        {isAuthenticated ? (
+          hasJoinedRoom ? (
+            <Routes>
+              <Route path="/players" element={<PlayerStats />} />
+              <Route path="/fixtures" element={<GameweekManager />} />
+              <Route path="/account" element={<AccountManager />} />
+              <Route path="/" element={<PlayerStats />} />
+            </Routes>
+          ) : (
+            <CreateOrJoinRoom onRoomJoined={handleRoomJoined} />
+          )
+        ) : (
+          <Paragraph>Please log in</Paragraph>
+        )}
+      </div>
+      
+      <div className="bottom-nav">
+        <BottomNav activeKey={activeKey} onChange={handleNavigation} />
+      </div>
+    </div>
+  );
+};
+
+function App() {
+  const { loginWithRedirect } = useAuth0();
 
   return (
     <ConfigProvider
@@ -162,136 +302,11 @@ function App() {
       }}
     >
       <Router>
-        <div className="App">
-          {isAuthenticated && hasJoinedRoom && (
-            <div style={{
-              position: 'fixed',
-              top: 0,
-              left: 0,
-              right: 0,
-              zIndex: 10,
-              background: 'linear-gradient(135deg, #00b96b 0%, #52c41a 100%)',
-              boxShadow: '0 4px 20px rgba(0, 185, 107, 0.15)',
-
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              width: '100vw',
-              borderBottomLeftRadius: '16px',
-              borderBottomRightRadius: '16px'
-            }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 10, margin: 5 }}>
-                <Avatar />
-                <div>
-                  <Text strong style={{
-                    fontSize: '14px',
-                    color: 'white',
-                    textShadow: '0 1px 2px rgba(0,0,0,0.1)',
-                    display: 'block',
-                    lineHeight: 1.2
-                  }}>
-                    {roomName}
-                  </Text>
-                </div>
-              </div>
-              <div style={{
-                background: 'rgba(255,255,255,0.2)',
-                backdropFilter: 'blur(10px)',
-                padding: '6px 10px',
-                borderRadius: '10px',
-                border: '1px solid rgba(255,255,255,0.3)',
-                marginRight: '16px'
-              }}>
-                <Text style={{
-                  fontSize: '12px',
-                  fontFamily: 'Monaco, Consolas, monospace',
-                  fontWeight: 'bold',
-                  color: 'white',
-                  letterSpacing: '1px'
-                }}>
-                  {roomCode}
-                </Text>
-              </div>
-            </div>
-          )}
-          {isAuthenticated && !hasJoinedRoom && (
-            <div style={{
-              position: 'fixed',
-              top: 16,
-              left: 16,
-              zIndex: 10
-            }}>
-              <Avatar />
-            </div>
-          )}
-          {!isAuthenticated && (
-            <div className="header" style={{ marginLeft: '60px' }}>
-              <div style={{
-                display: 'flex',
-                flexDirection: 'column',
-                alignItems: 'center',
-                justifyContent: 'center',
-                padding: '40px 20px',
-                textAlign: 'center'
-              }}>
-                <Image
-                  width={80}
-                  height={80}
-                  preview={false}
-                  src="fp_logo.png"
-                  style={{ marginBottom: "16px" }}
-                />
-                <Title level={2} style={{ marginBottom: "8px", color: '#00b96b' }}>
-                  Teamix
-                </Title>
-                <Paragraph style={{ marginBottom: "24px", color: '#666', maxWidth: '300px' }}>
-                  Organize your football teams with ease. Track stats, manage players, and make every game count.
-                </Paragraph>
-                <Button
-                  type="primary"
-                  size="large"
-                  onClick={() => loginWithRedirect()}
-                  style={{
-                    borderRadius: '8px',
-                    height: '44px',
-                    fontSize: '16px',
-                    paddingLeft: '32px',
-                    paddingRight: '32px'
-                  }}
-                >
-                  Get Started
-                </Button>
-              </div>
-            </div>
-          )}
-          <Routes>
-            <Route path="/privacy" element={<Privacy />} />
-            <Route path="/support" element={<Support />} />
-            <Route
-              path="/"
-              element={
-                <div className="content scroll-list" style={{
-                  paddingTop: hasJoinedRoom ? '64px' : '8px'
-                }}>
-                  {isAuthenticated ? (
-                    loading ? (
-                      <Spin size="large" />
-                    ) : hasJoinedRoom ? (
-                      renderContent()
-                    ) : (
-                      <CreateOrJoinRoom onRoomJoined={handleRoomJoined} />
-                    )
-                  ) : (
-                    <Paragraph>Please log in</Paragraph>
-                  )}
-                </div>
-              }
-            />
-          </Routes>
-          <div className="bottom-nav">
-            <BottomNav activeKey={activeKey} onChange={setActiveKey} />
-          </div>
-        </div>
+        <Routes>
+          <Route path="/privacy" element={<Privacy />} />
+          <Route path="/support" element={<Support />} />
+          <Route path="/*" element={<AppContent />} />
+        </Routes>
       </Router>
     </ConfigProvider>
   );

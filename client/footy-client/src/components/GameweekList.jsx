@@ -131,7 +131,7 @@ const GameweekList = ({
         if (isAdmin) {
           menuItems.push(
             <Menu.Item key="delete" danger icon={<DeleteOutlined />} onClick={(e) => { e.domEvent.stopPropagation(); deleteGameweek(id); }}>
-              Delete Gameweek
+              Delete Fixture
             </Menu.Item>
           );
         }

@@ -38,12 +38,12 @@ const BottomNav = ({ activeKey, onChange }) => {
                     }}
                 />
                 <TabBar.Item
-                    key="gameweeks"
+                    key="fixtures"
                     icon={<CalendarOutline />}
-                    title="Gameweeks"
+                    title="Fixtures"
                     style={{
-                        color: activeKey === 'gameweeks' ? 'white' : 'rgba(255,255,255,0.7)',
-                        fontWeight: activeKey === 'gameweeks' ? 'bold' : 'normal'
+                        color: activeKey === 'fixtures' ? 'white' : 'rgba(255,255,255,0.7)',
+                        fontWeight: activeKey === 'fixtures' ? 'bold' : 'normal'
                     }}
                 />
                 <TabBar.Item
