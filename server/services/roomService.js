@@ -76,9 +76,9 @@ async function completeRoomJoin({ roomCode, playerId, newPlayerName, auth0Id }) 
             }
 
             const newPlayer = await Player.create(
-                {
-                    name: finalName,
-                    profilePicture
+                { 
+                    name: finalName, 
+                    profilePicture 
                 },
                 { transaction: t }
             );
@@ -89,9 +89,7 @@ async function completeRoomJoin({ roomCode, playerId, newPlayerName, auth0Id }) 
                 auth0Id,
                 isActive: true
             }, { transaction: t });
-        }
-
-        // 3) Deactivate any other memberships for this user
+        }        // 3) Deactivate any other memberships for this user
         await RoomMembership.update(
             { isActive: false },
             {
