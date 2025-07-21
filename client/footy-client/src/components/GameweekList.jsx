@@ -290,7 +290,7 @@ const GameweekList = ({
 
             {/* Expanded Content */}
             {isExpanded && (
-              <div style={{ padding: '20px 24px', position: 'relative' }}>
+              <div style={{ padding: '8px 8px', position: 'relative' }}>
                 {/* Actions Menu - Positioned Absolutely */}
                 {menuItems.length > 0 && (
                   <div style={{
