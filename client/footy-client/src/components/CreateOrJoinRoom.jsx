@@ -14,6 +14,7 @@ import {
     Select,
 } from 'antd';
 import useStore from '../useStore';
+import { invalidatePlayersCache } from '../utils/playerCache';
 
 const { Title, Paragraph } = Typography;
 const { Option } = Select;
@@ -126,6 +127,9 @@ const CreateOrJoinRoom = ({ onRoomJoined, checkMembership }) => {
                 { roomCode, playerId, newPlayerName: playerId ? null : user.name },
                 { headers: { Authorization: `Bearer ${token}` } }
             );
+
+            // Invalidate cache when player is created or linked
+            invalidatePlayersCache();
 
             message.success('Welcome to the room!');
             setGlobalCode(roomCode);

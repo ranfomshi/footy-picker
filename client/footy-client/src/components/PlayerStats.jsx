@@ -17,7 +17,7 @@ import {
     Skeleton
 } from 'antd';
 import { useAuth0 } from '@auth0/auth0-react';
-import { fetchPlayersWithCache } from '../utils/playerCache';
+import { fetchPlayersWithCache, invalidatePlayersCache } from '../utils/playerCache';
 import {
     CheckCircleOutlined,
     SortAscendingOutlined,
@@ -118,7 +118,11 @@ const PlayerStats = () => {
                 }
             );
             setNewPlayerName("");
+
+            // Invalidate cache and fetch fresh data
+            invalidatePlayersCache();
             await fetchPlayerStats();
+
             setIsAddModalVisible(false);
             message.success("Player added successfully");
         } catch (error) {
@@ -166,7 +170,11 @@ const PlayerStats = () => {
             setIsEditModalVisible(false);
             setEditingPlayer(null);
             setEditingPlayerName("");
+
+            // Invalidate cache and fetch fresh data
+            invalidatePlayersCache();
             await fetchPlayerStats();
+
             message.success("Player updated successfully");
         } catch (error) {
             console.error("Error updating player", error);
@@ -191,7 +199,11 @@ const PlayerStats = () => {
                     Authorization: `Bearer ${token}`,
                 },
             });
+
+            // Invalidate cache and fetch fresh data
+            invalidatePlayersCache();
             await fetchPlayerStats();
+
             setIsDeleteModalVisible(false);
             setPlayerToDelete(null);
             message.success("Player deleted successfully");

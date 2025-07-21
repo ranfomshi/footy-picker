@@ -42,7 +42,15 @@ export const setCachedPlayers = (players) => {
     }
 };
 
-// Fetch players from API
+// Invalidate players cache
+export const invalidatePlayersCache = () => {
+    try {
+        localStorage.removeItem(PLAYERS_CACHE_KEY);
+        console.log('Players cache invalidated');
+    } catch (error) {
+        console.error('Error invalidating players cache:', error);
+    }
+};// Fetch players from API
 export const fetchPlayersFromAPI = async (getAccessTokenSilently) => {
     const token = await getAccessTokenSilently();
     const { data } = await axios.get(`${API_BASE_URL}/players`, {
@@ -95,6 +103,7 @@ export const useCachedPlayers = () => {
     return {
         getCachedPlayers,
         setCachedPlayers,
+        invalidatePlayersCache,
         fetchPlayersFromAPI: () => fetchPlayersFromAPI(getAccessTokenSilently),
         fetchPlayersWithCache: (setPlayers, setLoading) =>
             fetchPlayersWithCache(getAccessTokenSilently, setPlayers, setLoading)

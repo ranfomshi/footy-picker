@@ -28,6 +28,7 @@ import { useAuth0 } from "@auth0/auth0-react";
 import axios from "axios";
 import useStore from "../useStore";
 import ScoringGuide from "./ScoringGuide";
+import { invalidatePlayersCache } from "../utils/playerCache";
 
 const { Title, Text } = Typography;
 const { Option } = Select;
@@ -210,6 +211,10 @@ export default function AccountManager() {
         { headers: { Authorization: `Bearer ${token}` } }
       );
       message.success("Player unlinked successfully");
+
+      // Invalidate players cache since player's auth0Id has changed
+      invalidatePlayersCache();
+
       setHasJoinedRoom(false);
     } catch (error) {
       console.error("Error unlinking player:", error);
