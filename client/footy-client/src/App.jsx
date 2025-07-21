@@ -139,14 +139,14 @@ const AppContent = () => {
           email_verified: user.email_verified,
           locale: user.locale,
           auth0_user_id: user.sub,
-          
+
           // App-specific properties
           has_joined_room: hasJoinedRoom,
           room_code: roomCode,
           room_name: roomName,
           last_login: new Date().toISOString(),
         });
-        
+
         trackUserLogin(user.sub, 'auth0');
       }).catch(console.error);
     }

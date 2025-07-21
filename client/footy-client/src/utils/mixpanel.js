@@ -36,7 +36,7 @@ export const trackEvent = (eventName, properties = {}) => {
         url: window.location.href,
         user_agent: navigator.userAgent,
     };
-    
+
     try {
         mixpanel.track(eventName, eventData);
     } catch (error) {
