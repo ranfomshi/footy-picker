@@ -558,7 +558,7 @@ const GameweekList = ({
                           </div>
                         </div>
                         <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                          {teamA.map((p) => (
+                          {teamA.sort((a, b) => a.name.localeCompare(b.name)).map((p) => (
                             <div key={p.id} style={{
                               display: 'flex',
                               alignItems: 'center',
@@ -624,7 +624,7 @@ const GameweekList = ({
                           </div>
                         </div>
                         <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                          {teamB.map((p) => (
+                          {teamB.sort((a, b) => a.name.localeCompare(b.name)).map((p) => (
                             <div key={p.id} style={{
                               display: 'flex',
                               alignItems: 'center',

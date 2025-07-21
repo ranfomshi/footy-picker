@@ -20,10 +20,12 @@ const VotePlayerModal = ({
 
     // Combine both teams and filter out current user (similar to Dart implementation)
     const allPlayers = [...teamA, ...teamB];
-    const eligiblePlayers = allPlayers.filter(player => {
-        // Filter out current user if they have auth0Id matching currentUserId
-        return player.auth0Id !== currentUserId;
-    });
+    const eligiblePlayers = allPlayers
+        .filter(player => {
+            // Filter out current user if they have auth0Id matching currentUserId
+            return player.auth0Id !== currentUserId;
+        })
+        .sort((a, b) => a.name.localeCompare(b.name));
 
     const handleVote = async () => {
         if (!selectedPlayer) return;
@@ -130,7 +132,7 @@ const VotePlayerModal = ({
                                     <Text strong style={{ fontSize: 13, marginBottom: 8, display: 'block' }}>
                                         Team A ({teamA.length})
                                     </Text>
-                                    {teamA.map(player => (
+                                    {teamA.sort((a, b) => a.name.localeCompare(b.name)).map(player => (
                                         <div key={player.id} style={{
                                             display: 'flex',
                                             alignItems: 'center',
@@ -154,7 +156,7 @@ const VotePlayerModal = ({
                                     <Text strong style={{ fontSize: 13, marginBottom: 8, display: 'block' }}>
                                         Team B ({teamB.length})
                                     </Text>
-                                    {teamB.map(player => (
+                                    {teamB.sort((a, b) => a.name.localeCompare(b.name)).map(player => (
                                         <div key={player.id} style={{
                                             display: 'flex',
                                             alignItems: 'center',

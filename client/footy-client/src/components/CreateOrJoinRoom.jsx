@@ -233,7 +233,7 @@ const CreateOrJoinRoom = ({ onRoomJoined, checkMembership }) => {
                     value={selectedPlayer}
                     style={{ display: 'block', maxHeight: '40vh', overflowY: 'auto' }}
                 >
-                    {(unlinkedPlayers || []).map(p => (
+                    {(unlinkedPlayers || []).sort((a, b) => a.name.localeCompare(b.name)).map(p => (
                         <Radio key={p.id} value={p.id} style={{ display: 'block', margin: '8px 0' }}>{p.name}</Radio>
                     ))}
                 </Radio.Group>

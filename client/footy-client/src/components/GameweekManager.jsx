@@ -305,9 +305,11 @@ const GameweekManager = () => {
   );
 
   const filteredPlayers = (gwId) =>
-    players.filter((p) =>
-      p.name.toLowerCase().includes(searchTerm.toLowerCase())
-    );
+    players
+      .filter((p) =>
+        p.name.toLowerCase().includes(searchTerm.toLowerCase())
+      )
+      .sort((a, b) => a.name.localeCompare(b.name));
 
   // formatting helpers
   const formatDate = (iso) =>
@@ -517,7 +519,7 @@ const GameweekManager = () => {
             </div>
 
             <div style={{ maxHeight: '300px', overflowY: 'auto', marginBottom: 16 }}>
-              {players.map((player, index) => {
+              {players.sort((a, b) => a.name.localeCompare(b.name)).map((player, index) => {
                 // Get current assignment for this player
                 const currentTeams = teams[selectedGameweekId];
                 let currentAssignment = 'unassigned';

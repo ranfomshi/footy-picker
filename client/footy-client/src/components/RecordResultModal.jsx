@@ -22,10 +22,12 @@ const RecordResultModal = ({
 
     // Combine both teams for player of the match selection, but exclude current user
     const allPlayers = [...teamA, ...teamB];
-    const eligiblePlayers = allPlayers.filter(player => {
-        // Filter out current user if they have auth0Id matching currentUserId
-        return player.auth0Id !== currentUserId;
-    });
+    const eligiblePlayers = allPlayers
+        .filter(player => {
+            // Filter out current user if they have auth0Id matching currentUserId
+            return player.auth0Id !== currentUserId;
+        })
+        .sort((a, b) => a.name.localeCompare(b.name));
 
     const handleSubmit = async (values) => {
         setLoading(true);
