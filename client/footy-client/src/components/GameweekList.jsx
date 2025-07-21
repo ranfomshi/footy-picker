@@ -298,8 +298,8 @@ const GameweekList = ({
                 {menuItems.length > 0 && (
                   <div style={{
                     position: 'absolute',
-                    top: 16,
-                    right: 16,
+                    bottom: 8,
+                    right: 8,
                     zIndex: 2
                   }}>
                     <Dropdown
@@ -415,9 +415,7 @@ const GameweekList = ({
                   <>
                     <div style={{ marginBottom: 24 }}>
                       <div style={{ marginBottom: 16 }}>
-                        <Text strong style={{ fontSize: 14, color: '#374151', marginBottom: 8, display: 'block' }}>
-                          Mark Players Available
-                        </Text>
+
                         <Input.Search
                           placeholder="Search players..."
                           value={searchTerm}

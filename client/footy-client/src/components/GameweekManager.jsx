@@ -605,7 +605,7 @@ const GameweekManager = () => {
                 Cancel
               </Button>
               <Button type="primary" htmlType="submit">
-                Add Gameweek
+                Add Fixture
               </Button>
             </Space>
           </Form.Item>
