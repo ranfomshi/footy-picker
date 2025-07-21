@@ -8,89 +8,89 @@ const { Title, Text } = Typography;
 const PlayerDetails = ({ player, onClose }) => {
   const coreColor = '#00b96b'; // Core color
 
-// Modal for explanation
-const showExplanation = () => {
-  Modal.confirm({
-    cancelButtonProps: {display: 'none'},
-    hideclose: true,
-    hideCancel: true,
-    title: <Text style={{ color: coreColor }}>Explanation of Favorite Teammate</Text>,
-    content: (
-      <div>
-        <p style={{ color: '#333' }}>
-          The "Favorite Teammate" is determined based on the following criteria:
-        </p>
-        <ul style={{ color: '#333' }}>
-          <li>
-            <Text strong style={{ color: coreColor }}>Minimum Match Requirement:</Text> To be considered, you must have played at least 3 matches with a teammate.
-          </li>
-          <li>
-            <Text strong style={{ color: coreColor }}>Eligibility Check:</Text> The analysis requires at least 2 teammates to have played at least 3 matches with you.
-          </li>
-          <li>
-            <Text strong style={{ color: coreColor }}>Win Rate Calculation:</Text> The win rate is calculated as the number of wins when playing with the teammate divided by the total matches played together.
-          </li>
-          <li>
-            <Text strong style={{ color: coreColor }}>Tiebreakers:</Text> If two or more teammates have the same win rate, the teammate with the highest total wins is considered first. If the win rate and total wins are tied, the final tiebreaker is the highest goal difference when playing together.
-          </li>
-        </ul>
-        <p style={{ color: '#333' }}>
-          This system ensures that your favorite teammate represents a consistent and successful partnership.
-        </p>
-      </div>
-    ),
-    okButtonProps: {
-      style: {
-        backgroundColor: coreColor,
-        borderColor: coreColor,
-        color: '#fff', // White text for contrast
+  // Modal for explanation
+  const showExplanation = () => {
+    Modal.confirm({
+      cancelButtonProps: { display: 'none' },
+      hideclose: true,
+      hideCancel: true,
+      title: <Text style={{ color: coreColor }}>Explanation of Favorite Teammate</Text>,
+      content: (
+        <div>
+          <p style={{ color: '#333' }}>
+            The "Favorite Teammate" is determined based on the following criteria:
+          </p>
+          <ul style={{ color: '#333' }}>
+            <li>
+              <Text strong style={{ color: coreColor }}>Minimum Match Requirement:</Text> To be considered, you must have played at least 3 matches with a teammate.
+            </li>
+            <li>
+              <Text strong style={{ color: coreColor }}>Eligibility Check:</Text> The analysis requires at least 2 teammates to have played at least 3 matches with you.
+            </li>
+            <li>
+              <Text strong style={{ color: coreColor }}>Win Rate Calculation:</Text> The win rate is calculated as the number of wins when playing with the teammate divided by the total matches played together.
+            </li>
+            <li>
+              <Text strong style={{ color: coreColor }}>Tiebreakers:</Text> If two or more teammates have the same win rate, the teammate with the highest total wins is considered first. If the win rate and total wins are tied, the final tiebreaker is the highest goal difference when playing together.
+            </li>
+          </ul>
+          <p style={{ color: '#333' }}>
+            This system ensures that your favorite teammate represents a consistent and successful partnership.
+          </p>
+        </div>
+      ),
+      okButtonProps: {
+        style: {
+          backgroundColor: coreColor,
+          borderColor: coreColor,
+          color: '#fff', // White text for contrast
+        },
       },
-    },
-    onOk() {},
-  });
-};
+      onOk() { },
+    });
+  };
 
-// Modal for formidable opponents explanation
-const showOpponentsExplanation = () => {
-  Modal.confirm({
-    cancelButtonProps: {display: 'none'},
-    hideclose: true,
-    hideCancel: true,
-    title: <Text style={{ color: '#ff4d4f' }}>Explanation of Formidable Opponents</Text>,
-    content: (
-      <div>
-        <p style={{ color: '#333' }}>
-          "Formidable Opponents" are players who have consistently been challenging for you to beat:
-        </p>
-        <ul style={{ color: '#333' }}>
-          <li>
-            <Text strong style={{ color: '#ff4d4f' }}>Minimum Match Requirement:</Text> To be considered, you must have played against an opponent at least 3 times.
-          </li>
-          <li>
-            <Text strong style={{ color: '#ff4d4f' }}>Your Win Rate Against Them:</Text> The win rate shows how often your team has beaten their team when you face each other.
-          </li>
-          <li>
-            <Text strong style={{ color: '#ff4d4f' }}>Goal Difference:</Text> Shows the cumulative goal difference from your perspective (positive means you typically outscore them).
-          </li>
-          <li>
-            <Text strong style={{ color: '#ff4d4f' }}>Ranking:</Text> Opponents are ranked by your win rate against them, with the lowest win rates appearing first (your most challenging opponents).
-          </li>
-        </ul>
-        <p style={{ color: '#333' }}>
-          This helps you identify which players have been your biggest challenges and who you might want to focus on improving against.
-        </p>
-      </div>
-    ),
-    okButtonProps: {
-      style: {
-        backgroundColor: '#ff4d4f',
-        borderColor: '#ff4d4f',
-        color: '#fff',
+  // Modal for formidable opponents explanation
+  const showOpponentsExplanation = () => {
+    Modal.confirm({
+      cancelButtonProps: { display: 'none' },
+      hideclose: true,
+      hideCancel: true,
+      title: <Text style={{ color: '#ff4d4f' }}>Explanation of Formidable Opponents</Text>,
+      content: (
+        <div>
+          <p style={{ color: '#333' }}>
+            "Formidable Opponents" are players who have consistently been challenging for you to beat:
+          </p>
+          <ul style={{ color: '#333' }}>
+            <li>
+              <Text strong style={{ color: '#ff4d4f' }}>Minimum Match Requirement:</Text> To be considered, you must have played against an opponent at least 3 times.
+            </li>
+            <li>
+              <Text strong style={{ color: '#ff4d4f' }}>Your Win Rate Against Them:</Text> The win rate shows how often your team has beaten their team when you face each other.
+            </li>
+            <li>
+              <Text strong style={{ color: '#ff4d4f' }}>Goal Difference:</Text> Shows the cumulative goal difference from your perspective (positive means you typically outscore them).
+            </li>
+            <li>
+              <Text strong style={{ color: '#ff4d4f' }}>Ranking:</Text> Opponents are ranked by your win rate against them, with the lowest win rates appearing first (your most challenging opponents).
+            </li>
+          </ul>
+          <p style={{ color: '#333' }}>
+            This helps you identify which players have been your biggest challenges and who you might want to focus on improving against.
+          </p>
+        </div>
+      ),
+      okButtonProps: {
+        style: {
+          backgroundColor: '#ff4d4f',
+          borderColor: '#ff4d4f',
+          color: '#fff',
+        },
       },
-    },
-    onOk() {},
-  });
-};
+      onOk() { },
+    });
+  };
 
 
 
@@ -262,7 +262,7 @@ const showOpponentsExplanation = () => {
                         title={<Text strong style={{ fontSize: '1.2rem', color: coreColor }}>{teammate.name}</Text>}
                         description={
                           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                            <Text>Win Rate: <strong>{(teammate.winRate*100).toFixed(1)}%</strong></Text>
+                            <Text>Win Rate: <strong>{(teammate.winRate * 100).toFixed(1)}%</strong></Text>
                             <Text>Matches played: <strong>{teammate.matchesPlayedTogether}</strong></Text>
                             <Text>Goals +/-: <strong>{teammate.goalDifferenceTogether >= 0 ? '+' : ''}{teammate.goalDifferenceTogether}</strong></Text>
                           </div>
@@ -314,9 +314,9 @@ const showOpponentsExplanation = () => {
                         title={<Text strong style={{ fontSize: '1.2rem', color: '#ff4d4f' }}>{opponent.name}</Text>}
                         description={
                           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                            <Text>Your Win Rate vs Them: <strong style={{ color: '#ff4d4f' }}>{(opponent.winRateAgainstMe*100).toFixed(1)}%</strong></Text>
+                            <Text>Win Rate vs Them: <strong style={{ color: '#ff4d4f' }}>{(opponent.winRateAgainstMe * 100).toFixed(1)}%</strong></Text>
                             <Text>Matches Against: <strong>{opponent.matchesPlayedAgainst}</strong></Text>
-                            <Text>Your GD vs Them: <strong style={{ color: opponent.goalDifferenceAgainstMe >= 0 ? '#52c41a' : '#ff4d4f' }}>
+                            <Text>GD vs Them: <strong style={{ color: opponent.goalDifferenceAgainstMe >= 0 ? '#52c41a' : '#ff4d4f' }}>
                               {opponent.goalDifferenceAgainstMe >= 0 ? '+' : ''}{opponent.goalDifferenceAgainstMe}
                             </strong></Text>
                           </div>

@@ -398,7 +398,7 @@ const PlayerCard = ({ player, showPercentages = false, sortBy = null, expanded =
                                                 }
                                                 description={
                                                     <div style={{ fontSize: 11, color: '#666' }}>
-                                                        {opponent.matchesPlayedAgainst} games • Your GD vs them: {opponent.goalDifferenceAgainstMe >= 0 ? '+' : ''}{opponent.goalDifferenceAgainstMe}
+                                                        {opponent.matchesPlayedAgainst} games • GD vs them: {opponent.goalDifferenceAgainstMe >= 0 ? '+' : ''}{opponent.goalDifferenceAgainstMe}
                                                     </div>
                                                 }
                                             />
