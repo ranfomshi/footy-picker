@@ -213,65 +213,66 @@ const GameweekManager = () => {
     fetchGameweeks();
   };
 
-  // — Manual override
-  const handleManual = async (values) => {
+  // — Delete gameweek
+  const deleteGameweek = async (gameweekId) => {
     try {
       const token = await getAccessTokenSilently();
-      
-      // Process each player assignment individually
-      const assignmentPromises = [];
-      const availabilityPromises = [];
-      
-      Object.keys(values).forEach(key => {
-        if (key.startsWith('player_')) {
-          const playerId = parseInt(key.replace('player_', ''));
-          const assignment = values[key];
-          
-          // Use the manual-teamassignment endpoint for individual assignments
-          const assignmentPromise = axios.post(
-            `${API}/manual-teamassignment`,
-            { 
-              gameweekId: selectedGameweekId, 
-              playerId: playerId,
-              team: assignment === 'unassigned' ? 'None' : assignment
-            },
-            { headers: { Authorization: `Bearer ${token}` } }
-          );
-          
-          assignmentPromises.push(assignmentPromise);
-          
-          // If player is assigned to a team, mark them as available
-          // If unassigned, mark them as unavailable
-          const isAvailable = assignment !== 'unassigned';
-          const availabilityPromise = axios.post(
-            `${API}/availability`,
-            {
-              gameweekId: selectedGameweekId,
-              playerIds: [playerId],
-              status: isAvailable
-            },
-            { headers: { Authorization: `Bearer ${token}` } }
-          );
-          
-          availabilityPromises.push(availabilityPromise);
-        }
+      await axios.delete(`${API}/gameweeks/${gameweekId}`, {
+        headers: { Authorization: `Bearer ${token}` },
       });
-      
-      // Wait for all assignments and availability updates to complete
-      await Promise.all([...assignmentPromises, ...availabilityPromises]);
-      
-      message.success("Team assignments and availability updated successfully");
-      setIsManualVisible(false);
-      manualForm.resetFields();
-      // Refresh team assignments and related data
-      await fetchTeams(selectedGameweekId);
-      await fetchAvailability(selectedGameweekId);
-      await checkVotingStatus(selectedGameweekId);
-      await fetchGameweeks(); // Refresh gameweeks to update any calculated fields
+      message.success("Gameweek deleted");
+      fetchGameweeks();
     } catch (error) {
-      console.error('Error updating assignments:', error);
-      message.error(error.response?.data?.error || 'Failed to update assignments');
+      console.error('Error deleting gameweek:', error);
+      message.error("Failed to delete gameweek");
     }
+  };
+
+  // — Manual override - handle individual player assignment changes
+  const handlePlayerAssignmentChange = async (playerId, newAssignment) => {
+    try {
+      const token = await getAccessTokenSilently();
+
+      // Make immediate API call for the specific player
+      await axios.post(
+        `${API}/manual-teamassignment`,
+        {
+          gameweekId: selectedGameweekId,
+          playerId: playerId,
+          team: newAssignment === 'unassigned' ? 'None' : newAssignment
+        },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+
+      // Don't update availability automatically - let admins control this separately
+      // The manual assignment should take precedence over automatic team picking
+
+      // Refresh team assignments to show the change
+      await fetchTeams(selectedGameweekId);
+
+      message.success(`Player assignment updated`);
+
+    } catch (error) {
+      console.error('Error updating player assignment:', error);
+      message.error(error.response?.data?.error || 'Failed to update assignment');
+      // Revert the form field on error
+      const currentTeams = teams[selectedGameweekId];
+      let currentAssignment = 'unassigned';
+      if (currentTeams?.teamA?.some(p => p.id === playerId)) {
+        currentAssignment = 'A';
+      } else if (currentTeams?.teamB?.some(p => p.id === playerId)) {
+        currentAssignment = 'B';
+      }
+      manualForm.setFieldValue(`player_${playerId}`, currentAssignment);
+    }
+  };
+
+  // — Manual override form handler (now just closes modal since changes are applied immediately)
+  const handleManual = async (values) => {
+    // All changes have already been applied individually
+    message.success("All team assignments have been updated");
+    setIsManualVisible(false);
+    manualForm.resetFields();
   };
 
   useEffect(() => {
@@ -369,6 +370,7 @@ const GameweekManager = () => {
         }}
         showRecordResultModal={showRecordResultModal}
         showVotePlayerModal={showVotePlayerModal}
+        deleteGameweek={deleteGameweek}
         hasVoted={hasVoted}
         isAdmin={isAdmin}
         isVotingOpen={(gw) => new Date() < new Date(gw.votingCloseTime)}
@@ -495,7 +497,7 @@ const GameweekManager = () => {
                 Set team assignments for each player. Players can be assigned to Team A, Team B, or left unassigned.
               </Text>
             </div>
-            
+
             <div style={{ maxHeight: '300px', overflowY: 'auto', marginBottom: 16 }}>
               {players.map((player, index) => {
                 // Get current assignment for this player
@@ -508,10 +510,10 @@ const GameweekManager = () => {
                 }
 
                 return (
-                  <div key={player.id} style={{ 
-                    marginBottom: 12, 
-                    padding: 12, 
-                    border: '1px solid #e5e7eb', 
+                  <div key={player.id} style={{
+                    marginBottom: 12,
+                    padding: 12,
+                    border: '1px solid #e5e7eb',
                     borderRadius: 8,
                     background: '#fafbfc'
                   }}>
@@ -523,12 +525,15 @@ const GameweekManager = () => {
                         </div>
                       </Col>
                       <Col span={16}>
-                        <Form.Item 
-                          name={`player_${player.id}`} 
+                        <Form.Item
+                          name={`player_${player.id}`}
                           initialValue={currentAssignment}
                           style={{ margin: 0 }}
                         >
-                          <Radio.Group size="small">
+                          <Radio.Group
+                            size="small"
+                            onChange={(e) => handlePlayerAssignmentChange(player.id, e.target.value)}
+                          >
                             <Radio.Button value="unassigned">Unassigned</Radio.Button>
                             <Radio.Button value="A">Team A</Radio.Button>
                             <Radio.Button value="B">Team B</Radio.Button>
@@ -545,10 +550,7 @@ const GameweekManager = () => {
 
             <Form.Item style={{ marginBottom: 0 }}>
               <Space style={{ width: '100%', justifyContent: 'flex-end' }}>
-                <Button onClick={() => setIsManualVisible(false)}>Cancel</Button>
-                <Button type="primary" htmlType="submit">
-                  Save Assignments
-                </Button>
+                <Button onClick={() => setIsManualVisible(false)}>Close</Button>
               </Space>
             </Form.Item>
           </Form>
