@@ -232,7 +232,7 @@ export default function AccountManager() {
 
       <Row gutter={[16, 16]}>
         {/* Profile Card */}
-        <Col xs={24} md={12}>
+        <Col xs={24} md={24}>
           <Card
             style={{
               borderRadius: 12,
@@ -303,7 +303,7 @@ export default function AccountManager() {
         </Col>
 
         {/* Room Management Card */}
-        <Col xs={24} md={12}>
+        <Col xs={24} md={24}>
           <Card
             style={{
               borderRadius: 12,
