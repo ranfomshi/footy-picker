@@ -1,7 +1,7 @@
 import mixpanel from 'mixpanel-browser';
 
 // Initialize Mixpanel (you'll need to provide your project token)
-const MIXPANEL_TOKEN = process.env.VITE_MIXPANEL_TOKEN || 'YOUR_MIXPANEL_TOKEN_HERE';
+const MIXPANEL_TOKEN = import.meta.env.VITE_MIXPANEL_TOKEN || 'YOUR_MIXPANEL_TOKEN_HERE';
 
 let isInitialized = false;
 
