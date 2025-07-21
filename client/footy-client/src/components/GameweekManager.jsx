@@ -325,27 +325,45 @@ const GameweekManager = () => {
     });
 
   return (
-    <div style={{ overflowY: 'auto' }}>
-      {/* Header with Add Button */}
-      <div style={{ marginBottom: 16, padding: '0 8px 0 8px' }}>
-        <Space align="center" style={{ width: '100%', justifyContent: 'space-between', flexWrap: 'wrap' }}>
+    <div style={{ overflowY: 'auto', paddingRight: 8 }}>
+      {/* Compact Header Section */}
+      <div style={{
+        background: 'linear-gradient(135deg, #00b96b 0%, #52c41a 100%)',
+        borderRadius: 12,
+        padding: '16px',
+        marginBottom: 16,
+        color: 'white',
+        boxShadow: '0 -2px 12px rgba(0, 185, 107, 0.12)'
+      }}>
+        {/* Main Controls Row */}
+        <div style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: 12,
+          justifyContent: 'space-between'
+        }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            <CalendarOutlined style={{ fontSize: 18, color: '#00b96b' }} />
-            <Text strong style={{ fontSize: 16 }}>Fixtures</Text>
+            <CalendarOutlined style={{ fontSize: 18, color: 'white' }} />
+            <Text strong style={{ fontSize: 16, color: 'white' }}>Fixtures</Text>
           </div>
+
+          {/* Add Fixture Button */}
           <Button
             type="primary"
             icon={<PlusOutlined />}
-            size="small"
             onClick={() => setIsAddVisible(true)}
             style={{
-              borderRadius: '8px',
-              boxShadow: '0 2px 4px rgba(0,185,107,0.2)'
+              background: 'rgba(255, 255, 255, 0.2)',
+              borderColor: 'rgba(255, 255, 255, 0.3)',
+              backdropFilter: 'blur(10px)',
+              color: 'white',
+              fontWeight: 500,
+              height: 36
             }}
           >
-            Add Fixture
+            New
           </Button>
-        </Space>
+        </div>
       </div>
 
       <GameweekList
@@ -385,7 +403,7 @@ const GameweekManager = () => {
         title={
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
             <CalendarOutlined style={{ color: '#00b96b' }} />
-            <span>Add New Fixture</span>
+            <span>New Fixture</span>
           </div>
         }
         open={isAddVisible}

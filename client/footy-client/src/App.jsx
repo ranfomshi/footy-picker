@@ -277,7 +277,7 @@ const AppContent = () => {
             <CreateOrJoinRoom onRoomJoined={handleRoomJoined} />
           )
         ) : (
-          <Paragraph>Please log in</Paragraph>
+          <></>
         )}
       </div>
 
