@@ -40,7 +40,13 @@ const CreateOrJoinRoom = ({ onRoomJoined, checkMembership }) => {
     // Handle auth errors
     const handleAuthError = (err) => {
         if (err.response?.status === 401) {
-            logout({ returnTo: window.location.origin });
+            localStorage.clear();
+            logout({
+                returnTo: window.location.origin,
+                logoutParams: {
+                    returnTo: window.location.origin
+                }
+            });
         }
     };
 

@@ -67,7 +67,15 @@ const BottomNav = ({ activeKey, onChange }) => {
                 boxShadow: '0 -4px 20px rgba(0, 185, 107, 0.15)'
             }}>
                 <Button
-                    onClick={() => logout({ returnTo: window.location.origin })}
+                    onClick={() => {
+                        localStorage.clear();
+                        logout({
+                            returnTo: window.location.origin,
+                            logoutParams: {
+                                returnTo: window.location.origin
+                            }
+                        });
+                    }}
                     block
                     style={{
                         background: 'rgba(255,255,255,0.2)',

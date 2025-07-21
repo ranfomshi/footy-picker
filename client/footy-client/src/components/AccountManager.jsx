@@ -377,7 +377,16 @@ export default function AccountManager() {
               <Button
                 block
                 icon={<LogoutOutlined />}
-                onClick={() => logout({ returnTo: window.location.origin })}
+                onClick={() => {
+                  // Clear any stored state before logout
+                  localStorage.clear();
+                  logout({
+                    returnTo: window.location.origin,
+                    logoutParams: {
+                      returnTo: window.location.origin
+                    }
+                  });
+                }}
               >
                 Log Out
               </Button>
