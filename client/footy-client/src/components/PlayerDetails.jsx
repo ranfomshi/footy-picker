@@ -1,6 +1,7 @@
 import React from "react";
 import { Card, Row, Col, Typography, Divider, List, Statistic, Avatar, Tooltip, Modal, Button } from "antd";
 import { TrophyOutlined, TeamOutlined, MinusCircleOutlined, PlusCircleOutlined, UserOutlined, InfoCircleOutlined } from "@ant-design/icons";
+import PlayerAvatar from './PlayerAvatar';
 
 const { Title, Text } = Typography;
 
@@ -43,6 +44,48 @@ const showExplanation = () => {
         backgroundColor: coreColor,
         borderColor: coreColor,
         color: '#fff', // White text for contrast
+      },
+    },
+    onOk() {},
+  });
+};
+
+// Modal for formidable opponents explanation
+const showOpponentsExplanation = () => {
+  Modal.confirm({
+    cancelButtonProps: {display: 'none'},
+    hideclose: true,
+    hideCancel: true,
+    title: <Text style={{ color: '#ff4d4f' }}>Explanation of Formidable Opponents</Text>,
+    content: (
+      <div>
+        <p style={{ color: '#333' }}>
+          "Formidable Opponents" are players who have consistently performed well against you:
+        </p>
+        <ul style={{ color: '#333' }}>
+          <li>
+            <Text strong style={{ color: '#ff4d4f' }}>Minimum Match Requirement:</Text> To be considered, you must have played against an opponent at least 3 times.
+          </li>
+          <li>
+            <Text strong style={{ color: '#ff4d4f' }}>Win Rate Against You:</Text> The win rate shows how often this opponent's team has beaten your team when you face each other.
+          </li>
+          <li>
+            <Text strong style={{ color: '#ff4d4f' }}>Goal Difference:</Text> Shows the cumulative goal difference from the opponent's perspective (positive means they typically outscore you).
+          </li>
+          <li>
+            <Text strong style={{ color: '#ff4d4f' }}>Ranking:</Text> Opponents are ranked by their win rate against you, with the highest win rates appearing first.
+          </li>
+        </ul>
+        <p style={{ color: '#333' }}>
+          This helps you identify which players you might want to focus on improving against or avoid facing in crucial matches.
+        </p>
+      </div>
+    ),
+    okButtonProps: {
+      style: {
+        backgroundColor: '#ff4d4f',
+        borderColor: '#ff4d4f',
+        color: '#fff',
       },
     },
     onOk() {},
@@ -219,9 +262,63 @@ const showExplanation = () => {
                         title={<Text strong style={{ fontSize: '1.2rem', color: coreColor }}>{teammate.name}</Text>}
                         description={
                           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                            <Text>Win Rate: <strong>{teammate.reason.winRate*100}%</strong></Text>
-                            <Text>Matches played: <strong>{teammate.reason.matchesPlayedTogether}</strong></Text>
-                            <Text>Goals +/-: <strong>{teammate.reason.goalDifferenceTogether}</strong></Text>
+                            <Text>Win Rate: <strong>{(teammate.winRate*100).toFixed(1)}%</strong></Text>
+                            <Text>Matches played: <strong>{teammate.matchesPlayedTogether}</strong></Text>
+                            <Text>Goals +/-: <strong>{teammate.goalDifferenceTogether >= 0 ? '+' : ''}{teammate.goalDifferenceTogether}</strong></Text>
+                          </div>
+                        }
+                      />
+                    </Card>
+                  </List.Item>
+                )}
+              />
+            </div>
+          </Col>
+        )}
+
+        {/* Formidable Opponents Section */}
+        {player.formidableOpponents && player.formidableOpponents.length > 0 && (
+          <Col span={24}>
+            <Divider />
+            <Row align="middle" justify="space-between">
+              <Title level={4} style={{ color: '#ff4d4f' }}>
+                {player.formidableOpponents.length === 1 ? 'Most Formidable Opponent' : 'Most Formidable Opponents'}
+              </Title>
+              <Tooltip title="Click to see explanation">
+                <Button
+                  type="link"
+                  icon={<InfoCircleOutlined style={{ fontSize: '1.2rem', color: '#ff4d4f' }} />}
+                  onClick={showOpponentsExplanation}
+                />
+              </Tooltip>
+            </Row>
+            <Title level={5} style={{ color: '#333' }}>Players Who Have Consistently Beaten You</Title>
+            <div className="scroll-list" style={{ maxHeight: 250, overflowY: 'auto', paddingRight: 8 }}>
+              <List
+                itemLayout="horizontal"
+                dataSource={player.formidableOpponents}
+                renderItem={(opponent) => (
+                  <List.Item>
+                    <Card
+                      bordered={false}
+                      style={{
+                        width: '100%',
+                        background: '#fff2f0',
+                        borderRadius: 8,
+                        boxShadow: '0 2px 8px rgba(0, 0, 0, 0.1)',
+                        borderLeft: '4px solid #ff4d4f'
+                      }}
+                    >
+                      <List.Item.Meta
+                        avatar={<PlayerAvatar player={opponent} size={64} />}
+                        title={<Text strong style={{ fontSize: '1.2rem', color: '#ff4d4f' }}>{opponent.name}</Text>}
+                        description={
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                            <Text>Win Rate vs You: <strong style={{ color: '#ff4d4f' }}>{(opponent.winRateAgainstMe*100).toFixed(1)}%</strong></Text>
+                            <Text>Matches Against: <strong>{opponent.matchesPlayedAgainst}</strong></Text>
+                            <Text>GD vs You: <strong style={{ color: opponent.goalDifferenceAgainstMe >= 0 ? '#ff4d4f' : '#52c41a' }}>
+                              {opponent.goalDifferenceAgainstMe >= 0 ? '+' : ''}{opponent.goalDifferenceAgainstMe}
+                            </strong></Text>
                           </div>
                         }
                       />

@@ -374,6 +374,44 @@ const PlayerCard = ({ player, showPercentages = false, sortBy = null, expanded =
                                 )}
                             </div>
                         )}
+
+                        {/* Formidable Opponents Section */}
+                        {player.formidableOpponents && player.formidableOpponents.length > 0 && (
+                            <div style={{ marginBottom: 16 }}>
+                                <Text strong style={{ fontSize: 14, color: '#333', marginBottom: 12, display: 'block' }}>
+                                    ⚔️ Most Formidable Opponents
+                                </Text>
+                                <List
+                                    size="small"
+                                    dataSource={player.formidableOpponents.slice(0, 3)} // Show top 3
+                                    renderItem={(opponent) => (
+                                        <List.Item style={{ padding: '8px 0', borderBottom: '1px solid #f0f0f0' }}>
+                                            <List.Item.Meta
+                                                avatar={<PlayerAvatar player={opponent} size={32} />}
+                                                title={
+                                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                                        <Text strong style={{ fontSize: 13 }}>{opponent.name}</Text>
+                                                        <Text style={{ fontSize: 12, color: '#ff4d4f', fontWeight: 'bold' }}>
+                                                            {(opponent.winRateAgainstMe * 100).toFixed(1)}%
+                                                        </Text>
+                                                    </div>
+                                                }
+                                                description={
+                                                    <div style={{ fontSize: 11, color: '#666' }}>
+                                                        {opponent.matchesPlayedAgainst} games • GD vs you: {opponent.goalDifferenceAgainstMe >= 0 ? '+' : ''}{opponent.goalDifferenceAgainstMe}
+                                                    </div>
+                                                }
+                                            />
+                                        </List.Item>
+                                    )}
+                                />
+                                {player.formidableOpponents.length === 0 && (
+                                    <Text style={{ fontSize: 12, color: '#999', fontStyle: 'italic' }}>
+                                        No formidable opponents yet (need 3+ games against an opponent)
+                                    </Text>
+                                )}
+                            </div>
+                        )}
                     </>
                 )}
             </div>
