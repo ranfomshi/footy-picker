@@ -60,24 +60,24 @@ const showOpponentsExplanation = () => {
     content: (
       <div>
         <p style={{ color: '#333' }}>
-          "Formidable Opponents" are players who have consistently performed well against you:
+          "Formidable Opponents" are players who have consistently been challenging for you to beat:
         </p>
         <ul style={{ color: '#333' }}>
           <li>
             <Text strong style={{ color: '#ff4d4f' }}>Minimum Match Requirement:</Text> To be considered, you must have played against an opponent at least 3 times.
           </li>
           <li>
-            <Text strong style={{ color: '#ff4d4f' }}>Win Rate Against You:</Text> The win rate shows how often this opponent's team has beaten your team when you face each other.
+            <Text strong style={{ color: '#ff4d4f' }}>Your Win Rate Against Them:</Text> The win rate shows how often your team has beaten their team when you face each other.
           </li>
           <li>
-            <Text strong style={{ color: '#ff4d4f' }}>Goal Difference:</Text> Shows the cumulative goal difference from the opponent's perspective (positive means they typically outscore you).
+            <Text strong style={{ color: '#ff4d4f' }}>Goal Difference:</Text> Shows the cumulative goal difference from your perspective (positive means you typically outscore them).
           </li>
           <li>
-            <Text strong style={{ color: '#ff4d4f' }}>Ranking:</Text> Opponents are ranked by their win rate against you, with the highest win rates appearing first.
+            <Text strong style={{ color: '#ff4d4f' }}>Ranking:</Text> Opponents are ranked by your win rate against them, with the lowest win rates appearing first (your most challenging opponents).
           </li>
         </ul>
         <p style={{ color: '#333' }}>
-          This helps you identify which players you might want to focus on improving against or avoid facing in crucial matches.
+          This helps you identify which players have been your biggest challenges and who you might want to focus on improving against.
         </p>
       </div>
     ),
@@ -314,9 +314,9 @@ const showOpponentsExplanation = () => {
                         title={<Text strong style={{ fontSize: '1.2rem', color: '#ff4d4f' }}>{opponent.name}</Text>}
                         description={
                           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                            <Text>Win Rate vs You: <strong style={{ color: '#ff4d4f' }}>{(opponent.winRateAgainstMe*100).toFixed(1)}%</strong></Text>
+                            <Text>Your Win Rate vs Them: <strong style={{ color: '#ff4d4f' }}>{(opponent.winRateAgainstMe*100).toFixed(1)}%</strong></Text>
                             <Text>Matches Against: <strong>{opponent.matchesPlayedAgainst}</strong></Text>
-                            <Text>GD vs You: <strong style={{ color: opponent.goalDifferenceAgainstMe >= 0 ? '#ff4d4f' : '#52c41a' }}>
+                            <Text>Your GD vs Them: <strong style={{ color: opponent.goalDifferenceAgainstMe >= 0 ? '#52c41a' : '#ff4d4f' }}>
                               {opponent.goalDifferenceAgainstMe >= 0 ? '+' : ''}{opponent.goalDifferenceAgainstMe}
                             </strong></Text>
                           </div>
