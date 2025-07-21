@@ -997,15 +997,15 @@ router.get('/players', protect, async (req, res) => {
                 name: opponent?.name || 'Unknown',
                 auth0Id: opponentAuth0Id || null,
                 profilePicture: opponentProfilePicture,
-                winRateAgainstMe: parseFloat((stats.winsAgainstMe / stats.matchesPlayed).toFixed(2)),
+                winRateAgainstMe: parseFloat(((stats.matchesPlayed - stats.winsAgainstMe) / stats.matchesPlayed).toFixed(2)),
                 matchesPlayedAgainst: stats.matchesPlayed,
-                goalDifferenceAgainstMe: stats.goalDifferenceAgainstMe,
+                goalDifferenceAgainstMe: -stats.goalDifferenceAgainstMe, // Flip goal difference to show user's perspective
               };
             })
         );
 
-        // Sort formidable opponents by win rate against me (descending)
-        formidableOpponents.sort((a, b) => b.winRateAgainstMe - a.winRateAgainstMe);
+        // Sort formidable opponents by your win rate against them (ascending - lowest first)
+        formidableOpponents.sort((a, b) => a.winRateAgainstMe - b.winRateAgainstMe);
 
         return {
           ...player.toJSON(),
