@@ -218,7 +218,7 @@ router.post('/create-room', protect, async (req, res) => {
     // Determine player name from request or Auth0
     let finalPlayerName = playerName;
     let profilePicture = null;
-    
+
     if (!finalPlayerName) {
       const token = req.headers.authorization.split(' ')[1];
       const userInfo = await axios.get(`https://${auth0Domain}/userinfo`, {
@@ -246,9 +246,9 @@ router.post('/create-room', protect, async (req, res) => {
     );
 
     // Create creator player & membership
-    const newPlayer = await Player.create({ 
-      name: finalPlayerName, 
-      profilePicture 
+    const newPlayer = await Player.create({
+      name: finalPlayerName,
+      profilePicture
     });
     const newMembership = await RoomMembership.create({
       playerId: newPlayer.id,

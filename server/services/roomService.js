@@ -76,9 +76,9 @@ async function completeRoomJoin({ roomCode, playerId, newPlayerName, auth0Id }) 
             }
 
             const newPlayer = await Player.create(
-                { 
-                    name: finalName, 
-                    profilePicture 
+                {
+                    name: finalName,
+                    profilePicture
                 },
                 { transaction: t }
             );
