@@ -15,7 +15,6 @@ export const initMixpanel = () => {
             api_host: 'https://api.mixpanel.com', // Default Mixpanel endpoint
         });
         isInitialized = true;
-        console.log('Mixpanel initialized');
     }
 };// User identification
 export const identifyUser = (userId, userProperties = {}) => {

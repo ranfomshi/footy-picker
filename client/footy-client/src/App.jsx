@@ -53,7 +53,7 @@ const Auth0ProviderWithHistory = ({ children }) => {
 
 // Main app content component that uses routing
 const AppContent = () => {
-  const { isAuthenticated, getAccessTokenSilently, error, loginWithRedirect } = useAuth0();
+  const { isAuthenticated, getAccessTokenSilently, error, loginWithRedirect, user } = useAuth0();
   const [players, setPlayers] = useState([]);
   const [loading, setLoading] = useState(true);
   const location = useLocation();
@@ -124,19 +124,33 @@ const AppContent = () => {
   }, []);
 
   useEffect(() => {
-    if (isAuthenticated) {
+    if (isAuthenticated && user) {
       // Get user info from Auth0 and identify in Mixpanel
       getAccessTokenSilently().then(() => {
-        // You might want to get more user info from Auth0 here
-        identifyUser('authenticated_user', {
+        // Use Auth0 user details for Mixpanel identification
+        identifyUser(user.sub, {
+          // Auth0 user properties
+          $email: user.email,
+          $name: user.name,
+          $first_name: user.given_name,
+          $last_name: user.family_name,
+          nickname: user.nickname,
+          picture: user.picture,
+          email_verified: user.email_verified,
+          locale: user.locale,
+          auth0_user_id: user.sub,
+          
+          // App-specific properties
           has_joined_room: hasJoinedRoom,
           room_code: roomCode,
           room_name: roomName,
+          last_login: new Date().toISOString(),
         });
-        trackUserLogin('authenticated_user');
+        
+        trackUserLogin(user.sub, 'auth0');
       }).catch(console.error);
     }
-  }, [isAuthenticated, hasJoinedRoom, roomCode, roomName]);
+  }, [isAuthenticated, user, hasJoinedRoom, roomCode, roomName]);
 
   // Track page views
   useEffect(() => {
