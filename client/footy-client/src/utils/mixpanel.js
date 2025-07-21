@@ -6,7 +6,14 @@ const MIXPANEL_TOKEN = process.env.VITE_MIXPANEL_TOKEN || 'YOUR_MIXPANEL_TOKEN_H
 let isInitialized = false;
 
 export const initMixpanel = () => {
+    console.log('🔍 initMixpanel called');
+    console.log('MIXPANEL_TOKEN:', MIXPANEL_TOKEN);
+    console.log('isInitialized:', isInitialized);
+    console.log('Token check:', MIXPANEL_TOKEN && MIXPANEL_TOKEN !== 'YOUR_MIXPANEL_TOKEN_HERE');
+
     if (!isInitialized && MIXPANEL_TOKEN && MIXPANEL_TOKEN !== 'YOUR_MIXPANEL_TOKEN_HERE') {
+        console.log('✅ Initializing Mixpanel with token:', MIXPANEL_TOKEN.substring(0, 8) + '...');
+
         mixpanel.init(MIXPANEL_TOKEN, {
             debug: import.meta.env.DEV,
             track_pageview: true,
@@ -15,7 +22,12 @@ export const initMixpanel = () => {
             api_host: 'https://api.mixpanel.com', // Default Mixpanel endpoint
         });
         isInitialized = true;
-        console.log('Mixpanel initialized');
+        console.log('✅ Mixpanel initialized successfully');
+    } else {
+        console.log('❌ Mixpanel initialization skipped. Reasons:');
+        console.log('  - Already initialized:', isInitialized);
+        console.log('  - Token missing:', !MIXPANEL_TOKEN);
+        console.log('  - Token is placeholder:', MIXPANEL_TOKEN === 'YOUR_MIXPANEL_TOKEN_HERE');
     }
 };
 
@@ -31,14 +43,29 @@ export const identifyUser = (userId, userProperties = {}) => {
 
 // Track events
 export const trackEvent = (eventName, properties = {}) => {
-    if (!isInitialized) return;
+    console.log('📊 trackEvent called:', eventName, properties);
+    console.log('isInitialized:', isInitialized);
 
-    mixpanel.track(eventName, {
+    if (!isInitialized) {
+        console.warn('⚠️ Mixpanel not initialized, skipping event:', eventName);
+        return;
+    }
+
+    const eventData = {
         ...properties,
         timestamp: new Date().toISOString(),
         url: window.location.href,
         user_agent: navigator.userAgent,
-    });
+    };
+
+    console.log('📊 Sending event to Mixpanel:', eventName, eventData);
+
+    try {
+        mixpanel.track(eventName, eventData);
+        console.log('✅ Event sent to Mixpanel');
+    } catch (error) {
+        console.error('❌ Error sending event to Mixpanel:', error);
+    }
 };
 
 // Track page views
