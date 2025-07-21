@@ -582,7 +582,7 @@ const GameweekList = ({
                                 background: 'rgba(255, 255, 255, 0.6)'
                               }}>
                                 <Skeleton.Avatar active size={24} />
-                                <Skeleton.Input active size="small" style={{ width: 80, height: 16 }} />
+                                <Skeleton.Input active size="small" style={{ width: 'auto', height: 16 }} />
                               </div>
                             ))
                           ) : (
@@ -660,7 +660,7 @@ const GameweekList = ({
                                 background: 'rgba(255, 255, 255, 0.6)'
                               }}>
                                 <Skeleton.Avatar active size={24} />
-                                <Skeleton.Input active size="small" style={{ width: 80, height: 16 }} />
+                                <Skeleton.Input active size="small" style={{ width: 'auto', height: 16 }} />
                               </div>
                             ))
                           ) : (

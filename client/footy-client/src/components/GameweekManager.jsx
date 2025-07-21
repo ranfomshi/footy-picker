@@ -25,6 +25,13 @@ const GameweekManager = () => {
   const [teamsLoading, setTeamsLoading] = useState({}); // Track loading state per gameweek
   const [availability, setAvailability] = useState({});
   const [hasVoted, setHasVoted] = useState({});
+  
+  // Track which gameweeks have been fetched to prevent redundant API calls
+  const [fetchedGameweeks, setFetchedGameweeks] = useState({
+    teams: new Set(),
+    availability: new Set(),
+    voting: new Set()
+  });
   const [selectedGameweekId, setSelectedGameweekId] = useState(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [isAdmin, setIsAdmin] = useState(false);
@@ -78,6 +85,11 @@ const GameweekManager = () => {
 
   // — Group assignments
   const fetchTeams = async (gwId) => {
+    // Skip if already fetched and data exists
+    if (fetchedGameweeks.teams.has(gwId) && teams[gwId]) {
+      return;
+    }
+
     try {
       // Set loading state for this specific gameweek
       setTeamsLoading(prev => ({ ...prev, [gwId]: true }));
@@ -94,6 +106,12 @@ const GameweekManager = () => {
         else grouped.teamB.push(p);
       });
       setTeams((prev) => ({ ...prev, [gwId]: grouped }));
+      
+      // Mark as fetched
+      setFetchedGameweeks(prev => ({
+        ...prev,
+        teams: new Set([...prev.teams, gwId])
+      }));
     } catch (error) {
       console.error('Error fetching teams:', error);
     } finally {
@@ -104,6 +122,11 @@ const GameweekManager = () => {
 
 
   const fetchAvailability = async (gwId) => {
+    // Skip if already fetched and data exists
+    if (fetchedGameweeks.availability.has(gwId) && availability[gwId]) {
+      return;
+    }
+
     const token = await getAccessTokenSilently();
     const { data } = await axios.get(
       `${API}/availability?gameweekId=${gwId}`,
@@ -115,16 +138,33 @@ const GameweekManager = () => {
       return acc;
     }, {});
     setAvailability((prev) => ({ ...prev, [gwId]: availabilityMap }));
+    
+    // Mark as fetched
+    setFetchedGameweeks(prev => ({
+      ...prev,
+      availability: new Set([...prev.availability, gwId])
+    }));
   };
 
   // — Voting status
   const checkVotingStatus = async (gwId) => {
+    // Skip if already fetched and data exists
+    if (fetchedGameweeks.voting.has(gwId) && hasVoted[gwId] !== undefined) {
+      return;
+    }
+
     const token = await getAccessTokenSilently();
     const { data } = await axios.get(
       `${API}/has-voted?gameweekId=${gwId}`,
       { headers: { Authorization: `Bearer ${token}` } }
     );
     setHasVoted((prev) => ({ ...prev, [gwId]: data.hasVoted }));
+    
+    // Mark as fetched
+    setFetchedGameweeks(prev => ({
+      ...prev,
+      voting: new Set([...prev.voting, gwId])
+    }));
   };
 
   // — Check admin status
@@ -142,8 +182,26 @@ const GameweekManager = () => {
     }
   };
 
+  // Function to invalidate gameweek cache when data is modified
+  const invalidateGameweekCache = (gwId, cacheTypes = ['teams', 'availability', 'voting']) => {
+    setFetchedGameweeks(prev => {
+      const updated = { ...prev };
+      cacheTypes.forEach(type => {
+        if (updated[type]) {
+          const newSet = new Set(updated[type]);
+          newSet.delete(gwId);
+          updated[type] = newSet;
+        }
+      });
+      return updated;
+    });
+  };
+
   // AFTER
   const setPlayerAvailability = async (playerId, gwId, avail) => {
+    // Invalidate cache for this gameweek since we're modifying data
+    invalidateGameweekCache(gwId, ['availability', 'teams']);
+
     const token = await getAccessTokenSilently();
     await axios.post(
       `${API}/availability`,
@@ -202,6 +260,9 @@ const GameweekManager = () => {
 
   const handleVote = async (gameweekId, selectedPlayer) => {
     try {
+      // Invalidate voting cache for this gameweek since we're submitting a vote
+      invalidateGameweekCache(gameweekId, ['voting']);
+
       const token = await getAccessTokenSilently();
       console.log('Submitting vote:', { gameweekId, selectedPlayer });
       // Implement voting API call
@@ -241,6 +302,9 @@ const GameweekManager = () => {
   // — Delete gameweek
   const deleteGameweek = async (gameweekId) => {
     try {
+      // Invalidate all caches for this gameweek since it's being deleted
+      invalidateGameweekCache(gameweekId, ['teams', 'availability', 'voting']);
+
       const token = await getAccessTokenSilently();
       await axios.delete(`${API}/gameweeks/${gameweekId}`, {
         headers: { Authorization: `Bearer ${token}` },
@@ -256,6 +320,9 @@ const GameweekManager = () => {
   // — Manual override - handle individual player assignment changes
   const handlePlayerAssignmentChange = async (playerId, newAssignment) => {
     try {
+      // Invalidate teams cache for this gameweek since we're modifying team assignments
+      invalidateGameweekCache(selectedGameweekId, ['teams']);
+
       const token = await getAccessTokenSilently();
 
       // Make immediate API call for the specific player
