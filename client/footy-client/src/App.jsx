@@ -161,10 +161,10 @@ const AppContent = () => {
 
   const handleRoomJoined = async () => {
     setHasJoinedRoom(true);
-    
+
     // Track room join event
     trackRoomJoined(roomCode, roomName, 'app_navigation');
-    
+
     try {
       await fetchPlayersWithCache(getAccessTokenSilently, setPlayers, () => { });
     } catch (error) {
@@ -175,10 +175,10 @@ const AppContent = () => {
 
   const handleNavigation = (key) => {
     const currentTab = getActiveKeyFromPath(location.pathname);
-    
+
     // Track tab change
     trackTabChanged(currentTab, key, roomCode);
-    
+
     switch (key) {
       case 'playerStats':
         navigate('/players');

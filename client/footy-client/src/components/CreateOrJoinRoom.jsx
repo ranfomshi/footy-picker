@@ -90,14 +90,14 @@ const CreateOrJoinRoom = ({ onRoomJoined, checkMembership }) => {
         } catch (err) {
             handleAuthError(err);
             console.error(err);
-            
+
             // Track error
             trackError('create_room_failed', err.message, {
                 room_name: roomName,
                 sport_id: selectedSport
             });
             trackPerformance('create_room', Date.now() - startTime, false);
-            
+
             message.error('Unable to create room');
         } finally {
             setLoading(l => ({ ...l, create: false }));
@@ -129,13 +129,13 @@ const CreateOrJoinRoom = ({ onRoomJoined, checkMembership }) => {
         } catch (err) {
             handleAuthError(err);
             console.error(err);
-            
+
             // Track error
             trackError('join_room_failed', err.message, {
                 room_code: roomCode
             });
             trackPerformance('join_room_attempt', Date.now() - startTime, false);
-            
+
             message.error('Failed to join room');
         } finally {
             setLoading(l => ({ ...l, join: false }));

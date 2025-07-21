@@ -55,11 +55,11 @@ const PlayerCard = ({ player, showPercentages = false, sortBy = null, expanded =
         if (onToggle) {
             onToggle();
         }
-        
+
         // Track player card expansion
         if (!expanded) {
             trackPlayerCardExpanded(player.id, player.name);
-            
+
             // Track if user is viewing teammates/opponents sections
             if (player.favoriteTeammates && player.favoriteTeammates.length > 0) {
                 trackFavoriteTeammatesViewed(player.id, player.favoriteTeammates.length);

@@ -300,7 +300,7 @@ const GameweekManager = () => {
         },
         { headers: { Authorization: `Bearer ${token}` } }
       );
-      
+
       // Track result recording
       trackResultRecorded(
         selectedGameweekData.id,
@@ -309,17 +309,17 @@ const GameweekManager = () => {
         resultData.teamB_score,
         resultData.playerOfTheMatch || null
       );
-      
+
       // Track performance
       trackPerformance('record_result', Date.now() - startTime, true);
-      
+
       setIsRecordResultVisible(false);
       setSelectedGameweekData(null);
       // Refresh gameweeks to show updated result
       fetchGameweeks();
     } catch (error) {
       console.error('Error recording result:', error);
-      
+
       // Track error and performance
       trackError('record_result_failed', error.message, {
         gameweek_id: selectedGameweekData?.id,
@@ -376,7 +376,7 @@ const GameweekManager = () => {
       const response = await axios.post(`${API}/gameweeks`, vals, {
         headers: { Authorization: `Bearer ${token}` },
       });
-      
+
       // Track gameweek creation
       trackGameweekCreated(
         response.data?.id || 'unknown',
@@ -384,23 +384,23 @@ const GameweekManager = () => {
         vals.date?.format('YYYY-MM-DD') || vals.date,
         vals.location || 'Not specified'
       );
-      
+
       // Track performance
       trackPerformance('create_gameweek', Date.now() - startTime, true);
-      
+
       message.success("Fixture added");
       setIsAddVisible(false);
       fetchGameweeks();
     } catch (error) {
       console.error('Error creating gameweek:', error);
-      
+
       // Track error
       trackError('create_gameweek_failed', error.message, {
         room_code: roomCode,
         date: vals.date?.format('YYYY-MM-DD') || vals.date
       });
       trackPerformance('create_gameweek', Date.now() - startTime, false);
-      
+
       message.error("Failed to add fixture");
     }
   };

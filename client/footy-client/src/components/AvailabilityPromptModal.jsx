@@ -53,7 +53,7 @@ const AvailabilityPromptModal = ({
                 // Track completion
                 const timeToComplete = modalOpenTime ? (Date.now() - modalOpenTime) / 1000 : 0;
                 trackAvailabilityPromptCompleted(gameweeks.length, currentPlayer?.roomId || 'unknown', timeToComplete);
-                
+
                 // Close modal after a brief delay to show the success message
                 setTimeout(() => {
                     onClose();
