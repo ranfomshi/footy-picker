@@ -176,7 +176,7 @@ const GameweekList = ({
               }}
               onClick={() => handleCardClick(id)}
             >
-              <div style={{ display: 'flex', alignItems: 'center', gap: 20 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                 {/* Main date - prominent */}
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                   <Text strong style={{
@@ -354,7 +354,7 @@ const GameweekList = ({
                       )}
 
                       {/* Voting Status Row */}
-                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 6 }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                           <ClockCircleOutlined style={{
                             color: isVotingOpen(gw) ? '#52c41a' : '#6b7280',
@@ -459,7 +459,7 @@ const GameweekList = ({
                                 e.currentTarget.style.backgroundColor = 'transparent';
                               }}
                             >
-                              <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexDirection: 'row', flexWrap: 'nowrap' }}>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexDirection: 'row', flexWrap: 'nowrap' }}>
                                 <PlayerAvatar player={p} size={32} />
 
                                 <Text style={{ fontSize: 14, fontWeight: 500, color: '#374151' }}>
@@ -547,14 +547,7 @@ const GameweekList = ({
                           </div>
                           <div>
                             <Text strong style={{ color: teamAColor, fontSize: 14 }}>Team A</Text>
-                            <Badge
-                              count={teamA.length}
-                              style={{
-                                backgroundColor: teamAColor,
-                                marginLeft: 8,
-                                fontSize: 10
-                              }}
-                            />
+
                           </div>
                         </div>
                         <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
@@ -613,14 +606,7 @@ const GameweekList = ({
                           </div>
                           <div>
                             <Text strong style={{ color: teamBColor, fontSize: 14 }}>Team B</Text>
-                            <Badge
-                              count={teamB.length}
-                              style={{
-                                backgroundColor: teamBColor,
-                                marginLeft: 8,
-                                fontSize: 10
-                              }}
-                            />
+
                           </div>
                         </div>
                         <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
