@@ -280,6 +280,25 @@ const GameweekManager = () => {
     checkAdminStatus();
   }, []);
 
+  // Refresh the manual assignment form when teams data changes and modal is open
+  useEffect(() => {
+    if (isManualVisible && selectedGameweekId && teams[selectedGameweekId]) {
+      // Reset form with current team assignments to reflect any changes
+      const formValues = {};
+      players.forEach(player => {
+        const currentTeams = teams[selectedGameweekId];
+        let currentAssignment = 'unassigned';
+        if (currentTeams?.teamA?.some(p => p.id === player.id)) {
+          currentAssignment = 'A';
+        } else if (currentTeams?.teamB?.some(p => p.id === player.id)) {
+          currentAssignment = 'B';
+        }
+        formValues[`player_${player.id}`] = currentAssignment;
+      });
+      manualForm.setFieldsValue(formValues);
+    }
+  }, [teams, isManualVisible, selectedGameweekId, players]);
+
   const sorted = Object.values(gameweeks).sort(
     (a, b) => new Date(b.date) - new Date(a.date)
   );
@@ -341,10 +360,11 @@ const GameweekManager = () => {
         removePlayerAvailability={(pid, gwId) =>
           setPlayerAvailability(pid, gwId, false)
         }
-        showManualAssignmentModal={(id) => {
+        showManualAssignmentModal={async (id) => {
           setSelectedGameweekId(id);
-          // The form will automatically populate based on current assignments
-          // when the modal renders, so we don't need to pre-populate here
+          // Always fetch fresh team data when opening the override modal
+          // to ensure we have the latest assignments
+          await fetchTeams(id);
           setIsManualVisible(true);
         }}
         showRecordResultModal={showRecordResultModal}
