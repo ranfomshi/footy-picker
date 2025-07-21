@@ -783,6 +783,7 @@ router.get('/players', protect, async (req, res) => {
           totalPoints = 0;
 
         const teammateStats = {};
+        const opponentStats = {};
         let lastFiveGames = [];
 
         // Sort team assignments by gameweek timestamp in descending order
@@ -846,6 +847,35 @@ router.get('/players', protect, async (req, res) => {
                 teammateStats[teammate.playerId].wins += 1;
               }
               teammateStats[teammate.playerId].goalDifference += teamScore - opponentScore;
+            });
+
+            // Track opponent stats (players on the opposing team)
+            const opponentTeam = assignment.team === 'A' ? 'B' : 'A';
+            const opponents = await TeamAssignment.findAll({
+              where: {
+                gameweekId: assignment.gameweekId,
+                team: opponentTeam,
+                playerId: { [Op.ne]: player.id },
+                roomId,
+              },
+            });
+
+            opponents.forEach((opponent) => {
+              if (!opponentStats[opponent.playerId]) {
+                opponentStats[opponent.playerId] = {
+                  winsAgainstMe: 0,
+                  matchesPlayed: 0,
+                  goalDifferenceAgainstMe: 0,
+                };
+              }
+              opponentStats[opponent.playerId].matchesPlayed += 1;
+
+              // If the opponent's team won, increment their wins against me
+              if (opponentScore > teamScore) {
+                opponentStats[opponent.playerId].winsAgainstMe += 1;
+              }
+              // Goal difference from opponent's perspective (positive means they scored more)
+              opponentStats[opponent.playerId].goalDifferenceAgainstMe += opponentScore - teamScore;
             });
           }
         }
@@ -913,6 +943,70 @@ router.get('/players', protect, async (req, res) => {
         // Sort favorite teammates by win rate (descending)
         favoriteTeammates.sort((a, b) => b.winRate - a.winRate);
 
+        // Process formidable opponents (players who have consistently beaten this player)
+        const formidableOpponents = await Promise.all(
+          Object.entries(opponentStats)
+            .filter(([, stats]) => stats.matchesPlayed >= 3) // Same minimum matches requirement
+            .map(async ([id, stats]) => {
+              const opponent = await Player.findOne({
+                where: { id: parseInt(id, 10) },
+                attributes: ['name'],
+                include: [
+                  {
+                    model: RoomMembership,
+                    where: { roomId },
+                    attributes: ['auth0Id'],
+                  },
+                ],
+              });
+
+              // Get Auth0 profile picture for opponent from cache or fetch if needed
+              let opponentProfilePicture = null;
+              const opponentAuth0Id = opponent?.RoomMemberships?.[0]?.auth0Id;
+              console.log(`⚔️ Processing opponent: ${opponent?.name} (ID: ${id})`);
+              console.log(`   Opponent Auth0 ID: ${opponentAuth0Id || 'NOT SET'}`);
+
+              if (opponentAuth0Id) {
+                // Check cache first
+                if (auth0ProfileCache.has(opponentAuth0Id)) {
+                  const opponentAuth0Profile = auth0ProfileCache.get(opponentAuth0Id);
+                  opponentProfilePicture = opponentAuth0Profile?.picture || null;
+                  console.log(`   Opponent cached result: ${opponentProfilePicture || 'NO PICTURE FOUND'}`);
+                } else {
+                  // Fetch if not in cache (with rate limiting)
+                  console.log(`📸 Fetching opponent profile picture (not in cache)...`);
+                  try {
+                    const opponentAuth0Profile = await getAuth0UserProfile(opponentAuth0Id);
+                    opponentProfilePicture = opponentAuth0Profile?.picture || null;
+                    auth0ProfileCache.set(opponentAuth0Id, opponentAuth0Profile);
+                    console.log(`   Opponent fresh result: ${opponentProfilePicture || 'NO PICTURE FOUND'}`);
+
+                    // Add delay to respect rate limits
+                    await new Promise(resolve => setTimeout(resolve, 100));
+                  } catch (error) {
+                    console.error(`❌ Failed to fetch opponent profile for ${opponentAuth0Id}:`, error.message);
+                    auth0ProfileCache.set(opponentAuth0Id, null);
+                  }
+                }
+              } else {
+                console.log(`   Skipping Auth0 lookup for opponent - no auth0Id`);
+              }
+
+              return {
+                id: parseInt(id, 10),
+                name: opponent?.name || 'Unknown',
+                auth0Id: opponentAuth0Id || null,
+                profilePicture: opponentProfilePicture,
+                winRateAgainstMe: parseFloat((stats.winsAgainstMe / stats.matchesPlayed).toFixed(2)),
+                matchesPlayedAgainst: stats.matchesPlayed,
+                goalDifferenceAgainstMe: stats.goalDifferenceAgainstMe,
+              };
+            })
+        );
+
+        // Sort formidable opponents by win rate against me (descending)
+        formidableOpponents.sort((a, b) => b.winRateAgainstMe - a.winRateAgainstMe);
+
         return {
           ...player.toJSON(),
           auth0Id,
@@ -927,6 +1021,7 @@ router.get('/players', protect, async (req, res) => {
           totalPoints,
           playerOfTheMatchCount: playerOfTheMatchCounts[player.id] || 0,
           favoriteTeammates,
+          formidableOpponents,
           lastFiveGames, // Include last five games in the response
         };
       })
