@@ -269,31 +269,6 @@ const GameweekList = ({
                   </div>
                 )}
 
-                {/* Menu dropdown */}
-                {menuItems.length > 0 && (
-                  <Dropdown
-                    overlay={<Menu>{menuItems}</Menu>}
-                    trigger={['click']}
-                    placement="bottomRight"
-                  >
-                    <Button
-                      type="text"
-                      size="small"
-                      icon={<EllipsisOutlined />}
-                      onClick={(e) => e.stopPropagation()}
-                      style={{
-                        width: 32,
-                        height: 32,
-                        borderRadius: 8,
-                        color: '#6b7280',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center'
-                      }}
-                    />
-                  </Dropdown>
-                )}
-
                 {/* Expand/collapse indicator */}
                 <div style={{
                   color: '#6b7280',
@@ -316,6 +291,38 @@ const GameweekList = ({
             {/* Expanded Content */}
             {isExpanded && (
               <div style={{ padding: '20px 24px' }}>
+                {/* Actions Menu */}
+                {menuItems.length > 0 && (
+                  <div style={{ 
+                    display: 'flex', 
+                    justifyContent: 'flex-end', 
+                    marginBottom: 16,
+                    paddingBottom: 12,
+                    borderBottom: '1px solid rgba(0, 0, 0, 0.06)'
+                  }}>
+                    <Dropdown
+                      overlay={<Menu>{menuItems}</Menu>}
+                      trigger={['click']}
+                      placement="bottomRight"
+                    >
+                      <Button
+                        type="text"
+                        size="small"
+                        icon={<EllipsisOutlined />}
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: 6,
+                          color: '#6b7280',
+                          fontSize: 13
+                        }}
+                      >
+                        Actions
+                      </Button>
+                    </Dropdown>
+                  </div>
+                )}
+                
                 {gameResult ? (
                   // Game Results View
                   <>
