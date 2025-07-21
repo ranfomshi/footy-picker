@@ -463,26 +463,26 @@ const GameweekList = ({
                                 e.currentTarget.style.backgroundColor = 'transparent';
                               }}
                             >
-                              <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexDirection: 'row', flexWrap: 'nowrap' }}>
                                 <PlayerAvatar player={p} size={32} />
-                                <div>
-                                  <Text style={{ fontSize: 14, fontWeight: 500, color: '#374151' }}>
-                                    {p.name}
-                                  </Text>
-                                  {p.auth0Id && (
-                                    <div style={{ marginTop: 2 }}>
-                                      <Tooltip title="Linked user account">
-                                        <CheckCircleOutlined
-                                          style={{
-                                            fontSize: 12,
-                                            color: '#00b96b',
-                                            cursor: 'help'
-                                          }}
-                                        />
-                                      </Tooltip>
-                                    </div>
-                                  )}
-                                </div>
+
+                                <Text style={{ fontSize: 14, fontWeight: 500, color: '#374151' }}>
+                                  {p.name}
+
+                                </Text> {p.auth0Id && (
+                                  <div style={{ marginTop: 2 }}>
+                                    <Tooltip title="Linked user account">
+                                      <CheckCircleOutlined
+                                        style={{
+                                          fontSize: 12,
+                                          color: '#00b96b',
+                                          cursor: 'help'
+                                        }}
+                                      />
+                                    </Tooltip>
+                                  </div>
+                                )}
+
                               </div>
                               <Button
                                 size="middle"

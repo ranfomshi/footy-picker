@@ -261,7 +261,7 @@ const AppContent = () => {
           </div>
         </div>
       )}
-      
+
       <div className="content scroll-list" style={{
         paddingTop: hasJoinedRoom ? '64px' : '8px'
       }}>
@@ -280,7 +280,7 @@ const AppContent = () => {
           <Paragraph>Please log in</Paragraph>
         )}
       </div>
-      
+
       <div className="bottom-nav">
         <BottomNav activeKey={activeKey} onChange={handleNavigation} />
       </div>
