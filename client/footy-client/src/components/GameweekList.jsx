@@ -120,11 +120,13 @@ const GameweekList = ({
               Record Result
             </Menu.Item>
           );
-          menuItems.push(
-            <Menu.Item key="override" onClick={(e) => { e.domEvent.stopPropagation(); showManualAssignmentModal(id); }}>
-              Override Assignments
-            </Menu.Item>
-          );
+          if (isAdmin) {
+            menuItems.push(
+              <Menu.Item key="override" onClick={(e) => { e.domEvent.stopPropagation(); showManualAssignmentModal(id); }}>
+                Override Assignments
+              </Menu.Item>
+            );
+          }
         }
         if (isAdmin) {
           menuItems.push(
@@ -379,7 +381,7 @@ const GameweekList = ({
                             type="primary"
                             size="small"
                             icon={<TrophyTwoTone twoToneColor={["#ffffff", "#ffffff"]} />}
-                            onClick={() => showVotePlayerModal && showVotePlayerModal(id, teamA, teamB)}
+                            onClick={() => showVotePlayerModal && showVotePlayerModal(id)}
                             style={{
                               backgroundColor: '#00b96b',
                               borderColor: '#00b96b',

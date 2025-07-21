@@ -1,13 +1,15 @@
 import React, { useEffect, useState } from "react";
 import axios from "axios";
-import { Button, DatePicker, message, Form, Modal, Space, Input, Row, Col, TimePicker, InputNumber, AutoComplete, Typography } from "antd";
-import { PlusOutlined, CalendarOutlined } from "@ant-design/icons";
+import { Button, DatePicker, message, Form, Modal, Space, Input, Row, Col, TimePicker, InputNumber, AutoComplete, Typography, Select, Radio, Divider } from "antd";
+import { PlusOutlined, CalendarOutlined, TeamOutlined } from "@ant-design/icons";
 import GameweekList from "./GameweekList";
 import RecordResultModal from "./RecordResultModal";
 import VotePlayerModal from "./VotePlayerModal";
+import PlayerAvatar from "./PlayerAvatar";
 import { useAuth0 } from "@auth0/auth0-react";
 
 const { Text } = Typography;
+const { Option } = Select;
 
 const GameweekManager = () => {
   const { getAccessTokenSilently, user } = useAuth0();
@@ -21,6 +23,7 @@ const GameweekManager = () => {
   const [hasVoted, setHasVoted] = useState({});
   const [selectedGameweekId, setSelectedGameweekId] = useState(null);
   const [searchTerm, setSearchTerm] = useState("");
+  const [isAdmin, setIsAdmin] = useState(false);
   const [isAddVisible, setIsAddVisible] = useState(false);
   const [isManualVisible, setIsManualVisible] = useState(false);
   const [isRecordResultVisible, setIsRecordResultVisible] = useState(false);
@@ -97,6 +100,21 @@ const GameweekManager = () => {
       { headers: { Authorization: `Bearer ${token}` } }
     );
     setHasVoted((prev) => ({ ...prev, [gwId]: data.hasVoted }));
+  };
+
+  // — Check admin status
+  const checkAdminStatus = async () => {
+    try {
+      const token = await getAccessTokenSilently();
+      const { data } = await axios.get(
+        `${API}/check-room-membership`,
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      setIsAdmin(data.activeRoom?.isAdmin || false);
+    } catch (error) {
+      console.error('Error checking admin status:', error);
+      setIsAdmin(false);
+    }
   };
 
   // AFTER
@@ -196,21 +214,70 @@ const GameweekManager = () => {
   };
 
   // — Manual override
-  const handleManual = async (vals) => {
-    const token = await getAccessTokenSilently();
-    await axios.post(
-      `${API}/teamassignments`,
-      { gameweekId: selectedGameweekId, assignments: vals },
-      { headers: { Authorization: `Bearer ${token}` } }
-    );
-    message.success("Assignments updated");
-    setIsManualVisible(false);
-    fetchTeams(selectedGameweekId);
+  const handleManual = async (values) => {
+    try {
+      const token = await getAccessTokenSilently();
+      
+      // Process each player assignment individually
+      const assignmentPromises = [];
+      const availabilityPromises = [];
+      
+      Object.keys(values).forEach(key => {
+        if (key.startsWith('player_')) {
+          const playerId = parseInt(key.replace('player_', ''));
+          const assignment = values[key];
+          
+          // Use the manual-teamassignment endpoint for individual assignments
+          const assignmentPromise = axios.post(
+            `${API}/manual-teamassignment`,
+            { 
+              gameweekId: selectedGameweekId, 
+              playerId: playerId,
+              team: assignment === 'unassigned' ? 'None' : assignment
+            },
+            { headers: { Authorization: `Bearer ${token}` } }
+          );
+          
+          assignmentPromises.push(assignmentPromise);
+          
+          // If player is assigned to a team, mark them as available
+          // If unassigned, mark them as unavailable
+          const isAvailable = assignment !== 'unassigned';
+          const availabilityPromise = axios.post(
+            `${API}/availability`,
+            {
+              gameweekId: selectedGameweekId,
+              playerIds: [playerId],
+              status: isAvailable
+            },
+            { headers: { Authorization: `Bearer ${token}` } }
+          );
+          
+          availabilityPromises.push(availabilityPromise);
+        }
+      });
+      
+      // Wait for all assignments and availability updates to complete
+      await Promise.all([...assignmentPromises, ...availabilityPromises]);
+      
+      message.success("Team assignments and availability updated successfully");
+      setIsManualVisible(false);
+      manualForm.resetFields();
+      // Refresh team assignments and related data
+      await fetchTeams(selectedGameweekId);
+      await fetchAvailability(selectedGameweekId);
+      await checkVotingStatus(selectedGameweekId);
+      await fetchGameweeks(); // Refresh gameweeks to update any calculated fields
+    } catch (error) {
+      console.error('Error updating assignments:', error);
+      message.error(error.response?.data?.error || 'Failed to update assignments');
+    }
   };
 
   useEffect(() => {
     fetchGameweeks();
     fetchPlayers();
+    checkAdminStatus();
   }, []);
 
   const sorted = Object.values(gameweeks).sort(
@@ -276,11 +343,14 @@ const GameweekManager = () => {
         }
         showManualAssignmentModal={(id) => {
           setSelectedGameweekId(id);
+          // The form will automatically populate based on current assignments
+          // when the modal renders, so we don't need to pre-populate here
           setIsManualVisible(true);
         }}
         showRecordResultModal={showRecordResultModal}
         showVotePlayerModal={showVotePlayerModal}
         hasVoted={hasVoted}
+        isAdmin={isAdmin}
         isVotingOpen={(gw) => new Date() < new Date(gw.votingCloseTime)}
         formatDate={formatDate}
         formatVotingCloseTime={formatVotingCloseTime}
@@ -386,22 +456,83 @@ const GameweekManager = () => {
 
       {/* Manual Override Modal */}
       <Modal
-        title="Override Team Assignments"
-        visible={isManualVisible}
+        title={
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <TeamOutlined style={{ color: '#00b96b' }} />
+            <span>Override Team Assignments</span>
+          </div>
+        }
+        open={isManualVisible}
         onCancel={() => setIsManualVisible(false)}
         footer={null}
+        width={600}
+        destroyOnClose
       >
-        <Form form={form} layout="vertical" onFinish={handleManual}>
-          {/* your override UI */}
-          <Form.Item style={{ marginBottom: 0 }}>
-            <Space style={{ width: '100%', justifyContent: 'flex-end' }}>
-              <Button onClick={() => setIsManualVisible(false)}>Cancel</Button>
-              <Button type="primary" htmlType="submit">
-                Save Changes
-              </Button>
-            </Space>
-          </Form.Item>
-        </Form>
+        {selectedGameweekId && (
+          <Form form={manualForm} layout="vertical" onFinish={handleManual}>
+            <div style={{ marginBottom: 16 }}>
+              <Text style={{ color: '#6b7280' }}>
+                Set team assignments for each player. Players can be assigned to Team A, Team B, or left unassigned.
+              </Text>
+            </div>
+            
+            <div style={{ maxHeight: '300px', overflowY: 'auto', marginBottom: 16 }}>
+              {players.map((player, index) => {
+                // Get current assignment for this player
+                const currentTeams = teams[selectedGameweekId];
+                let currentAssignment = 'unassigned';
+                if (currentTeams?.teamA?.some(p => p.id === player.id)) {
+                  currentAssignment = 'A';
+                } else if (currentTeams?.teamB?.some(p => p.id === player.id)) {
+                  currentAssignment = 'B';
+                }
+
+                return (
+                  <div key={player.id} style={{ 
+                    marginBottom: 12, 
+                    padding: 12, 
+                    border: '1px solid #e5e7eb', 
+                    borderRadius: 8,
+                    background: '#fafbfc'
+                  }}>
+                    <Row align="middle" gutter={16}>
+                      <Col span={8}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                          <PlayerAvatar player={player} size={32} />
+                          <Text strong>{player.name}</Text>
+                        </div>
+                      </Col>
+                      <Col span={16}>
+                        <Form.Item 
+                          name={`player_${player.id}`} 
+                          initialValue={currentAssignment}
+                          style={{ margin: 0 }}
+                        >
+                          <Radio.Group size="small">
+                            <Radio.Button value="unassigned">Unassigned</Radio.Button>
+                            <Radio.Button value="A">Team A</Radio.Button>
+                            <Radio.Button value="B">Team B</Radio.Button>
+                          </Radio.Group>
+                        </Form.Item>
+                      </Col>
+                    </Row>
+                  </div>
+                );
+              })}
+            </div>
+
+            <Divider />
+
+            <Form.Item style={{ marginBottom: 0 }}>
+              <Space style={{ width: '100%', justifyContent: 'flex-end' }}>
+                <Button onClick={() => setIsManualVisible(false)}>Cancel</Button>
+                <Button type="primary" htmlType="submit">
+                  Save Assignments
+                </Button>
+              </Space>
+            </Form.Item>
+          </Form>
+        )}
       </Modal>
 
       {/* Record Result Modal */}

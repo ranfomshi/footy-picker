@@ -542,12 +542,28 @@ router.get('/pick-teams', protect, async (req, res) => {
 
     const { teamA, teamB } = teamResult;
 
-    // Store the team assignments
-    await TeamAssignment.destroy({ where: { gameweekId, roomId } });
-    await TeamAssignment.bulkCreate([
-      ...teamA.map((p) => ({ playerId: p.id, gameweekId, team: 'A', roomId })),
-      ...teamB.map((p) => ({ playerId: p.id, gameweekId, team: 'B', roomId })),
-    ]);
+    // Store the team assignments using a transaction
+    const { sequelize } = require('../models');
+    await sequelize.transaction(async (t) => {
+      // First, completely clear existing assignments for this gameweek
+      await TeamAssignment.destroy({ 
+        where: { gameweekId, roomId },
+        transaction: t
+      });
+      
+      // Then create new assignments
+      const newAssignments = [
+        ...teamA.map((p) => ({ playerId: p.id, gameweekId, team: 'A', roomId })),
+        ...teamB.map((p) => ({ playerId: p.id, gameweekId, team: 'B', roomId })),
+      ];
+      
+      // Use upsert to handle any potential conflicts
+      await Promise.all(
+        newAssignments.map(assignment => 
+          TeamAssignment.upsert(assignment, { transaction: t })
+        )
+      );
+    });
 
     return res.json({
       message: 'Teams assigned successfully',
@@ -1429,21 +1445,38 @@ router.post('/availability', protect, async (req, res) => {
     })();
     const picked = await pickBalancedTeams(enriched, threshold);
     if (picked) {
-      await TeamAssignment.destroy({ where: { gameweekId, roomId } });
-      await TeamAssignment.bulkCreate([
-        ...picked.teamA.map((p) => ({
-          playerId: p.id,
-          gameweekId,
-          team: 'A',
-          roomId,
-        })),
-        ...picked.teamB.map((p) => ({
-          playerId: p.id,
-          gameweekId,
-          team: 'B',
-          roomId,
-        })),
-      ]);
+      // Use a transaction to ensure atomicity
+      const { sequelize } = require('../models');
+      await sequelize.transaction(async (t) => {
+        // First, completely clear existing assignments for this gameweek
+        await TeamAssignment.destroy({ 
+          where: { gameweekId, roomId },
+          transaction: t
+        });
+        
+        // Then create new assignments
+        const newAssignments = [
+          ...picked.teamA.map((p) => ({
+            playerId: p.id,
+            gameweekId,
+            team: 'A',
+            roomId,
+          })),
+          ...picked.teamB.map((p) => ({
+            playerId: p.id,
+            gameweekId,
+            team: 'B',
+            roomId,
+          })),
+        ];
+        
+        // Use upsert instead of bulkCreate to handle any potential conflicts
+        await Promise.all(
+          newAssignments.map(assignment => 
+            TeamAssignment.upsert(assignment, { transaction: t })
+          )
+        );
+      });
     }
 
     // 4) Re‑count and return the new state
