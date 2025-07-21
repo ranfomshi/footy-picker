@@ -5,6 +5,7 @@ import { PlusOutlined, CalendarOutlined, TeamOutlined } from "@ant-design/icons"
 import GameweekList from "./GameweekList";
 import RecordResultModal from "./RecordResultModal";
 import VotePlayerModal from "./VotePlayerModal";
+import AvailabilityPromptModal from "./AvailabilityPromptModal";
 import PlayerAvatar from "./PlayerAvatar";
 import { useAuth0 } from "@auth0/auth0-react";
 import { fetchPlayersWithCache } from "../utils/playerCache";
@@ -41,6 +42,7 @@ const GameweekManager = () => {
   const [isManualVisible, setIsManualVisible] = useState(false);
   const [isRecordResultVisible, setIsRecordResultVisible] = useState(false);
   const [isVotePlayerVisible, setIsVotePlayerVisible] = useState(false);
+  const [isAvailabilityPromptVisible, setIsAvailabilityPromptVisible] = useState(false);
   const [selectedGameweekData, setSelectedGameweekData] = useState(null);
   const [form] = Form.useForm();
   const [addForm] = Form.useForm();
@@ -181,6 +183,60 @@ const GameweekManager = () => {
     } catch (error) {
       console.error('Error checking admin status:', error);
       setIsAdmin(false);
+    }
+  };
+
+  // — Check if user needs to set availability for upcoming fixtures
+  const checkAvailabilityPrompt = async () => {
+    console.log('🔄 checkAvailabilityPrompt called');
+
+    if (!user?.sub || playersLoading || gameweeksLoading) {
+      console.log('❌ Early return:', { userSub: user?.sub, playersLoading, gameweeksLoading });
+      return;
+    }
+
+    // Find the current user's player
+    const currentPlayer = players.find(player => player.auth0Id === user.sub);
+    if (!currentPlayer) {
+      console.log('❌ No current player found');
+      return;
+    }
+    console.log('✅ Current player found:', currentPlayer.name);
+
+    // Get upcoming gameweeks (in the future and not finished)
+    const now = new Date();
+    const upcomingGameweeks = Object.values(gameweeks).filter(gw => {
+      const gameDate = new Date(gw.date);
+      return gameDate >= now && !gw.gameResult;
+    });
+    console.log('📅 Upcoming gameweeks found:', upcomingGameweeks.length);
+
+    if (upcomingGameweeks.length === 0) return;
+
+    // Fetch availability data for upcoming gameweeks that haven't been fetched yet
+    const fetchPromises = upcomingGameweeks
+      .filter(gw => !fetchedGameweeks.availability.has(gw.id))
+      .map(gw => fetchAvailability(gw.id));
+
+    console.log('📥 Fetching availability for gameweeks:', fetchPromises.length);
+
+    if (fetchPromises.length > 0) {
+      await Promise.allSettled(fetchPromises);
+    }
+
+    // Check which upcoming gameweeks don't have availability set for this user
+    const gameweeksNeedingAvailability = upcomingGameweeks.filter(gw => {
+      const userAvailability = availability[gw.id]?.[currentPlayer.id];
+      console.log(`🔍 Gameweek ${gw.id} availability:`, userAvailability);
+      return userAvailability === undefined || userAvailability === null;
+    });
+
+    console.log('⚠️ Gameweeks needing availability:', gameweeksNeedingAvailability.length);
+
+    // If there are gameweeks needing availability and modal isn't already shown, show it
+    if (gameweeksNeedingAvailability.length > 0 && !isAvailabilityPromptVisible) {
+      console.log('🎯 Showing availability prompt modal');
+      setIsAvailabilityPromptVisible(true);
     }
   };
 
@@ -387,6 +443,11 @@ const GameweekManager = () => {
     initializeData();
   }, []);
 
+  // Check if user needs to set availability for upcoming fixtures
+  useEffect(() => {
+    checkAvailabilityPrompt();
+  }, [players, gameweeks, availability, playersLoading, gameweeksLoading, user?.sub]);
+
   // Refresh the manual assignment form when teams data changes and modal is open
   useEffect(() => {
     if (isManualVisible && selectedGameweekId && teams[selectedGameweekId]) {
@@ -431,6 +492,43 @@ const GameweekManager = () => {
       day: "numeric",
       month: "short",
     });
+
+  // Get upcoming gameweeks that need availability set for current user
+  const getUpcomingGameweeksNeedingAvailability = () => {
+    if (!user?.sub || !players.length) {
+      return [];
+    }
+
+    const currentPlayer = players.find(player => player.auth0Id === user.sub);
+    if (!currentPlayer) {
+      return [];
+    }
+
+    const now = new Date();
+    const upcomingGameweeks = Object.values(gameweeks).filter(gw => {
+      const gameDate = new Date(gw.date);
+      return gameDate >= now && !gw.gameResult;
+    });
+
+    const needingAvailability = upcomingGameweeks.filter(gw => {
+      const userAvailability = availability[gw.id]?.[currentPlayer.id];
+      return userAvailability === undefined || userAvailability === null;
+    });
+
+    return needingAvailability;
+  };
+
+  // Get current user's player object
+  const getCurrentPlayer = () => {
+    if (!user?.sub || !players.length) return null;
+    return players.find(player => player.auth0Id === user.sub);
+  };
+
+  // Format time for display
+  const formatTime = (timeString) => {
+    if (!timeString) return '';
+    return timeString.length > 5 ? timeString.slice(0, 5) : timeString;
+  };
 
   return (
     <div style={{ overflowY: 'auto', paddingRight: 8 }}>
@@ -724,6 +822,17 @@ const GameweekManager = () => {
           currentUserId={user?.sub}
         />
       )}
+
+      {/* Availability Prompt Modal */}
+      <AvailabilityPromptModal
+        visible={isAvailabilityPromptVisible}
+        onClose={() => setIsAvailabilityPromptVisible(false)}
+        gameweeks={getUpcomingGameweeksNeedingAvailability()}
+        currentPlayer={getCurrentPlayer()}
+        setPlayerAvailability={setPlayerAvailability}
+        formatDate={formatDate}
+        formatTime={formatTime}
+      />
     </div>
   );
 };

@@ -451,7 +451,11 @@ const GameweekList = ({
                         ) : (
                           <>
                             {filteredPlayers(id).map((p, index) => {
-                              const avail = availability[id]?.[p.id] ?? false;
+                              const availabilityStatus = availability[id]?.[p.id];
+                              // Three states: true (available), false (not available), null/undefined (not set)
+                              const isAvailable = availabilityStatus === true;
+                              const isNotAvailable = availabilityStatus === false;
+                              const isNotSet = availabilityStatus === null || availabilityStatus === undefined;
                               const isLast = index === filteredPlayers(id).length - 1;
                               return (
                                 <div
@@ -466,7 +470,7 @@ const GameweekList = ({
                                     cursor: 'pointer'
                                   }}
                                   onMouseEnter={(e) => {
-                                    if (!avail) {
+                                    if (isNotSet) {
                                       e.currentTarget.style.backgroundColor = 'rgba(0, 0, 0, 0.02)';
                                     }
                                   }}
@@ -495,27 +499,67 @@ const GameweekList = ({
                                     )}
 
                                   </div>
-                                  <Button
-                                    size="middle"
-                                    type={avail ? 'primary' : 'default'}
-                                    shape="round"
-                                    icon={avail ? <CheckCircleOutlined /> : <PlusOutlined />}
-                                    onClick={() =>
-                                      avail
-                                        ? removePlayerAvailability(p.id, id)
-                                        : setPlayerAvailability(p.id, id, true)
-                                    }
-                                    style={{
-                                      backgroundColor: avail ? '#00b96b' : 'transparent',
-                                      borderColor: avail ? '#00b96b' : 'rgba(0, 0, 0, 0.15)',
-                                      color: avail ? 'white' : '#6b7280',
-                                      fontWeight: 500,
-                                      minWidth: 80,
-                                      boxShadow: avail ? '0 2px 4px rgba(0, 185, 107, 0.2)' : 'none'
-                                    }}
-                                  >
-                                    {avail ? 'Available' : 'Add'}
-                                  </Button>
+
+                                  {/* Availability Status Display */}
+                                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                                    {isAvailable && (
+                                      <Button
+                                        size="middle"
+                                        type="primary"
+                                        shape="round"
+                                        icon={<CheckCircleOutlined />}
+                                        onClick={() => removePlayerAvailability(p.id, id)}
+                                        style={{
+                                          backgroundColor: '#00b96b',
+                                          borderColor: '#00b96b',
+                                          color: 'white',
+                                          fontWeight: 500,
+                                          minWidth: 100,
+                                          boxShadow: '0 2px 4px rgba(0, 185, 107, 0.2)'
+                                        }}
+                                      >
+                                        Available
+                                      </Button>
+                                    )}
+
+                                    {isNotAvailable && (
+                                      <Button
+                                        size="middle"
+                                        shape="round"
+                                        icon={<CloseOutlined />}
+                                        onClick={() => setPlayerAvailability(p.id, id, true)}
+                                        style={{
+                                          backgroundColor: '#ff4d4f',
+                                          borderColor: '#ff4d4f',
+                                          color: 'white',
+                                          fontWeight: 500,
+                                          minWidth: 100,
+                                          boxShadow: '0 2px 4px rgba(255, 77, 79, 0.2)'
+                                        }}
+                                      >
+                                        Not Available
+                                      </Button>
+                                    )}
+
+                                    {isNotSet && (
+                                      <Button
+                                        size="middle"
+                                        type="default"
+                                        shape="round"
+                                        icon={<PlusOutlined />}
+                                        onClick={() => setPlayerAvailability(p.id, id, true)}
+                                        style={{
+                                          backgroundColor: 'transparent',
+                                          borderColor: 'rgba(0, 0, 0, 0.15)',
+                                          color: '#6b7280',
+                                          fontWeight: 500,
+                                          minWidth: 100
+                                        }}
+                                      >
+                                        Not Set
+                                      </Button>
+                                    )}
+                                  </div>
                                 </div>
                               );
                             })}
