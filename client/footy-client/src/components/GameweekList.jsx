@@ -14,6 +14,7 @@ import {
   Col,
   Divider,
   Tag,
+  Skeleton,
 } from "antd";
 import {
   PlusOutlined,
@@ -58,6 +59,8 @@ const GameweekList = ({
   formatVotingCloseTime,
   searchTerm,
   setSearchTerm,
+  playersLoading = false,
+  teamsLoading = {},
 }) => {
   const { openGameweek, setOpenGameweek, teamAColor, teamBColor } = useStore();
 
@@ -192,7 +195,7 @@ const GameweekList = ({
                 <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 2 }}>
                     <ClockCircleOutlined style={{ color: '#6b7280', fontSize: 12 }} />
-                    <Text style={{ fontSize: 12, color: '#6b7280', fontWeight: 500 }}>
+                    <Text style={{ fontSize: 12, color: '#6b7280', fontWeight: 500, whiteSpace: 'nowrap' }}>
                       {formatTime(startTime)}
                     </Text>
                   </div>
@@ -435,84 +438,100 @@ const GameweekList = ({
                         background: '#ffffff',
                         boxShadow: '0 1px 3px rgba(0, 0, 0, 0.05)'
                       }}>
-                        {filteredPlayers(id).map((p, index) => {
-                          const avail = availability[id]?.[p.id] ?? false;
-                          const isLast = index === filteredPlayers(id).length - 1;
-                          return (
-                            <div
-                              key={p.id}
-                              style={{
-                                display: 'flex',
-                                justifyContent: 'space-between',
-                                alignItems: 'center',
-                                padding: '12px 16px',
-                                borderBottom: isLast ? 'none' : '1px solid rgba(0, 0, 0, 0.04)',
-                                transition: 'background-color 0.2s ease',
-                                cursor: 'pointer'
-                              }}
-                              onMouseEnter={(e) => {
-                                if (!avail) {
-                                  e.currentTarget.style.backgroundColor = 'rgba(0, 0, 0, 0.02)';
-                                }
-                              }}
-                              onMouseLeave={(e) => {
-                                e.currentTarget.style.backgroundColor = 'transparent';
-                              }}
-                            >
-                              <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexDirection: 'row', flexWrap: 'nowrap' }}>
-                                <PlayerAvatar player={p} size={32} />
-
-                                <Text style={{ fontSize: 14, fontWeight: 500, color: '#374151' }}>
-                                  {p.name}
-
-                                </Text> {p.auth0Id && (
-                                  <div style={{ marginTop: 2 }}>
-                                    <Tooltip title="Linked user account">
-                                      <CheckCircleOutlined
-                                        style={{
-                                          fontSize: 12,
-                                          color: '#00b96b',
-                                          cursor: 'help'
-                                        }}
-                                      />
-                                    </Tooltip>
-                                  </div>
-                                )}
-
+                        {playersLoading ? (
+                          <div style={{ padding: '16px' }}>
+                            {Array.from({ length: 3 }).map((_, i) => (
+                              <div key={i} style={{ marginBottom: i < 2 ? '12px' : 0 }}>
+                                <Skeleton.Input
+                                  active
+                                  size="small"
+                                  style={{ width: '100%', height: '40px' }}
+                                />
                               </div>
-                              <Button
-                                size="middle"
-                                type={avail ? 'primary' : 'default'}
-                                shape="round"
-                                icon={avail ? <CheckCircleOutlined /> : <PlusOutlined />}
-                                onClick={() =>
-                                  avail
-                                    ? removePlayerAvailability(p.id, id)
-                                    : setPlayerAvailability(p.id, id, true)
-                                }
-                                style={{
-                                  backgroundColor: avail ? '#00b96b' : 'transparent',
-                                  borderColor: avail ? '#00b96b' : 'rgba(0, 0, 0, 0.15)',
-                                  color: avail ? 'white' : '#6b7280',
-                                  fontWeight: 500,
-                                  minWidth: 80,
-                                  boxShadow: avail ? '0 2px 4px rgba(0, 185, 107, 0.2)' : 'none'
-                                }}
-                              >
-                                {avail ? 'Available' : 'Add'}
-                              </Button>
-                            </div>
-                          );
-                        })}
-                        {filteredPlayers(id).length === 0 && (
-                          <div style={{
-                            padding: '32px 16px',
-                            textAlign: 'center',
-                            color: '#9ca3af'
-                          }}>
-                            <UserOutlined style={{ fontSize: 24, marginBottom: 8, opacity: 0.5 }} />
-                            <div style={{ fontSize: 14 }}>No players found</div>
+                            ))}
                           </div>
+                        ) : (
+                          <>
+                            {filteredPlayers(id).map((p, index) => {
+                              const avail = availability[id]?.[p.id] ?? false;
+                              const isLast = index === filteredPlayers(id).length - 1;
+                              return (
+                                <div
+                                  key={p.id}
+                                  style={{
+                                    display: 'flex',
+                                    justifyContent: 'space-between',
+                                    alignItems: 'center',
+                                    padding: '12px 16px',
+                                    borderBottom: isLast ? 'none' : '1px solid rgba(0, 0, 0, 0.04)',
+                                    transition: 'background-color 0.2s ease',
+                                    cursor: 'pointer'
+                                  }}
+                                  onMouseEnter={(e) => {
+                                    if (!avail) {
+                                      e.currentTarget.style.backgroundColor = 'rgba(0, 0, 0, 0.02)';
+                                    }
+                                  }}
+                                  onMouseLeave={(e) => {
+                                    e.currentTarget.style.backgroundColor = 'transparent';
+                                  }}
+                                >
+                                  <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexDirection: 'row', flexWrap: 'nowrap' }}>
+                                    <PlayerAvatar player={p} size={32} />
+
+                                    <Text style={{ fontSize: 14, fontWeight: 500, color: '#374151' }}>
+                                      {p.name}
+
+                                    </Text> {p.auth0Id && (
+                                      <div style={{ marginTop: 2 }}>
+                                        <Tooltip title="Linked user account">
+                                          <CheckCircleOutlined
+                                            style={{
+                                              fontSize: 12,
+                                              color: '#00b96b',
+                                              cursor: 'help'
+                                            }}
+                                          />
+                                        </Tooltip>
+                                      </div>
+                                    )}
+
+                                  </div>
+                                  <Button
+                                    size="middle"
+                                    type={avail ? 'primary' : 'default'}
+                                    shape="round"
+                                    icon={avail ? <CheckCircleOutlined /> : <PlusOutlined />}
+                                    onClick={() =>
+                                      avail
+                                        ? removePlayerAvailability(p.id, id)
+                                        : setPlayerAvailability(p.id, id, true)
+                                    }
+                                    style={{
+                                      backgroundColor: avail ? '#00b96b' : 'transparent',
+                                      borderColor: avail ? '#00b96b' : 'rgba(0, 0, 0, 0.15)',
+                                      color: avail ? 'white' : '#6b7280',
+                                      fontWeight: 500,
+                                      minWidth: 80,
+                                      boxShadow: avail ? '0 2px 4px rgba(0, 185, 107, 0.2)' : 'none'
+                                    }}
+                                  >
+                                    {avail ? 'Available' : 'Add'}
+                                  </Button>
+                                </div>
+                              );
+                            })}
+                            {filteredPlayers(id).length === 0 && !playersLoading && (
+                              <div style={{
+                                padding: '32px 16px',
+                                textAlign: 'center',
+                                color: '#9ca3af'
+                              }}>
+                                <UserOutlined style={{ fontSize: 24, marginBottom: 8, opacity: 0.5 }} />
+                                <div style={{ fontSize: 14 }}>No players found</div>
+                              </div>
+                            )}
+                          </>
                         )}
                       </div>
                     </div>
@@ -551,32 +570,51 @@ const GameweekList = ({
                           </div>
                         </div>
                         <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                          {teamA.sort((a, b) => a.name.localeCompare(b.name)).map((p) => (
-                            <div key={p.id} style={{
-                              display: 'flex',
-                              alignItems: 'center',
-                              gap: 10,
-                              padding: '6px 8px',
-                              borderRadius: 8,
-                              background: 'rgba(255, 255, 255, 0.6)'
-                            }}>
-                              <PlayerAvatar player={p} size={24} />
-                              <Text style={{ fontSize: 13, fontWeight: 500, color: '#374151' }}>{p.name}</Text>
-                            </div>
-                          ))}
-                          {teamA.length === 0 && (
-                            <div style={{
-                              padding: '16px 8px',
-                              textAlign: 'center',
-                              color: '#9ca3af',
-                              fontSize: 12,
-                              fontStyle: 'italic',
-                              border: '1px dashed #e5e7eb',
-                              borderRadius: 8,
-                              background: 'rgba(255, 255, 255, 0.4)'
-                            }}>
-                              No players assigned
-                            </div>
+                          {(playersLoading || teamsLoading[id]) ? (
+                            // Show skeleton loaders when players or teams are loading
+                            Array.from({ length: 2 }).map((_, i) => (
+                              <div key={i} style={{
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: 10,
+                                padding: '6px 8px',
+                                borderRadius: 8,
+                                background: 'rgba(255, 255, 255, 0.6)'
+                              }}>
+                                <Skeleton.Avatar active size={24} />
+                                <Skeleton.Input active size="small" style={{ width: 80, height: 16 }} />
+                              </div>
+                            ))
+                          ) : (
+                            <>
+                              {teamA.sort((a, b) => a.name.localeCompare(b.name)).map((p) => (
+                                <div key={p.id} style={{
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  gap: 10,
+                                  padding: '6px 8px',
+                                  borderRadius: 8,
+                                  background: 'rgba(255, 255, 255, 0.6)'
+                                }}>
+                                  <PlayerAvatar player={p} size={24} />
+                                  <Text style={{ fontSize: 13, fontWeight: 500, color: '#374151' }}>{p.name}</Text>
+                                </div>
+                              ))}
+                              {teamA.length === 0 && (
+                                <div style={{
+                                  padding: '16px 8px',
+                                  textAlign: 'center',
+                                  color: '#9ca3af',
+                                  fontSize: 12,
+                                  fontStyle: 'italic',
+                                  border: '1px dashed #e5e7eb',
+                                  borderRadius: 8,
+                                  background: 'rgba(255, 255, 255, 0.4)'
+                                }}>
+                                  No players assigned
+                                </div>
+                              )}
+                            </>
                           )}
                         </div>
                       </div>
@@ -610,32 +648,51 @@ const GameweekList = ({
                           </div>
                         </div>
                         <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                          {teamB.sort((a, b) => a.name.localeCompare(b.name)).map((p) => (
-                            <div key={p.id} style={{
-                              display: 'flex',
-                              alignItems: 'center',
-                              gap: 10,
-                              padding: '6px 8px',
-                              borderRadius: 8,
-                              background: 'rgba(255, 255, 255, 0.6)'
-                            }}>
-                              <PlayerAvatar player={p} size={24} />
-                              <Text style={{ fontSize: 13, fontWeight: 500, color: '#374151' }}>{p.name}</Text>
-                            </div>
-                          ))}
-                          {teamB.length === 0 && (
-                            <div style={{
-                              padding: '16px 8px',
-                              textAlign: 'center',
-                              color: '#9ca3af',
-                              fontSize: 12,
-                              fontStyle: 'italic',
-                              border: '1px dashed #e5e7eb',
-                              borderRadius: 8,
-                              background: 'rgba(255, 255, 255, 0.4)'
-                            }}>
-                              No players assigned
-                            </div>
+                          {(playersLoading || teamsLoading[id]) ? (
+                            // Show skeleton loaders when players or teams are loading
+                            Array.from({ length: 2 }).map((_, i) => (
+                              <div key={i} style={{
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: 10,
+                                padding: '6px 8px',
+                                borderRadius: 8,
+                                background: 'rgba(255, 255, 255, 0.6)'
+                              }}>
+                                <Skeleton.Avatar active size={24} />
+                                <Skeleton.Input active size="small" style={{ width: 80, height: 16 }} />
+                              </div>
+                            ))
+                          ) : (
+                            <>
+                              {teamB.sort((a, b) => a.name.localeCompare(b.name)).map((p) => (
+                                <div key={p.id} style={{
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  gap: 10,
+                                  padding: '6px 8px',
+                                  borderRadius: 8,
+                                  background: 'rgba(255, 255, 255, 0.6)'
+                                }}>
+                                  <PlayerAvatar player={p} size={24} />
+                                  <Text style={{ fontSize: 13, fontWeight: 500, color: '#374151' }}>{p.name}</Text>
+                                </div>
+                              ))}
+                              {teamB.length === 0 && (
+                                <div style={{
+                                  padding: '16px 8px',
+                                  textAlign: 'center',
+                                  color: '#9ca3af',
+                                  fontSize: 12,
+                                  fontStyle: 'italic',
+                                  border: '1px dashed #e5e7eb',
+                                  borderRadius: 8,
+                                  background: 'rgba(255, 255, 255, 0.4)'
+                                }}>
+                                  No players assigned
+                                </div>
+                              )}
+                            </>
                           )}
                         </div>
                       </div>

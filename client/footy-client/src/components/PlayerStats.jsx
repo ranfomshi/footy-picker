@@ -13,9 +13,11 @@ import {
     Modal,
     message,
     Dropdown,
-    Menu
+    Menu,
+    Skeleton
 } from 'antd';
 import { useAuth0 } from '@auth0/auth0-react';
+import { fetchPlayersWithCache } from '../utils/playerCache';
 import {
     CheckCircleOutlined,
     SortAscendingOutlined,
@@ -371,16 +373,12 @@ const PlayerStats = () => {
 
     const fetchPlayerStats = async () => {
         try {
-            const token = await getAccessTokenSilently();
-            const { data } = await axios.get(`${API_BASE_URL}/players`, {
-                headers: { Authorization: `Bearer ${token}` },
-            });
-            const sortedData = data.sort((a, b) => a.name.localeCompare(b.name));
-            setPlayers(sortedData);
-            setFilteredPlayers(sortedData);
+            await fetchPlayersWithCache(getAccessTokenSilently, (data) => {
+                setPlayers(data);
+                setFilteredPlayers(data);
+            }, setLoading);
         } catch (error) {
             console.error('Error fetching player stats', error);
-        } finally {
             setLoading(false);
         }
     };
@@ -533,8 +531,51 @@ const PlayerStats = () => {
 
                 {/* Content */}
                 {loading ? (
-                    <div style={{ textAlign: 'center', padding: '50px 0' }}>
-                        <Spin size="large" />
+                    // Skeleton loading cards that match PlayerCard layout
+                    <div>
+                        {Array.from({ length: 6 }).map((_, index) => (
+                            <Card
+                                key={index}
+                                style={{
+                                    marginBottom: 12,
+                                    borderRadius: 12,
+                                    border: '1px solid rgba(0, 0, 0, 0.06)',
+                                    boxShadow: '0 2px 8px rgba(0, 0, 0, 0.04)'
+                                }}
+                                bodyStyle={{ padding: '16px 20px' }}
+                            >
+                                {/* Header skeleton */}
+                                <div style={{
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'space-between',
+                                    marginBottom: 16
+                                }}>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                                        <Skeleton.Avatar active size={40} />
+                                        <div>
+                                            <Skeleton.Input active size="small" style={{ width: 120, height: 16, marginBottom: 4 }} />
+                                            <Skeleton.Input active size="small" style={{ width: 80, height: 12 }} />
+                                        </div>
+                                    </div>
+                                    <Skeleton.Button active size="small" style={{ width: 60, height: 28 }} />
+                                </div>
+
+                                {/* Stats skeleton */}
+                                <div style={{
+                                    display: 'flex',
+                                    justifyContent: 'space-around',
+                                    gap: 16
+                                }}>
+                                    {Array.from({ length: 4 }).map((_, i) => (
+                                        <div key={i} style={{ textAlign: 'center', flex: 1 }}>
+                                            <Skeleton.Input active size="small" style={{ width: '100%', height: 12, marginBottom: 4 }} />
+                                            <Skeleton.Input active size="small" style={{ width: '60%', height: 16, margin: '0 auto' }} />
+                                        </div>
+                                    ))}
+                                </div>
+                            </Card>
+                        ))}
                     </div>
                 ) : (
                     // Stats Cards View

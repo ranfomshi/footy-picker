@@ -13,6 +13,7 @@ import { Button, ConfigProvider, Typography, Spin, Image, Space } from "antd";
 import { Auth0Provider, useAuth0 } from "@auth0/auth0-react";
 import useStore from "./useStore";
 import Avatar from "./components/Avatar";
+import { fetchPlayersWithCache } from "./utils/playerCache";
 
 const { Title, Text, Paragraph } = Typography;
 
@@ -130,13 +131,11 @@ const AppContent = () => {
 
   const handleRoomJoined = async () => {
     setHasJoinedRoom(true);
-    const token = await getAccessTokenSilently();
-    const response = await axios.get(`${API_BASE_URL}/players`, {
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-    });
-    setPlayers(response.data);
+    try {
+      await fetchPlayersWithCache(getAccessTokenSilently, setPlayers, () => { });
+    } catch (error) {
+      console.error('Error fetching players after room join:', error);
+    }
     navigate('/players'); // Navigate to players page after joining room
   };
 
@@ -243,7 +242,7 @@ const AppContent = () => {
               Teamix
             </Title>
             <Paragraph style={{ marginBottom: "24px", color: '#666', maxWidth: '300px' }}>
-              Organize your football teams with ease. Track stats, manage players, and make every game count.
+              Organize your sport team with ease. Track stats, manage players, and make every game count.
             </Paragraph>
             <Button
               type="primary"

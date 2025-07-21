@@ -1,12 +1,13 @@
 import React, { useEffect, useState } from "react";
 import axios from "axios";
-import { Button, DatePicker, message, Form, Modal, Space, Input, Row, Col, TimePicker, InputNumber, AutoComplete, Typography, Select, Radio, Divider } from "antd";
+import { Button, DatePicker, message, Form, Modal, Space, Input, Row, Col, TimePicker, InputNumber, AutoComplete, Typography, Select, Radio, Divider, Spin, Skeleton } from "antd";
 import { PlusOutlined, CalendarOutlined, TeamOutlined } from "@ant-design/icons";
 import GameweekList from "./GameweekList";
 import RecordResultModal from "./RecordResultModal";
 import VotePlayerModal from "./VotePlayerModal";
 import PlayerAvatar from "./PlayerAvatar";
 import { useAuth0 } from "@auth0/auth0-react";
+import { fetchPlayersWithCache } from "../utils/playerCache";
 
 const { Text } = Typography;
 const { Option } = Select;
@@ -18,7 +19,10 @@ const GameweekManager = () => {
   const [gameweeks, setGameweeks] = useState({});
   const [previousLocations, setPreviousLocations] = useState([]);
   const [players, setPlayers] = useState([]);
+  const [playersLoading, setPlayersLoading] = useState(true);
+  const [gameweeksLoading, setGameweeksLoading] = useState(true);
   const [teams, setTeams] = useState({});
+  const [teamsLoading, setTeamsLoading] = useState({}); // Track loading state per gameweek
   const [availability, setAvailability] = useState({});
   const [hasVoted, setHasVoted] = useState({});
   const [selectedGameweekId, setSelectedGameweekId] = useState(null);
@@ -33,48 +37,69 @@ const GameweekManager = () => {
   const [addForm] = Form.useForm();
   const [manualForm] = Form.useForm();
 
+  // Cache key for players data - now using shared utility
+  // Removed individual cache functions - using shared playerCache utility
+
   // — Fetch all gameweeks
   const fetchGameweeks = async () => {
-    const token = await getAccessTokenSilently();
-    const { data } = await axios.get(`${API}/gameweeks`, {
-      headers: { Authorization: `Bearer ${token}` },
-    });
-    setGameweeks(Object.fromEntries(data.map((gw) => [gw.id, gw])));
+    try {
+      setGameweeksLoading(true);
+      const token = await getAccessTokenSilently();
+      const { data } = await axios.get(`${API}/gameweeks`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      setGameweeks(Object.fromEntries(data.map((gw) => [gw.id, gw])));
 
-    // derive unique previous locations
-    const locs = Array.from(
-      new Set(
-        data
-          .map((gw) => gw.location)
-          .filter((loc) => loc && loc.trim().length > 0)
-      )
-    );
-    setPreviousLocations(locs);
+      // derive unique previous locations
+      const locs = Array.from(
+        new Set(
+          data
+            .map((gw) => gw.location)
+            .filter((loc) => loc && loc.trim().length > 0)
+        )
+      );
+      setPreviousLocations(locs);
+    } catch (error) {
+      console.error('Error fetching gameweeks:', error);
+    } finally {
+      setGameweeksLoading(false);
+    }
   };
 
-  // — Fetch all players
+  // — Fetch all players with caching
   const fetchPlayers = async () => {
-    const token = await getAccessTokenSilently();
-    const { data } = await axios.get(`${API}/players`, {
-      headers: { Authorization: `Bearer ${token}` },
-    });
-    setPlayers(data);
+    try {
+      await fetchPlayersWithCache(getAccessTokenSilently, setPlayers, setPlayersLoading);
+    } catch (error) {
+      console.error('Error in fetchPlayers:', error);
+      setPlayersLoading(false);
+    }
   };
 
   // — Group assignments
   const fetchTeams = async (gwId) => {
-    const token = await getAccessTokenSilently();
-    const { data } = await axios.get(
-      `${API}/teamassignments?gameweekId=${gwId}`,
-      { headers: { Authorization: `Bearer ${token}` } }
-    );
-    const grouped = { teamA: [], teamB: [] };
-    data.forEach((a) => {
-      const p = a.Player;
-      if (a.team === "A") grouped.teamA.push(p);
-      else grouped.teamB.push(p);
-    });
-    setTeams((prev) => ({ ...prev, [gwId]: grouped }));
+    try {
+      // Set loading state for this specific gameweek
+      setTeamsLoading(prev => ({ ...prev, [gwId]: true }));
+
+      const token = await getAccessTokenSilently();
+      const { data } = await axios.get(
+        `${API}/teamassignments?gameweekId=${gwId}`,
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      const grouped = { teamA: [], teamB: [] };
+      data.forEach((a) => {
+        const p = a.Player;
+        if (a.team === "A") grouped.teamA.push(p);
+        else grouped.teamB.push(p);
+      });
+      setTeams((prev) => ({ ...prev, [gwId]: grouped }));
+    } catch (error) {
+      console.error('Error fetching teams:', error);
+    } finally {
+      // Clear loading state for this specific gameweek
+      setTeamsLoading(prev => ({ ...prev, [gwId]: false }));
+    }
   };
 
 
@@ -276,9 +301,16 @@ const GameweekManager = () => {
   };
 
   useEffect(() => {
-    fetchGameweeks();
-    fetchPlayers();
-    checkAdminStatus();
+    // Start both fetches in parallel for better performance
+    const initializeData = async () => {
+      await Promise.all([
+        fetchGameweeks(),
+        fetchPlayers(),
+        checkAdminStatus()
+      ]);
+    };
+
+    initializeData();
   }, []);
 
   // Refresh the manual assignment form when teams data changes and modal is open
@@ -368,37 +400,47 @@ const GameweekManager = () => {
         </div>
       </div>
 
-      <GameweekList
-        sortedGameweeks={sorted}
-        teams={teams}
-        availability={availability}
-        fetchAvailability={fetchAvailability}
-        fetchAssignments={fetchTeams}
-        fetchTeams={fetchTeams}
-        filteredPlayers={filteredPlayers}
-        checkVotingStatus={checkVotingStatus}
-        setPlayerAvailability={setPlayerAvailability}
-        removePlayerAvailability={(pid, gwId) =>
-          setPlayerAvailability(pid, gwId, false)
-        }
-        showManualAssignmentModal={async (id) => {
-          setSelectedGameweekId(id);
-          // Always fetch fresh team data when opening the override modal
-          // to ensure we have the latest assignments
-          await fetchTeams(id);
-          setIsManualVisible(true);
-        }}
-        showRecordResultModal={showRecordResultModal}
-        showVotePlayerModal={showVotePlayerModal}
-        deleteGameweek={deleteGameweek}
-        hasVoted={hasVoted}
-        isAdmin={isAdmin}
-        isVotingOpen={(gw) => new Date() < new Date(gw.votingCloseTime)}
-        formatDate={formatDate}
-        formatVotingCloseTime={formatVotingCloseTime}
-        searchTerm={searchTerm}
-        setSearchTerm={setSearchTerm}
-      />
+      {/* Loading State */}
+      {(gameweeksLoading || playersLoading) ? (
+        <div style={{ padding: '20px 0' }}>
+          <Skeleton active paragraph={{ rows: 4 }} />
+          <Skeleton active paragraph={{ rows: 3 }} style={{ marginTop: 20 }} />
+        </div>
+      ) : (
+        <GameweekList
+          sortedGameweeks={sorted}
+          teams={teams}
+          availability={availability}
+          fetchAvailability={fetchAvailability}
+          fetchAssignments={fetchTeams}
+          fetchTeams={fetchTeams}
+          filteredPlayers={filteredPlayers}
+          checkVotingStatus={checkVotingStatus}
+          setPlayerAvailability={setPlayerAvailability}
+          removePlayerAvailability={(pid, gwId) =>
+            setPlayerAvailability(pid, gwId, false)
+          }
+          showManualAssignmentModal={async (id) => {
+            setSelectedGameweekId(id);
+            // Always fetch fresh team data when opening the override modal
+            // to ensure we have the latest assignments
+            await fetchTeams(id);
+            setIsManualVisible(true);
+          }}
+          showRecordResultModal={showRecordResultModal}
+          showVotePlayerModal={showVotePlayerModal}
+          deleteGameweek={deleteGameweek}
+          hasVoted={hasVoted}
+          isAdmin={isAdmin}
+          isVotingOpen={(gw) => new Date() < new Date(gw.votingCloseTime)}
+          formatDate={formatDate}
+          formatVotingCloseTime={formatVotingCloseTime}
+          searchTerm={searchTerm}
+          setSearchTerm={setSearchTerm}
+          playersLoading={playersLoading}
+          teamsLoading={teamsLoading}
+        />
+      )}
 
       {/* Add Fixture Modal */}
       <Modal
