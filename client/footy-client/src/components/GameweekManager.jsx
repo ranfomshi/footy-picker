@@ -17,7 +17,7 @@ const { Option } = Select;
 
 const GameweekManager = () => {
   const { getAccessTokenSilently, user } = useAuth0();
-  const { setOpenGameweek } = useStore();
+  const { setOpenGameweek, roomCode } = useStore();
   const API = import.meta.env.VITE_API_BASE_URL;
 
   const [gameweeks, setGameweeks] = useState({});
@@ -372,17 +372,28 @@ const GameweekManager = () => {
   const handleAdd = async (vals) => {
     const startTime = Date.now();
     try {
+      // Format the data for the backend
+      const formattedData = {
+        date: vals.date?.format('YYYY-MM-DD') || vals.date,
+        startTime: vals.startTime?.format('HH:mm') || vals.startTime,
+        location: vals.location,
+        maxPlayers: vals.maxPlayers
+      };
+
+      console.log('📤 Submitting gameweek data:', formattedData);
       const token = await getAccessTokenSilently();
-      const response = await axios.post(`${API}/gameweeks`, vals, {
+      const response = await axios.post(`${API}/gameweeks`, formattedData, {
         headers: { Authorization: `Bearer ${token}` },
       });
+
+      console.log('✅ Gameweek creation successful:', response.data);
 
       // Track gameweek creation
       trackGameweekCreated(
         response.data?.id || 'unknown',
         roomCode,
-        vals.date?.format('YYYY-MM-DD') || vals.date,
-        vals.location || 'Not specified'
+        formattedData.date,
+        formattedData.location || 'Not specified'
       );
 
       // Track performance
@@ -390,9 +401,10 @@ const GameweekManager = () => {
 
       message.success("Fixture added");
       setIsAddVisible(false);
+      addForm.resetFields();
       fetchGameweeks();
     } catch (error) {
-      console.error('Error creating gameweek:', error);
+      console.error('❌ Error creating gameweek:', error);
 
       // Track error
       trackError('create_gameweek_failed', error.message, {

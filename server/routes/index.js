@@ -1724,9 +1724,9 @@ router.post("/gameweeks", protect, async (req, res) => {
     const { date, location, startTime, maxPlayers } = req.body;
     const { roomId } = req.user; // 🔹 Get roomId from logged-in user
 
-    // Convert startTime to TIME format if it exists (without seconds)
-    const formattedStartTime = startTime
-      ? new Date(startTime).toISOString().slice(11, 16) // Extract HH:mm only
+    // Validate and use startTime directly (already in HH:mm format from frontend)
+    const formattedStartTime = startTime && /^([01]?[0-9]|2[0-3]):[0-5][0-9]$/.test(startTime)
+      ? startTime
       : null;
 
     // ✅ Create the gameweek
