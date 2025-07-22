@@ -13,7 +13,8 @@ import {
   Row,
   Col,
   Tag,
-  Divider
+  Divider,
+  Tooltip
 } from "antd";
 import {
   EditOutlined,
@@ -22,7 +23,8 @@ import {
   LogoutOutlined,
   CloseOutlined,
   TrophyOutlined,
-  StarOutlined
+  StarOutlined,
+  SafetyCertificateOutlined
 } from "@ant-design/icons";
 import { useAuth0 } from "@auth0/auth0-react";
 import axios from "axios";
@@ -228,103 +230,116 @@ export default function AccountManager() {
   return (
     <div style={{ padding: '16px', maxWidth: '800px', margin: '0 auto' }}>
       {/* Header */}
-      <div style={{ marginBottom: 24, padding: '0 8px' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 16 }}>
-          <UserOutlined style={{ fontSize: 18, color: '#00b96b' }} />
-          <Text strong style={{ fontSize: 16 }}>Account Settings</Text>
+      <div style={{
+        background: 'linear-gradient(135deg, #00b96b 0%, #52c41a 100%)',
+        borderRadius: 12,
+        padding: '20px',
+        marginBottom: 24,
+        color: 'white',
+        boxShadow: '0 -2px 12px rgba(0, 185, 107, 0.12)'
+      }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end' }}>
+          {/* Profile Info */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+            <div style={{ textAlign: 'right' }}>
+              <Text strong style={{ fontSize: 14, color: 'white', display: 'block' }}>
+                {user.name || 'User'}
+              </Text>
+              <Text style={{ color: 'rgba(255, 255, 255, 0.8)', fontSize: 12 }}>
+                {user.email}
+              </Text>
+            </div>
+            <Avatar
+              src={user.picture}
+              size={48}
+              icon={<UserOutlined />}
+              style={{ 
+                border: '2px solid rgba(255, 255, 255, 0.3)',
+                boxShadow: '0 2px 8px rgba(0, 0, 0, 0.1)'
+              }}
+            />
+          </div>
         </div>
       </div>
 
       <Row gutter={[16, 16]}>
-        {/* Profile Card */}
-        <Col xs={24} md={24}>
+        {/* Positions & Actions Card */}
+        <Col xs={24} md={12}>
           <Card
             style={{
               borderRadius: 12,
               boxShadow: '0 2px 8px rgba(0, 0, 0, 0.08)',
-              border: '1px solid rgba(0, 0, 0, 0.06)'
+              border: '1px solid rgba(0, 0, 0, 0.06)',
+              height: '100%'
             }}
             bodyStyle={{ padding: '20px' }}
           >
-            <div style={{ textAlign: 'center', marginBottom: 20 }}>
-              <Avatar
-                src={user.picture}
-                size={80}
-                style={{ marginBottom: 12 }}
-                icon={<UserOutlined />}
-              />
-              <div>
-                <Text strong style={{ fontSize: 16, display: 'block' }}>
-                  {user.name || 'User'}
-                </Text>
-                <Text style={{ color: '#6b7280', fontSize: 14 }}>
-                  {user.email}
-                </Text>
+            <div style={{ marginBottom: 20 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 16 }}>
+                <StarOutlined style={{ fontSize: 16, color: '#00b96b' }} />
+                <Text strong style={{ fontSize: 14 }}>Favorite Positions</Text>
               </div>
-            </div>
-
-            <Divider style={{ margin: '16px 0' }} />
-
-            <div style={{ marginBottom: 16 }}>
-              <Text strong style={{ fontSize: 14, marginBottom: 8, display: 'block' }}>
-                Favorite Positions
-              </Text>
+              
               {favoritePositions.length > 0 ? (
-                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 16 }}>
                   {favoritePositions.map((position, index) => (
                     <Tag
                       key={position}
                       color={index === 0 ? '#00b96b' : index === 1 ? '#1890ff' : '#faad14'}
-                      style={{ marginBottom: 4 }}
+                      style={{ 
+                        marginBottom: 4,
+                        fontSize: 12,
+                        padding: '4px 8px',
+                        borderRadius: 6
+                      }}
                     >
                       {position} {index === 0 ? '(1st)' : index === 1 ? '(2nd)' : '(3rd)'}
                     </Tag>
                   ))}
                 </div>
               ) : (
-                <Text style={{ color: '#9ca3af', fontSize: 12 }}>
+                <Text style={{ color: '#9ca3af', fontSize: 12, display: 'block', marginBottom: 16 }}>
                   No positions selected
                 </Text>
               )}
             </div>
 
-            <Button
-              block
-              icon={<StarOutlined />}
-              onClick={openPositions}
-              style={{ marginBottom: 12 }}
-            >
-              Set Favorite Positions
-            </Button>
-
-            <Button
-              block
-              icon={<TrophyOutlined />}
-              onClick={() => setIsModalVisible(true)}
-            >
-              View Scoring System
-            </Button>
+            <Space direction="vertical" style={{ width: '100%' }} size={8}>
+              <Button
+                block
+                icon={<StarOutlined />}
+                onClick={openPositions}
+                style={{
+                  height: 40,
+                  borderRadius: 8,
+                  fontWeight: 500
+                }}
+              >
+                Set Favorite Positions
+              </Button>
+            </Space>
           </Card>
         </Col>
 
         {/* Room Management Card */}
-        <Col xs={24} md={24}>
+        <Col xs={24} md={12}>
           <Card
             style={{
               borderRadius: 12,
               boxShadow: '0 2px 8px rgba(0, 0, 0, 0.08)',
-              border: '1px solid rgba(0, 0, 0, 0.06)'
+              border: '1px solid rgba(0, 0, 0, 0.06)',
+              height: '100%'
             }}
             bodyStyle={{ padding: '20px' }}
           >
             <div style={{ marginBottom: 20 }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 16 }}>
                 <SettingOutlined style={{ fontSize: 16, color: '#00b96b' }} />
                 <Text strong style={{ fontSize: 14 }}>Room Management</Text>
               </div>
 
               <div style={{ marginBottom: 16 }}>
-                <Text style={{ fontSize: 12, color: '#6b7280', marginBottom: 4, display: 'block' }}>
+                <Text style={{ fontSize: 12, color: '#6b7280', marginBottom: 6, display: 'block' }}>
                   Active Room
                 </Text>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
@@ -334,51 +349,84 @@ export default function AccountManager() {
                     loading={loadingRooms}
                     value={roomCode}
                     onChange={handleRoomChange}
-                    size="small"
+                    size="middle"
                   >
                     {rooms.map((r) => (
                       <Option key={r.code} value={r.code}>
-                        {r.name} <code>({r.code})</code>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                          <span>{r.name}</span>
+                          <code style={{ 
+                            background: '#f1f3f4', 
+                            padding: '2px 6px', 
+                            borderRadius: 4,
+                            fontSize: 11
+                          }}>
+                            {r.code}
+                          </code>
+                        </div>
                       </Option>
                     ))}
                   </Select>
                   {isAdmin && (
-                    <Button
-                      size="small"
-                      icon={<EditOutlined />}
-                      onClick={openEdit}
-                      title="Edit Room"
-                    />
+                    <Tooltip title="Edit Room">
+                      <Button
+                        icon={<EditOutlined />}
+                        onClick={openEdit}
+                        style={{
+                          borderRadius: 6,
+                          height: 32
+                        }}
+                      />
+                    </Tooltip>
                   )}
                 </div>
               </div>
 
               {roomName && (
                 <div style={{
-                  background: '#f8f9fa',
+                  background: 'linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%)',
                   border: '1px solid #e9ecef',
-                  borderRadius: 8,
-                  padding: 12,
-                  marginBottom: 16
+                  borderRadius: 10,
+                  padding: 16,
+                  marginBottom: 20
                 }}>
-                  <Text strong style={{ fontSize: 13, display: 'block', marginBottom: 4 }}>
-                    {roomName}
-                  </Text>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
+                    <Text strong style={{ fontSize: 14 }}>
+                      {roomName}
+                    </Text>
+                    {isAdmin && (
+                      <Tooltip title="Admin">
+                        <SafetyCertificateOutlined
+                          style={{ 
+                            color: '#722ed1', 
+                            fontSize: 16,
+                            background: 'rgba(114, 46, 209, 0.1)',
+                            padding: '4px',
+                            borderRadius: '50%'
+                          }}
+                        />
+                      </Tooltip>
+                    )}
+                  </div>
                   <Text style={{ fontSize: 12, color: '#6b7280' }}>
-                    Code: <code style={{ background: '#e9ecef', padding: '2px 6px', borderRadius: 4 }}>{roomCode}</code>
+                    Room Code: <code style={{ 
+                      background: 'rgba(0, 185, 107, 0.1)', 
+                      color: '#00b96b',
+                      padding: '3px 8px', 
+                      borderRadius: 6,
+                      fontWeight: 600,
+                      fontSize: 11
+                    }}>
+                      {roomCode}
+                    </code>
                   </Text>
-                  {isAdmin && (
-                    <div style={{ marginTop: 6 }}>
-                      <Tag color="green" style={{ fontSize: 11 }}>Admin</Tag>
-                    </div>
-                  )}
                 </div>
               )}
             </div>
 
             <Divider style={{ margin: '16px 0' }} />
 
-            <Space direction="vertical" style={{ width: '100%' }}>
+            <Space direction="vertical" style={{ width: '100%' }} size={8}>
               <Button
                 block
                 icon={<LogoutOutlined />}
@@ -392,6 +440,11 @@ export default function AccountManager() {
                     }
                   });
                 }}
+                style={{
+                  height: 40,
+                  borderRadius: 8,
+                  fontWeight: 500
+                }}
               >
                 Log Out
               </Button>
@@ -399,13 +452,51 @@ export default function AccountManager() {
               <Button
                 block
                 danger
-                type="text"
                 icon={<CloseOutlined />}
                 onClick={() => setIsConfirmVisible(true)}
+                style={{
+                  height: 40,
+                  borderRadius: 8,
+                  fontWeight: 500
+                }}
               >
                 Leave Room
               </Button>
             </Space>
+          </Card>
+        </Col>
+      </Row>
+
+      {/* Scoring System Section */}
+      <Row style={{ marginTop: 16 }}>
+        <Col span={24}>
+          <Card
+            style={{
+              borderRadius: 12,
+              boxShadow: '0 2px 8px rgba(0, 0, 0, 0.08)',
+              border: '1px solid rgba(0, 0, 0, 0.06)'
+            }}
+            bodyStyle={{ padding: '20px' }}
+          >
+            <div style={{ marginBottom: 16 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <TrophyOutlined style={{ fontSize: 16, color: '#00b96b' }} />
+                <Text strong style={{ fontSize: 14 }}>Scoring System</Text>
+              </div>
+            </div>
+
+            <Button
+              block
+              icon={<TrophyOutlined />}
+              onClick={() => setIsModalVisible(true)}
+              style={{
+                height: 40,
+                borderRadius: 8,
+                fontWeight: 500
+              }}
+            >
+              View Scoring System Guide
+            </Button>
           </Card>
         </Col>
       </Row>
