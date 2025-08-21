@@ -51,6 +51,7 @@ export default function AccountManager() {
   const [availablePositions, setAvailablePositions] = useState([]);
   const [favoritePositions, setFavoritePositions] = useState([]);
   const [isCreateRoomVisible, setIsCreateRoomVisible] = useState(false);
+  const [isCreatingRoom, setIsCreatingRoom] = useState(false);
   const [availableSports, setAvailableSports] = useState([]);
   const [form] = Form.useForm();
   const [positionsForm] = Form.useForm();
@@ -255,6 +256,7 @@ export default function AccountManager() {
   // Handle create room
   const handleCreateRoom = async () => {
     try {
+      setIsCreatingRoom(true);
       const values = await createRoomForm.validateFields();
       const token = await getAccessTokenSilently();
 
@@ -299,6 +301,8 @@ export default function AccountManager() {
     } catch (error) {
       console.error("Failed to create room", error);
       message.error(error.response?.data?.error || "Could not create room");
+    } finally {
+      setIsCreatingRoom(false);
     }
   };
 
@@ -634,7 +638,9 @@ export default function AccountManager() {
         }}
         destroyOnClose
         width={500}
-        okText="Create Room"
+        okText={isCreatingRoom ? "Creating..." : "Create Room"}
+        confirmLoading={isCreatingRoom}
+        cancelButtonProps={{ disabled: isCreatingRoom }}
       >
         <div style={{ marginBottom: 16 }}>
           <Text style={{ color: '#6b7280', fontSize: 14 }}>
