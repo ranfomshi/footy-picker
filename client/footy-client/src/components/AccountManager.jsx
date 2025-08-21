@@ -318,7 +318,7 @@ export default function AccountManager() {
 
       const { data } = await axios.post(
         `${API_BASE_URL}/join-room`,
-        { roomCode: values.roomCode.toUpperCase() },
+        { roomCode: values.roomCode },
         { headers: { Authorization: `Bearer ${token}` } }
       );
 
@@ -799,10 +799,6 @@ export default function AccountManager() {
           >
             <Input
               placeholder="e.g. ABC123"
-              style={{ textTransform: 'uppercase' }}
-              onChange={(e) => {
-                e.target.value = e.target.value.toUpperCase();
-              }}
             />
           </Form.Item>
         </Form>
