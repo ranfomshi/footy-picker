@@ -794,7 +794,7 @@ export default function AccountManager() {
             name="roomCode"
             rules={[
               { required: true, message: 'Please enter a room code' },
-              { len: 6, message: 'Room code must be exactly 6 characters' }
+              { len: 5, message: 'Room code must be exactly 5 characters' }
             ]}
           >
             <Input
