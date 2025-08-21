@@ -52,10 +52,13 @@ export default function AccountManager() {
   const [favoritePositions, setFavoritePositions] = useState([]);
   const [isCreateRoomVisible, setIsCreateRoomVisible] = useState(false);
   const [isCreatingRoom, setIsCreatingRoom] = useState(false);
+  const [isJoinRoomVisible, setIsJoinRoomVisible] = useState(false);
+  const [isJoiningRoom, setIsJoiningRoom] = useState(false);
   const [availableSports, setAvailableSports] = useState([]);
   const [form] = Form.useForm();
   const [positionsForm] = Form.useForm();
   const [createRoomForm] = Form.useForm();
+  const [joinRoomForm] = Form.useForm();
 
   const { roomCode, roomName, setRoomCode, setRoomName, setHasJoinedRoom } = useStore();
   const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
@@ -306,6 +309,57 @@ export default function AccountManager() {
     }
   };
 
+  // Handle join room
+  const handleJoinRoom = async () => {
+    try {
+      setIsJoiningRoom(true);
+      const values = await joinRoomForm.validateFields();
+      const token = await getAccessTokenSilently();
+
+      const { data } = await axios.post(
+        `${API_BASE_URL}/join-room`,
+        { roomCode: values.roomCode.toUpperCase() },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+
+      // Add to rooms list if not already there
+      const existingRoom = rooms.find(r => r.code === data.room.code);
+      if (!existingRoom) {
+        const newRoom = {
+          id: data.room.id,
+          name: data.room.name,
+          code: data.room.code,
+          sport: data.room.sport,
+          sportId: data.room.sportId,
+          teamAColor: data.room.teamAColor,
+          teamBColor: data.room.teamBColor
+        };
+        setRooms(prevRooms => [...prevRooms, newRoom]);
+      }
+
+      // Switch to the joined room
+      setRoomCode(data.room.code);
+      setRoomName(data.room.name);
+      setCurrentRoomId(data.room.id);
+      setCurrentRoomSport(data.room.sportId);
+      setIsAdmin(data.isAdmin || false);
+      setHasJoinedRoom(true);
+
+      // Clear cache and fetch new data
+      invalidatePlayersCache();
+      await fetchFavoritePositions();
+
+      message.success(`Successfully joined room "${data.room.name}"!`);
+      setIsJoinRoomVisible(false);
+      joinRoomForm.resetFields();
+    } catch (error) {
+      console.error("Failed to join room", error);
+      message.error(error.response?.data?.error || "Could not join room");
+    } finally {
+      setIsJoiningRoom(false);
+    }
+  };
+
   return (
     <div style={{ padding: '16px', maxWidth: '800px', margin: '0 auto' }}>
       {/* Header */}
@@ -521,6 +575,19 @@ export default function AccountManager() {
 
               <Button
                 block
+                icon={<UserOutlined />}
+                onClick={() => setIsJoinRoomVisible(true)}
+                style={{
+                  height: 40,
+                  borderRadius: 8,
+                  fontWeight: 500
+                }}
+              >
+                Join Existing Room
+              </Button>
+
+              <Button
+                block
                 icon={<LogoutOutlined />}
                 onClick={() => {
                   // Clear any stored state before logout
@@ -693,6 +760,51 @@ export default function AccountManager() {
               </Form.Item>
             </Col>
           </Row>
+        </Form>
+      </Modal>
+
+      {/* Join Room Modal */}
+      <Modal
+        title={
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <UserOutlined style={{ color: '#00b96b' }} />
+            <span>Join Existing Room</span>
+          </div>
+        }
+        open={isJoinRoomVisible}
+        onOk={handleJoinRoom}
+        onCancel={() => {
+          setIsJoinRoomVisible(false);
+          joinRoomForm.resetFields();
+        }}
+        destroyOnClose
+        width={400}
+        okText={isJoiningRoom ? "Joining..." : "Join Room"}
+        confirmLoading={isJoiningRoom}
+        cancelButtonProps={{ disabled: isJoiningRoom }}
+      >
+        <div style={{ marginBottom: 16 }}>
+          <Text style={{ color: '#6b7280', fontSize: 14 }}>
+            Enter the room code to join an existing room. You'll be added to the room and it will become your active room.
+          </Text>
+        </div>
+        <Form form={joinRoomForm} layout="vertical">
+          <Form.Item
+            label="Room Code"
+            name="roomCode"
+            rules={[
+              { required: true, message: 'Please enter a room code' },
+              { len: 6, message: 'Room code must be exactly 6 characters' }
+            ]}
+          >
+            <Input
+              placeholder="e.g. ABC123"
+              style={{ textTransform: 'uppercase' }}
+              onChange={(e) => {
+                e.target.value = e.target.value.toUpperCase();
+              }}
+            />
+          </Form.Item>
         </Form>
       </Modal>
 
