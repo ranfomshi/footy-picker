@@ -318,7 +318,7 @@ export default function AccountManager() {
 
       const { data } = await axios.post(
         `${API_BASE_URL}/join-room`,
-        { roomCode: values.roomCode },
+        { code: values.roomCode },
         { headers: { Authorization: `Bearer ${token}` } }
       );
 
