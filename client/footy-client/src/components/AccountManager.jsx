@@ -14,7 +14,8 @@ import {
   Col,
   Tag,
   Divider,
-  Tooltip
+  Tooltip,
+  Radio
 } from "antd";
 import {
   EditOutlined,
@@ -54,6 +55,10 @@ export default function AccountManager() {
   const [isCreatingRoom, setIsCreatingRoom] = useState(false);
   const [isJoinRoomVisible, setIsJoinRoomVisible] = useState(false);
   const [isJoiningRoom, setIsJoiningRoom] = useState(false);
+  const [unlinkedPlayers, setUnlinkedPlayers] = useState([]);
+  const [selectedPlayer, setSelectedPlayer] = useState(null);
+  const [playerModalVisible, setPlayerModalVisible] = useState(false);
+  const [joinRoomCode, setJoinRoomCode] = useState('');
   const [availableSports, setAvailableSports] = useState([]);
   const [form] = Form.useForm();
   const [positionsForm] = Form.useForm();
@@ -322,39 +327,101 @@ export default function AccountManager() {
         { headers: { Authorization: `Bearer ${token}` } }
       );
 
-      // Add to rooms list if not already there
-      const existingRoom = rooms.find(r => r.code === data.room.code);
-      if (!existingRoom) {
-        const newRoom = {
-          id: data.room.id,
-          name: data.room.name,
-          code: data.room.code,
-          sport: data.room.sport,
-          sportId: data.room.sportId,
-          teamAColor: data.room.teamAColor,
-          teamBColor: data.room.teamBColor
-        };
-        setRooms(prevRooms => [...prevRooms, newRoom]);
+      // Check if we need to show player selection
+      if (data.status === 'unlinked' && data.unlinkedPlayers) {
+        setJoinRoomCode(values.roomCode);
+        setUnlinkedPlayers(data.unlinkedPlayers || []);
+        setPlayerModalVisible(true);
+        setIsJoinRoomVisible(false);
+      } else {
+        // User is already linked or room joined successfully
+        if (data.room) {
+          // Add to rooms list if not already there
+          const existingRoom = rooms.find(r => r.code === data.room.code);
+          if (!existingRoom) {
+            const newRoom = {
+              id: data.room.id,
+              name: data.room.name,
+              code: data.room.code,
+              sport: data.room.sport,
+              sportId: data.room.sportId,
+              teamAColor: data.room.teamAColor,
+              teamBColor: data.room.teamBColor
+            };
+            setRooms(prevRooms => [...prevRooms, newRoom]);
+          }
+
+          // Switch to the joined room
+          setRoomCode(data.room.code);
+          setRoomName(data.room.name);
+          setCurrentRoomId(data.room.id);
+          setCurrentRoomSport(data.room.sportId);
+          setIsAdmin(data.isAdmin || false);
+          setHasJoinedRoom(true);
+
+          // Clear cache and fetch new data
+          invalidatePlayersCache();
+          await fetchFavoritePositions();
+
+          message.success(`Successfully joined room "${data.room.name}"!`);
+        }
+        
+        setIsJoinRoomVisible(false);
+        joinRoomForm.resetFields();
       }
-
-      // Switch to the joined room
-      setRoomCode(data.room.code);
-      setRoomName(data.room.name);
-      setCurrentRoomId(data.room.id);
-      setCurrentRoomSport(data.room.sportId);
-      setIsAdmin(data.isAdmin || false);
-      setHasJoinedRoom(true);
-
-      // Clear cache and fetch new data
-      invalidatePlayersCache();
-      await fetchFavoritePositions();
-
-      message.success(`Successfully joined room "${data.room.name}"!`);
-      setIsJoinRoomVisible(false);
-      joinRoomForm.resetFields();
     } catch (error) {
       console.error("Failed to join room", error);
       message.error(error.response?.data?.error || "Could not join room");
+    } finally {
+      setIsJoiningRoom(false);
+    }
+  };
+
+  // Finalize join: link or create player
+  const handleFinalizeJoin = async (playerId) => {
+    try {
+      setIsJoiningRoom(true);
+      const token = await getAccessTokenSilently();
+      
+      const { data } = await axios.post(
+        `${API_BASE_URL}/finalize-join-room`,
+        { 
+          roomCode: joinRoomCode, 
+          playerId, 
+          newPlayerName: playerId ? null : user.name 
+        },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+
+      // Invalidate cache when player is created or linked
+      invalidatePlayersCache();
+
+      // Refresh room membership to get updated data
+      const membershipResponse = await axios.get(
+        `${API_BASE_URL}/check-room-membership`,
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      
+      setRooms(membershipResponse.data.joinedRooms || []);
+      
+      if (membershipResponse.data.activeRoom) {
+        setRoomCode(membershipResponse.data.activeRoom.code);
+        setRoomName(membershipResponse.data.activeRoom.name);
+        setCurrentRoomId(membershipResponse.data.activeRoom.id);
+        setCurrentRoomSport(membershipResponse.data.activeRoom.sportId);
+        setIsAdmin(membershipResponse.data.activeRoom.isAdmin);
+        setHasJoinedRoom(true);
+        await fetchFavoritePositions();
+      }
+
+      message.success('Welcome to the room!');
+      setPlayerModalVisible(false);
+      setSelectedPlayer(null);
+      setJoinRoomCode('');
+      joinRoomForm.resetFields();
+    } catch (error) {
+      console.error("Failed to finalize join", error);
+      message.error("Could not complete joining");
     } finally {
       setIsJoiningRoom(false);
     }
@@ -904,6 +971,66 @@ export default function AccountManager() {
             </Text>
           </div>
         </div>
+      </Modal>
+
+      {/* Player Selection Modal for Join Room */}
+      <Modal
+        title="Select Your Player"
+        open={playerModalVisible}
+        footer={null}
+        onCancel={() => {
+          setPlayerModalVisible(false);
+          setSelectedPlayer(null);
+          setJoinRoomCode('');
+        }}
+        width={500}
+      >
+        <div style={{ marginBottom: 16 }}>
+          <Text style={{ color: '#6b7280', fontSize: 14 }}>
+            Select an existing player or create a new one:
+          </Text>
+        </div>
+        
+        <Radio.Group
+          onChange={e => setSelectedPlayer(e.target.value)}
+          value={selectedPlayer}
+          style={{ display: 'block', maxHeight: '40vh', overflowY: 'auto', marginBottom: 16 }}
+        >
+          {(unlinkedPlayers || []).sort((a, b) => a.name.localeCompare(b.name)).map(p => (
+            <Radio key={p.id} value={p.id} style={{ display: 'block', margin: '8px 0' }}>
+              {p.name}
+            </Radio>
+          ))}
+        </Radio.Group>
+
+        <Space direction="vertical" style={{ width: '100%' }}>
+          <Button
+            block
+            onClick={() => handleFinalizeJoin(null)}
+            disabled={isJoiningRoom || selectedPlayer !== null}
+            style={{
+              height: 40,
+              borderRadius: 8,
+              fontWeight: 500
+            }}
+          >
+            Create New Player
+          </Button>
+          <Button
+            type="primary"
+            block
+            onClick={() => handleFinalizeJoin(selectedPlayer)}
+            disabled={isJoiningRoom || !selectedPlayer}
+            loading={isJoiningRoom}
+            style={{
+              height: 40,
+              borderRadius: 8,
+              fontWeight: 500
+            }}
+          >
+            I'm {(unlinkedPlayers || []).find(p => p.id === selectedPlayer)?.name}
+          </Button>
+        </Space>
       </Modal>
     </div>
   );
