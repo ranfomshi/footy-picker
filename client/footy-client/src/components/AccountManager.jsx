@@ -24,7 +24,8 @@ import {
   CloseOutlined,
   TrophyOutlined,
   StarOutlined,
-  SafetyCertificateOutlined
+  SafetyCertificateOutlined,
+  PlusOutlined
 } from "@ant-design/icons";
 import { useAuth0 } from "@auth0/auth0-react";
 import axios from "axios";
@@ -49,8 +50,11 @@ export default function AccountManager() {
   const [currentRoomSport, setCurrentRoomSport] = useState(null);
   const [availablePositions, setAvailablePositions] = useState([]);
   const [favoritePositions, setFavoritePositions] = useState([]);
+  const [isCreateRoomVisible, setIsCreateRoomVisible] = useState(false);
+  const [availableSports, setAvailableSports] = useState([]);
   const [form] = Form.useForm();
   const [positionsForm] = Form.useForm();
+  const [createRoomForm] = Form.useForm();
 
   const { roomCode, roomName, setRoomCode, setRoomName, setHasJoinedRoom } = useStore();
   const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
@@ -227,6 +231,77 @@ export default function AccountManager() {
     }
   };
 
+  // Fetch available sports
+  const fetchAvailableSports = async () => {
+    try {
+      const { data } = await axios.get(`${API_BASE_URL}/sports`);
+      setAvailableSports(data || []);
+    } catch (error) {
+      console.error("Failed to fetch sports", error);
+      message.error("Could not load available sports");
+    }
+  };
+
+  // Open create room modal
+  const openCreateRoom = async () => {
+    await fetchAvailableSports();
+    createRoomForm.setFieldsValue({
+      teamAColor: '#00b96b',
+      teamBColor: '#ff4d4f'
+    });
+    setIsCreateRoomVisible(true);
+  };
+
+  // Handle create room
+  const handleCreateRoom = async () => {
+    try {
+      const values = await createRoomForm.validateFields();
+      const token = await getAccessTokenSilently();
+
+      const { data } = await axios.post(
+        `${API_BASE_URL}/create-room`,
+        {
+          name: values.name,
+          sportId: values.sportId,
+          teamAColor: values.teamAColor,
+          teamBColor: values.teamBColor
+        },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+
+      // Update state with new room
+      setRoomCode(data.room.code);
+      setRoomName(data.room.name);
+      setCurrentRoomId(data.room.id);
+      setCurrentRoomSport(values.sportId);
+      setIsAdmin(true); // Creator is always admin
+      setHasJoinedRoom(true);
+
+      // Add to rooms list
+      const newRoom = {
+        id: data.room.id,
+        name: data.room.name,
+        code: data.room.code,
+        sport: data.room.sport,
+        sportId: values.sportId,
+        teamAColor: data.room.teamAColor,
+        teamBColor: data.room.teamBColor
+      };
+      setRooms(prevRooms => [...prevRooms, newRoom]);
+
+      // Clear cache and fetch new data
+      invalidatePlayersCache();
+      await fetchFavoritePositions();
+
+      message.success(`Room "${data.room.name}" created successfully! You are now the admin.`);
+      setIsCreateRoomVisible(false);
+      createRoomForm.resetFields();
+    } catch (error) {
+      console.error("Failed to create room", error);
+      message.error(error.response?.data?.error || "Could not create room");
+    }
+  };
+
   return (
     <div style={{ padding: '16px', maxWidth: '800px', margin: '0 auto' }}>
       {/* Header */}
@@ -253,7 +328,7 @@ export default function AccountManager() {
               src={user.picture}
               size={48}
               icon={<UserOutlined />}
-              style={{ 
+              style={{
                 border: '2px solid rgba(255, 255, 255, 0.3)',
                 boxShadow: '0 2px 8px rgba(0, 0, 0, 0.1)'
               }}
@@ -279,14 +354,14 @@ export default function AccountManager() {
                 <StarOutlined style={{ fontSize: 16, color: '#00b96b' }} />
                 <Text strong style={{ fontSize: 14 }}>Favorite Positions</Text>
               </div>
-              
+
               {favoritePositions.length > 0 ? (
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 16 }}>
                   {favoritePositions.map((position, index) => (
                     <Tag
                       key={position}
                       color={index === 0 ? '#00b96b' : index === 1 ? '#1890ff' : '#faad14'}
-                      style={{ 
+                      style={{
                         marginBottom: 4,
                         fontSize: 12,
                         padding: '4px 8px',
@@ -355,9 +430,9 @@ export default function AccountManager() {
                       <Option key={r.code} value={r.code}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                           <span>{r.name}</span>
-                          <code style={{ 
-                            background: '#f1f3f4', 
-                            padding: '2px 6px', 
+                          <code style={{
+                            background: '#f1f3f4',
+                            padding: '2px 6px',
                             borderRadius: 4,
                             fontSize: 11
                           }}>
@@ -397,8 +472,8 @@ export default function AccountManager() {
                     {isAdmin && (
                       <Tooltip title="Admin">
                         <SafetyCertificateOutlined
-                          style={{ 
-                            color: '#722ed1', 
+                          style={{
+                            color: '#722ed1',
                             fontSize: 16,
                             background: 'rgba(114, 46, 209, 0.1)',
                             padding: '4px',
@@ -409,10 +484,10 @@ export default function AccountManager() {
                     )}
                   </div>
                   <Text style={{ fontSize: 12, color: '#6b7280' }}>
-                    Room Code: <code style={{ 
-                      background: 'rgba(0, 185, 107, 0.1)', 
+                    Room Code: <code style={{
+                      background: 'rgba(0, 185, 107, 0.1)',
                       color: '#00b96b',
-                      padding: '3px 8px', 
+                      padding: '3px 8px',
                       borderRadius: 6,
                       fontWeight: 600,
                       fontSize: 11
@@ -427,6 +502,19 @@ export default function AccountManager() {
             <Divider style={{ margin: '16px 0' }} />
 
             <Space direction="vertical" style={{ width: '100%' }} size={8}>
+              <Button
+                block
+                icon={<PlusOutlined />}
+                onClick={openCreateRoom}
+                style={{
+                  height: 40,
+                  borderRadius: 8,
+                  fontWeight: 500
+                }}
+              >
+                Create New Room
+              </Button>
+
               <Button
                 block
                 icon={<LogoutOutlined />}
@@ -527,6 +615,78 @@ export default function AccountManager() {
           <Form.Item label="Team B Color" name="teamBColor" rules={[{ required: true }]}>
             <Input type="color" />
           </Form.Item>
+        </Form>
+      </Modal>
+
+      {/* Create Room Modal */}
+      <Modal
+        title={
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <SettingOutlined style={{ color: '#00b96b' }} />
+            <span>Create New Room</span>
+          </div>
+        }
+        open={isCreateRoomVisible}
+        onOk={handleCreateRoom}
+        onCancel={() => {
+          setIsCreateRoomVisible(false);
+          createRoomForm.resetFields();
+        }}
+        destroyOnClose
+        width={500}
+        okText="Create Room"
+      >
+        <div style={{ marginBottom: 16 }}>
+          <Text style={{ color: '#6b7280', fontSize: 14 }}>
+            Create a new room and become the admin. You'll automatically join this room.
+          </Text>
+        </div>
+        <Form form={createRoomForm} layout="vertical">
+          <Form.Item
+            label="Room Name"
+            name="name"
+            rules={[
+              { required: true, message: 'Please enter a room name' },
+              { min: 3, message: 'Room name must be at least 3 characters' }
+            ]}
+          >
+            <Input placeholder="e.g. Sunday Football League" />
+          </Form.Item>
+
+          <Form.Item
+            label="Sport"
+            name="sportId"
+            rules={[{ required: true, message: 'Please select a sport' }]}
+          >
+            <Select placeholder="Select a sport">
+              {availableSports.map((sport) => (
+                <Option key={sport.id} value={sport.id}>
+                  {sport.name}
+                </Option>
+              ))}
+            </Select>
+          </Form.Item>
+
+          <Row gutter={16}>
+            <Col span={12}>
+              <Form.Item
+                label="Team A Color"
+                name="teamAColor"
+                rules={[{ required: true, message: 'Please select Team A color' }]}
+              >
+                <Input type="color" />
+              </Form.Item>
+            </Col>
+            <Col span={12}>
+              <Form.Item
+                label="Team B Color"
+                name="teamBColor"
+                rules={[{ required: true, message: 'Please select Team B color' }]}
+              >
+                <Input type="color" />
+              </Form.Item>
+            </Col>
+          </Row>
         </Form>
       </Modal>
 
