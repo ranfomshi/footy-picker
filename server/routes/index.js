@@ -202,7 +202,7 @@ router.get('/current-player', protect, async (req, res) => {
 
 router.post('/create-room', protect, async (req, res) => {
   // Extract and coerce sportId
-  const { name, playerName, teamAColor, teamBColor } = req.body;
+  const { name, playerName, teamAColor, teamBColor, skillLevel = 'average' } = req.body;
   const sportId = parseInt(req.body.sportId, 10);
   console.log('Creating room with sportId:', sportId);
   const auth0Id = req.user.sub;
@@ -245,11 +245,41 @@ router.post('/create-room', protect, async (req, res) => {
       { where: { auth0Id } }
     );
 
+    // Assign initial rating based on skill level for room creator
+    let initialRating;
+    switch (skillLevel) {
+      case 'beginner':
+        initialRating = 800;
+        break;
+      case 'below_average':
+        initialRating = 900;
+        break;
+      case 'better_than_average':
+        initialRating = 1100;
+        break;
+      case 'experienced':
+        initialRating = 1200;
+        break;
+      default: // 'average'
+        initialRating = 1000;
+    }
+
     // Create creator player & membership
     const newPlayer = await Player.create({
       name: finalPlayerName,
+      rating: initialRating,
       profilePicture
     });
+
+    // Create initial rating entry
+    await Rating.create({
+      playerId: newPlayer.id,
+      date: new Date(),
+      rating: initialRating,
+      raterId: null,
+      roomId: room.id,
+    });
+
     const newMembership = await RoomMembership.create({
       playerId: newPlayer.id,
       roomId: room.id,
@@ -358,12 +388,12 @@ router.post('/join-room', protect, async (req, res) => {
 
 
 router.post('/finalize-join-room', protect, async (req, res) => {
-  const { roomCode, playerId, newPlayerName } = req.body;
+  const { roomCode, playerId, newPlayerName, skillLevel } = req.body;
   const auth0Id = req.user.sub;
 
   try {
     // Delegate to transactional service
-    const { room, membership } = await completeRoomJoin({ roomCode, playerId, newPlayerName, auth0Id });
+    const { room, membership } = await completeRoomJoin({ roomCode, playerId, newPlayerName, skillLevel, auth0Id });
 
     return res.status(200).json({
       success: true,

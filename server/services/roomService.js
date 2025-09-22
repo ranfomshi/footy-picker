@@ -25,10 +25,11 @@ async function getUnlinkedPlayers(roomId) {
  * @param {string} params.roomCode
  * @param {number|null} params.playerId
  * @param {string|null} params.newPlayerName
+ * @param {string|null} params.skillLevel - 'beginner', 'below_average', 'average', 'better_than_average', 'experienced'
  * @param {string} params.auth0Id
  * @returns {Promise<{room: Room, membership: RoomMembership}>}
  */
-async function completeRoomJoin({ roomCode, playerId, newPlayerName, auth0Id }) {
+async function completeRoomJoin({ roomCode, playerId, newPlayerName, skillLevel = 'average', auth0Id }) {
     return sequelize.transaction(async (t) => {
         // 1) Find the room
         const room = await Room.findOne({ where: { code: roomCode } }, { transaction: t });
@@ -62,7 +63,7 @@ async function completeRoomJoin({ roomCode, playerId, newPlayerName, auth0Id }) 
                 { transaction: t }
             );
         } else {
-            // 2b) Create new player & membership
+            // 2b) Create new player & membership with smart rating
             const finalName = newPlayerName || 'Unnamed Player';
             let profilePicture = null;
 
@@ -75,13 +76,84 @@ async function completeRoomJoin({ roomCode, playerId, newPlayerName, auth0Id }) 
                 // Continue without profile picture - not critical
             }
 
+            // Calculate smart rating based on existing players in the room
+            const existingPlayers = await Player.findAll({
+                include: {
+                    model: RoomMembership,
+                    where: { roomId: room.id },
+                },
+                attributes: ['rating'],
+            }, { transaction: t });
+
+            let newPlayerRating = 1000; // Default fallback if no players exist
+
+            if (existingPlayers.length > 0) {
+                const ratings = existingPlayers.map(p => parseFloat(p.rating || 0));
+                const meanRating = ratings.reduce((sum, r) => sum + r, 0) / ratings.length;
+                const bestRating = Math.max(...ratings);
+                const worstRating = Math.min(...ratings);
+
+                // Calculate interpolated ratings
+                const betterThanAvg = (meanRating + bestRating) / 2;
+                const belowAvg = (meanRating + worstRating) / 2;
+
+                // Assign rating based on skill level
+                switch (skillLevel) {
+                    case 'beginner':
+                    case 'worst':
+                        newPlayerRating = worstRating;
+                        break;
+                    case 'below_average':
+                        newPlayerRating = belowAvg;
+                        break;
+                    case 'better_than_average':
+                        newPlayerRating = betterThanAvg;
+                        break;
+                    case 'experienced':
+                    case 'best':
+                        newPlayerRating = bestRating;
+                        break;
+                    default: // 'average'
+                        newPlayerRating = meanRating;
+                }
+            } else {
+                // If no existing players, assign based on skill level with default scale
+                switch (skillLevel) {
+                    case 'beginner':
+                        newPlayerRating = 800;
+                        break;
+                    case 'below_average':
+                        newPlayerRating = 900;
+                        break;
+                    case 'better_than_average':
+                        newPlayerRating = 1100;
+                        break;
+                    case 'experienced':
+                        newPlayerRating = 1200;
+                        break;
+                    default: // 'average'
+                        newPlayerRating = 1000;
+                }
+            }
+
             const newPlayer = await Player.create(
                 {
                     name: finalName,
+                    rating: newPlayerRating,
                     profilePicture
                 },
                 { transaction: t }
             );
+
+            // Create initial rating entry
+            const { Rating } = require('../models');
+            await Rating.create({
+                playerId: newPlayer.id,
+                date: new Date(),
+                rating: newPlayerRating,
+                raterId: null,
+                roomId: room.id,
+            }, { transaction: t });
 
             membership = await RoomMembership.create({
                 playerId: newPlayer.id,

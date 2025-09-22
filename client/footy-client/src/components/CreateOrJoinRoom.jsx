@@ -31,10 +31,12 @@ const CreateOrJoinRoom = ({ onRoomJoined, checkMembership }) => {
     const [selectedSport, setSelectedSport] = useState(null);
     const [teamAColor, setTeamAColor] = useState('#21C67C');
     const [teamBColor, setTeamBColor] = useState('#FFC107');
+    const [creatorSkillLevel, setCreatorSkillLevel] = useState('average');
 
     const [unlinkedPlayers, setUnlinkedPlayers] = useState([]);
     const [selectedPlayer, setSelectedPlayer] = useState(null);
     const [playerModalVisible, setPlayerModalVisible] = useState(false);
+    const [newPlayerSkillLevel, setNewPlayerSkillLevel] = useState('average');
 
     const { setHasJoinedRoom, setRoomCode: setGlobalCode, setRoomName: setGlobalName, setTeamColors } = useStore();
     const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
@@ -73,7 +75,7 @@ const CreateOrJoinRoom = ({ onRoomJoined, checkMembership }) => {
             const token = await getAccessTokenSilently();
             const { data } = await axios.post(
                 `${API_BASE_URL}/create-room`,
-                { name: roomName, sportId: selectedSport, teamAColor, teamBColor },
+                { name: roomName, sportId: selectedSport, teamAColor, teamBColor, skillLevel: creatorSkillLevel },
                 { headers: { Authorization: `Bearer ${token}` } }
             );
 
@@ -150,7 +152,7 @@ const CreateOrJoinRoom = ({ onRoomJoined, checkMembership }) => {
             const token = await getAccessTokenSilently();
             await axios.post(
                 `${API_BASE_URL}/finalize-join-room`,
-                { roomCode, playerId, newPlayerName: playerId ? null : user.name },
+                { roomCode, playerId, newPlayerName: playerId ? null : user.name, skillLevel: newPlayerSkillLevel },
                 { headers: { Authorization: `Bearer ${token}` } }
             );
 
@@ -243,6 +245,15 @@ const CreateOrJoinRoom = ({ onRoomJoined, checkMembership }) => {
                     <Form.Item label="Team B Color">
                         <Input type="color" value={teamBColor} onChange={e => setTeamBColor(e.target.value)} />
                     </Form.Item>
+                    <Form.Item label="Your Skill Level">
+                        <Select value={creatorSkillLevel} onChange={setCreatorSkillLevel}>
+                            <Option value="beginner">Beginner - New to the sport</Option>
+                            <Option value="below_average">Below Average - Some experience</Option>
+                            <Option value="average">Average - Regular player</Option>
+                            <Option value="better_than_average">Above Average - Experienced</Option>
+                            <Option value="experienced">Experienced - Very skilled</Option>
+                        </Select>
+                    </Form.Item>
                     <Form.Item>
                         <Space direction="vertical" style={{ width: '100%' }}>
                             <Button
@@ -277,6 +288,22 @@ const CreateOrJoinRoom = ({ onRoomJoined, checkMembership }) => {
                         <Radio key={p.id} value={p.id} style={{ display: 'block', margin: '8px 0' }}>{p.name}</Radio>
                     ))}
                 </Radio.Group>
+                
+                {selectedPlayer === null && (
+                    <Form.Item label="Your Skill Level" style={{ marginTop: 16 }}>
+                        <Select value={newPlayerSkillLevel} onChange={setNewPlayerSkillLevel}>
+                            <Option value="beginner">Beginner - New to the sport</Option>
+                            <Option value="below_average">Below Average - Some experience</Option>
+                            <Option value="average">Average - Regular player</Option>
+                            <Option value="better_than_average">Above Average - Experienced</Option>
+                            <Option value="experienced">Experienced - Very skilled</Option>
+                        </Select>
+                        <Paragraph style={{ fontSize: 12, color: '#666', marginTop: 8 }}>
+                            This helps us assign you an appropriate starting rating for better team balance.
+                        </Paragraph>
+                    </Form.Item>
+                )}
+
                 <Space direction="vertical" style={{ width: '100%', marginTop: 16 }}>
                     <Button
                         block

@@ -59,6 +59,8 @@ export default function AccountManager() {
   const [selectedPlayer, setSelectedPlayer] = useState(null);
   const [playerModalVisible, setPlayerModalVisible] = useState(false);
   const [joinRoomCode, setJoinRoomCode] = useState('');
+  const [newPlayerSkillLevel, setNewPlayerSkillLevel] = useState('average');
+  const [creatorSkillLevel, setCreatorSkillLevel] = useState('average');
   const [availableSports, setAvailableSports] = useState([]);
   const [form] = Form.useForm();
   const [positionsForm] = Form.useForm();
@@ -388,7 +390,8 @@ export default function AccountManager() {
         { 
           roomCode: joinRoomCode, 
           playerId, 
-          newPlayerName: playerId ? null : user.name 
+          newPlayerName: playerId ? null : user.name,
+          skillLevel: newPlayerSkillLevel
         },
         { headers: { Authorization: `Bearer ${token}` } }
       );
@@ -1002,6 +1005,33 @@ export default function AccountManager() {
             </Radio>
           ))}
         </Radio.Group>
+
+        {/* Show skill level selector when creating new player */}
+        {selectedPlayer === null && (
+          <div style={{ marginBottom: 16 }}>
+            <Text style={{ 
+              fontSize: 14, 
+              fontWeight: 500,
+              display: 'block',
+              marginBottom: 8,
+              color: '#374151'
+            }}>
+              Skill Level:
+            </Text>
+            <Select
+              value={newPlayerSkillLevel}
+              onChange={setNewPlayerSkillLevel}
+              style={{ width: '100%' }}
+              placeholder="Select your skill level"
+            >
+              <Option value="beginner">Beginner - New to the sport</Option>
+              <Option value="below_average">Below Average - Basic skills</Option>
+              <Option value="average">Average - Competent player</Option>
+              <Option value="better_than_average">Better than Average - Good skills</Option>
+              <Option value="experienced">Experienced - Advanced player</Option>
+            </Select>
+          </div>
+        )}
 
         <Space direction="vertical" style={{ width: '100%' }}>
           <Button
