@@ -367,7 +367,7 @@ export default function AccountManager() {
 
           message.success(`Successfully joined room "${data.room.name}"!`);
         }
-        
+
         setIsJoinRoomVisible(false);
         joinRoomForm.resetFields();
       }
@@ -384,12 +384,12 @@ export default function AccountManager() {
     try {
       setIsJoiningRoom(true);
       const token = await getAccessTokenSilently();
-      
+
       const { data } = await axios.post(
         `${API_BASE_URL}/finalize-join-room`,
-        { 
-          roomCode: joinRoomCode, 
-          playerId, 
+        {
+          roomCode: joinRoomCode,
+          playerId,
           newPlayerName: playerId ? null : user.name,
           skillLevel: newPlayerSkillLevel
         },
@@ -404,9 +404,9 @@ export default function AccountManager() {
         `${API_BASE_URL}/check-room-membership`,
         { headers: { Authorization: `Bearer ${token}` } }
       );
-      
+
       setRooms(membershipResponse.data.joinedRooms || []);
-      
+
       if (membershipResponse.data.activeRoom) {
         setRoomCode(membershipResponse.data.activeRoom.code);
         setRoomName(membershipResponse.data.activeRoom.name);
@@ -993,7 +993,7 @@ export default function AccountManager() {
             Select an existing player or create a new one:
           </Text>
         </div>
-        
+
         <Radio.Group
           onChange={e => setSelectedPlayer(e.target.value)}
           value={selectedPlayer}
@@ -1009,8 +1009,8 @@ export default function AccountManager() {
         {/* Show skill level selector when creating new player */}
         {selectedPlayer === null && (
           <div style={{ marginBottom: 16 }}>
-            <Text style={{ 
-              fontSize: 14, 
+            <Text style={{
+              fontSize: 14,
               fontWeight: 500,
               display: 'block',
               marginBottom: 8,

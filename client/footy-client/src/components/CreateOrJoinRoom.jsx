@@ -288,7 +288,7 @@ const CreateOrJoinRoom = ({ onRoomJoined, checkMembership }) => {
                         <Radio key={p.id} value={p.id} style={{ display: 'block', margin: '8px 0' }}>{p.name}</Radio>
                     ))}
                 </Radio.Group>
-                
+
                 {selectedPlayer === null && (
                     <Form.Item label="Your Skill Level" style={{ marginTop: 16 }}>
                         <Select value={newPlayerSkillLevel} onChange={setNewPlayerSkillLevel}>
