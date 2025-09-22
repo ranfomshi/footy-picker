@@ -1119,7 +1119,7 @@ router.put('/players/:id/link', protect, async (req, res) => {
 
 
 router.post('/players', protect, async (req, res) => {
-  const { name, modifier = 'average' } = req.body; // Default to 'average'
+  const { name, skillLevel = 'average' } = req.body; // Default to 'average'
   const { roomId } = req.user;
 
   if (!name) {
@@ -1152,34 +1152,43 @@ router.post('/players', protect, async (req, res) => {
     let newPlayerRating = 1000; // Default fallback if no players exist
 
     if (existingPlayers.length > 0) {
-      const ratings = existingPlayers.map(p => parseFloat(p.rating || 0));
-      const totalPlayers = ratings.length;
+      const ratings = existingPlayers.map(p => parseFloat(p.rating || 0)).filter(r => r > 0);
 
-      const meanRating = ratings.reduce((sum, r) => sum + r, 0) / totalPlayers; // Mean (average)
-      const bestRating = Math.max(...ratings);
-      const worstRating = Math.min(...ratings);
+      if (ratings.length > 0) {
+        const avgRating = ratings.reduce((sum, r) => sum + r, 0) / ratings.length;
 
-      // Calculate interpolated ratings
-      const betterThanAvg = (meanRating + bestRating) / 2; // Midway between mean and best
-      const belowAvg = (meanRating + worstRating) / 2; // Midway between mean and worst
+        // Use same skill level mapping as room service for consistency
+        const skillLevelMultipliers = {
+          beginner: 0.8,
+          below_average: 0.9,
+          average: 1.0,
+          better_than_average: 1.1,
+          experienced: 1.2
+        };
 
-      // Assign rating based on modifier
-      switch (modifier) {
-        case 'better_than_average':
-          newPlayerRating = betterThanAvg;
-          break;
-        case 'below_average':
-          newPlayerRating = belowAvg;
-          break;
-        case 'best':
-          newPlayerRating = bestRating;
-          break;
-        case 'worst':
-          newPlayerRating = worstRating;
-          break;
-        default: // 'average' (default case)
-          newPlayerRating = meanRating;
+        const multiplier = skillLevelMultipliers[skillLevel] || 1.0;
+        newPlayerRating = Math.round(avgRating * multiplier);
+      } else {
+        // No existing ratings, use base values
+        const baseRatings = {
+          beginner: 800,
+          below_average: 900,
+          average: 1000,
+          better_than_average: 1100,
+          experienced: 1200
+        };
+        newPlayerRating = baseRatings[skillLevel] || 1000;
       }
+    } else {
+      // No existing players, use base values
+      const baseRatings = {
+        beginner: 800,
+        below_average: 900,
+        average: 1000,
+        better_than_average: 1100,
+        experienced: 1200
+      };
+      newPlayerRating = baseRatings[skillLevel] || 1000;
     }
 
     // Create new player

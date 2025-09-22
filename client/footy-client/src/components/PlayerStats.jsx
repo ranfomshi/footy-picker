@@ -16,6 +16,7 @@ import {
     Menu,
     Skeleton
 } from 'antd';
+const { Option } = Select;
 import { useAuth0 } from '@auth0/auth0-react';
 import { fetchPlayersWithCache, invalidatePlayersCache } from '../utils/playerCache';
 import {
@@ -80,6 +81,7 @@ const PlayerStats = () => {
 
     // Player management states
     const [newPlayerName, setNewPlayerName] = useState("");
+    const [newPlayerSkillLevel, setNewPlayerSkillLevel] = useState("average");
     const [editingPlayer, setEditingPlayer] = useState(null);
     const [editingPlayerName, setEditingPlayerName] = useState("");
     const [isAddModalVisible, setIsAddModalVisible] = useState(false);
@@ -110,7 +112,7 @@ const PlayerStats = () => {
             const token = await getAccessTokenSilently();
             await axios.post(
                 `${API_BASE_URL}/players`,
-                { name: newPlayerName },
+                { name: newPlayerName, skillLevel: newPlayerSkillLevel },
                 {
                     headers: {
                         Authorization: `Bearer ${token}`,
@@ -118,6 +120,7 @@ const PlayerStats = () => {
                 }
             );
             setNewPlayerName("");
+            setNewPlayerSkillLevel("average");
 
             // Invalidate cache and fetch fresh data
             invalidatePlayersCache();
@@ -613,13 +616,40 @@ const PlayerStats = () => {
                     onCancel={() => setIsAddModalVisible(false)}
                     confirmLoading={playerLoading}
                 >
-                    <Input
-                        value={newPlayerName}
-                        onChange={(e) => setNewPlayerName(e.target.value)}
-                        onKeyPress={handleAddPlayerKeyPress}
-                        placeholder="Enter player name"
-                        autoFocus
-                    />
+                    <Space direction="vertical" style={{ width: '100%' }}>
+                        <div>
+                            <Typography.Text style={{ display: 'block', marginBottom: 8 }}>
+                                Player Name:
+                            </Typography.Text>
+                            <Input
+                                value={newPlayerName}
+                                onChange={(e) => setNewPlayerName(e.target.value)}
+                                onKeyPress={handleAddPlayerKeyPress}
+                                placeholder="Enter player name"
+                                autoFocus
+                            />
+                        </div>
+                        <div>
+                            <Typography.Text style={{ display: 'block', marginBottom: 8 }}>
+                                Skill Level:
+                            </Typography.Text>
+                            <Select
+                                value={newPlayerSkillLevel}
+                                onChange={setNewPlayerSkillLevel}
+                                style={{ width: '100%' }}
+                                placeholder="Select skill level"
+                            >
+                                <Option value="beginner">Beginner - New to the sport</Option>
+                                <Option value="below_average">Below Average - Basic skills</Option>
+                                <Option value="average">Average - Competent player</Option>
+                                <Option value="better_than_average">Better than Average - Good skills</Option>
+                                <Option value="experienced">Experienced - Advanced player</Option>
+                            </Select>
+                            <Typography.Text style={{ fontSize: 12, color: '#666', marginTop: 8, display: 'block' }}>
+                                This helps assign an appropriate starting rating for better team balance.
+                            </Typography.Text>
+                        </div>
+                    </Space>
                 </Modal>
 
                 {/* Edit Player Modal */}
