@@ -46,6 +46,7 @@ export default function AccountManager() {
   const [isConfirmVisible, setIsConfirmVisible] = useState(false);
   const [isEditVisible, setIsEditVisible] = useState(false);
   const [isPositionsVisible, setIsPositionsVisible] = useState(false);
+  const [isManageAdminsVisible, setIsManageAdminsVisible] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
   const [currentRoomId, setCurrentRoomId] = useState(null);
   const [currentRoomSport, setCurrentRoomSport] = useState(null);
@@ -62,6 +63,9 @@ export default function AccountManager() {
   const [newPlayerSkillLevel, setNewPlayerSkillLevel] = useState('average');
   const [creatorSkillLevel, setCreatorSkillLevel] = useState('average');
   const [availableSports, setAvailableSports] = useState([]);
+  const [roomMembers, setRoomMembers] = useState([]);
+  const [loadingMembers, setLoadingMembers] = useState(false);
+  const [promotingPlayerId, setPromotingPlayerId] = useState(null);
   const [form] = Form.useForm();
   const [positionsForm] = Form.useForm();
   const [createRoomForm] = Form.useForm();
@@ -171,6 +175,53 @@ export default function AccountManager() {
         favoritePositions: favoritePositions
       });
       setIsPositionsVisible(true);
+    }
+  };
+
+  const fetchRoomMembers = async () => {
+    if (!currentRoomId) return;
+    setLoadingMembers(true);
+    try {
+      const token = await getAccessTokenSilently();
+      const { data } = await axios.get(
+        `${API_BASE_URL}/rooms/${currentRoomId}/members`,
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      setRoomMembers(data.members || []);
+    } catch (error) {
+      console.error("Failed to fetch room members", error);
+      message.error(error.response?.data?.error || "Could not load room members");
+    } finally {
+      setLoadingMembers(false);
+    }
+  };
+
+  const openManageAdmins = async () => {
+    setIsManageAdminsVisible(true);
+    await fetchRoomMembers();
+  };
+
+  const promoteMemberToAdmin = async (playerId) => {
+    if (!currentRoomId) return;
+    setPromotingPlayerId(playerId);
+    try {
+      const token = await getAccessTokenSilently();
+      const { data } = await axios.post(
+        `${API_BASE_URL}/rooms/${currentRoomId}/members/${playerId}/admin`,
+        {},
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      setRoomMembers(prev =>
+        prev.map(member =>
+          member.playerId === playerId ? { ...member, isAdmin: true } : member
+        )
+      );
+      message.success(data.message || "Member promoted to admin");
+    } catch (error) {
+      console.error("Failed to promote member", error);
+      message.error(error.response?.data?.error || "Could not promote member");
+    } finally {
+      setPromotingPlayerId(null);
     }
   };
 
@@ -630,6 +681,21 @@ export default function AccountManager() {
             <Divider style={{ margin: '16px 0' }} />
 
             <Space direction="vertical" style={{ width: '100%' }} size={8}>
+              {isAdmin && (
+                <Button
+                  block
+                  icon={<SafetyCertificateOutlined />}
+                  onClick={openManageAdmins}
+                  style={{
+                    height: 40,
+                    borderRadius: 8,
+                    fontWeight: 500
+                  }}
+                >
+                  Manage Admins
+                </Button>
+              )}
+
               <Button
                 block
                 icon={<PlusOutlined />}
@@ -729,6 +795,86 @@ export default function AccountManager() {
           </Card>
         </Col>
       </Row>
+
+      {/* Manage Admins Modal */}
+      <Modal
+        title={
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <SafetyCertificateOutlined style={{ color: '#00b96b' }} />
+            <span>Manage Admins</span>
+          </div>
+        }
+        open={isManageAdminsVisible}
+        onCancel={() => setIsManageAdminsVisible(false)}
+        footer={[
+          <Button key="close" onClick={() => setIsManageAdminsVisible(false)}>
+            Close
+          </Button>
+        ]}
+        destroyOnClose
+        width={520}
+      >
+        <div style={{ marginBottom: 16 }}>
+          <Text style={{ color: '#6b7280', fontSize: 14 }}>
+            Promote room members to admin so they can manage room settings and teams.
+          </Text>
+        </div>
+
+        <div style={{ maxHeight: 380, overflowY: 'auto' }}>
+          {loadingMembers ? (
+            <Text style={{ color: '#6b7280' }}>Loading members...</Text>
+          ) : (
+            <Space direction="vertical" style={{ width: '100%' }} size={10}>
+              {roomMembers.map((member) => (
+                <div
+                  key={member.playerId}
+                  style={{
+                    border: '1px solid #e5e7eb',
+                    borderRadius: 10,
+                    padding: 12,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    gap: 12
+                  }}
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                    <Avatar src={member.profilePicture} icon={<UserOutlined />} />
+                    <div>
+                      <Text strong style={{ display: 'block' }}>{member.name}</Text>
+                      <Space size={6}>
+                        {member.isLinked ? (
+                          <Tag color="green" style={{ margin: 0 }}>Linked</Tag>
+                        ) : (
+                          <Tag color="default" style={{ margin: 0 }}>Unlinked</Tag>
+                        )}
+                        {member.isAdmin && (
+                          <Tag color="purple" style={{ margin: 0 }}>Admin</Tag>
+                        )}
+                      </Space>
+                    </div>
+                  </div>
+
+                  {member.isAdmin ? (
+                    <Button disabled style={{ borderRadius: 6 }}>
+                      Admin
+                    </Button>
+                  ) : (
+                    <Button
+                      type="primary"
+                      onClick={() => promoteMemberToAdmin(member.playerId)}
+                      loading={promotingPlayerId === member.playerId}
+                      style={{ borderRadius: 6 }}
+                    >
+                      Make Admin
+                    </Button>
+                  )}
+                </div>
+              ))}
+            </Space>
+          )}
+        </div>
+      </Modal>
 
       {/* Edit Room Modal */}
       <Modal

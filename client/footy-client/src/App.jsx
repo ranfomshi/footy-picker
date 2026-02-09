@@ -56,6 +56,9 @@ const AppContent = () => {
   const { isAuthenticated, isLoading: isAuthLoading, getAccessTokenSilently, error, loginWithRedirect, logout, user } = useAuth0();
   const [players, setPlayers] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [deferredInstallPrompt, setDeferredInstallPrompt] = useState(null);
+  const [installingApp, setInstallingApp] = useState(false);
+  const [isStandaloneApp, setIsStandaloneApp] = useState(false);
   const location = useLocation();
   const navigate = useNavigate();
   const {
@@ -199,6 +202,29 @@ const AppContent = () => {
     }
   }, [error]);
 
+  useEffect(() => {
+    const isStandalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
+    setIsStandaloneApp(isStandalone);
+
+    const handleBeforeInstallPrompt = (event) => {
+      event.preventDefault();
+      setDeferredInstallPrompt(event);
+    };
+
+    const handleAppInstalled = () => {
+      setDeferredInstallPrompt(null);
+      setIsStandaloneApp(true);
+    };
+
+    window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+    window.addEventListener('appinstalled', handleAppInstalled);
+
+    return () => {
+      window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+      window.removeEventListener('appinstalled', handleAppInstalled);
+    };
+  }, []);
+
   // Redirect to /players if on root and has joined room
   useEffect(() => {
     if (isAuthenticated && hasJoinedRoom && location.pathname === '/') {
@@ -241,12 +267,50 @@ const AppContent = () => {
     }
   };
 
+  const handleInstallApp = async () => {
+    if (!deferredInstallPrompt) return;
+
+    try {
+      setInstallingApp(true);
+      await deferredInstallPrompt.prompt();
+      const choiceResult = await deferredInstallPrompt.userChoice;
+      if (choiceResult?.outcome === 'accepted') {
+        setDeferredInstallPrompt(null);
+      }
+    } catch (error) {
+      console.error('Install prompt failed:', error);
+    } finally {
+      setInstallingApp(false);
+    }
+  };
+
   if (loading) {
     return <Spin size="large" />;
   }
 
   return (
     <div className="App">
+      {!isStandaloneApp && deferredInstallPrompt && (
+        <div style={{
+          position: 'fixed',
+          top: isAuthenticated && hasJoinedRoom ? 74 : 16,
+          right: 16,
+          zIndex: 20
+        }}>
+          <Button
+            type="primary"
+            onClick={handleInstallApp}
+            loading={installingApp}
+            style={{
+              borderRadius: 8,
+              boxShadow: '0 4px 10px rgba(0, 0, 0, 0.15)'
+            }}
+          >
+            Install App
+          </Button>
+        </div>
+      )}
+
       {isAuthenticated && hasJoinedRoom && (
         <div style={{
           position: 'fixed',

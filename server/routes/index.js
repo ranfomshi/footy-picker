@@ -136,6 +136,10 @@ const adminOnly = async (req, res, next) => {
   }
 };
 
+const isActiveRoomRequest = (req, roomId) => {
+  return Number(req.user.roomId) === Number(roomId);
+};
+
 
 
 // Helper function to generate a 5-character alphanumeric room code
@@ -318,6 +322,10 @@ router.put('/rooms/:id', protect, adminOnly, async (req, res) => {
   const { name, sportId, teamAColor, teamBColor } = req.body;
 
   try {
+    if (!isActiveRoomRequest(req, id)) {
+      return res.status(403).json({ error: 'Switch to this room before managing it.' });
+    }
+
     // Find the room by primary key (id)
     const room = await Room.findByPk(id);
     if (!room) {
@@ -353,6 +361,78 @@ router.put('/rooms/:id', protect, adminOnly, async (req, res) => {
     });
   } catch (error) {
     console.error('Error updating room:', error);
+    return res.status(500).json({ error: 'Internal Server Error' });
+  }
+});
+
+router.get('/rooms/:id/members', protect, adminOnly, async (req, res) => {
+  const { id } = req.params;
+
+  try {
+    if (!isActiveRoomRequest(req, id)) {
+      return res.status(403).json({ error: 'Switch to this room before managing members.' });
+    }
+
+    const memberships = await RoomMembership.findAll({
+      where: { roomId: id, isMember: true },
+      include: [{ model: Player, attributes: ['id', 'name', 'profilePicture'] }],
+    });
+
+    const members = memberships
+      .map((membership) => ({
+        playerId: membership.playerId,
+        name: membership.Player?.name || `Player ${membership.playerId}`,
+        profilePicture: membership.Player?.profilePicture || null,
+        isAdmin: Boolean(membership.isAdmin),
+        isLinked: Boolean(membership.auth0Id),
+      }))
+      .sort((a, b) => a.name.localeCompare(b.name));
+
+    return res.status(200).json({ members });
+  } catch (error) {
+    console.error('Error fetching room members:', error);
+    return res.status(500).json({ error: 'Internal Server Error' });
+  }
+});
+
+router.post('/rooms/:id/members/:playerId/admin', protect, adminOnly, async (req, res) => {
+  const { id, playerId } = req.params;
+
+  try {
+    if (!isActiveRoomRequest(req, id)) {
+      return res.status(403).json({ error: 'Switch to this room before managing members.' });
+    }
+
+    const membership = await RoomMembership.findOne({
+      where: { roomId: id, playerId, isMember: true },
+      include: [{ model: Player, attributes: ['id', 'name'] }],
+    });
+
+    if (!membership) {
+      return res.status(404).json({ error: 'Member not found in this room' });
+    }
+
+    if (membership.isAdmin) {
+      return res.status(200).json({
+        message: `${membership.Player?.name || 'Member'} is already an admin`,
+        member: {
+          playerId: membership.playerId,
+          isAdmin: true,
+        },
+      });
+    }
+
+    await membership.update({ isAdmin: true });
+
+    return res.status(200).json({
+      message: `${membership.Player?.name || 'Member'} is now an admin`,
+      member: {
+        playerId: membership.playerId,
+        isAdmin: true,
+      },
+    });
+  } catch (error) {
+    console.error('Error promoting room member to admin:', error);
     return res.status(500).json({ error: 'Internal Server Error' });
   }
 });
