@@ -1,7 +1,5 @@
 // teamPicker.js
 
-const { Op } = require('sequelize');
-
 // 1) Calculate average rating of an array of players
 function averageRating(players) {
     const sum = players.reduce((acc, p) => acc + (p.rating || 0), 0);
@@ -73,23 +71,45 @@ function getPositionPreferenceScore(team, allPositions) {
     return deviationSum / allPositions.size;
 }
 
-// 5) Simple fallback that alternates players (sorted by rating) between Team A and Team B
-function fallbackDraftSplit(players) {
-    // Sort descending by rating
-    const sorted = [...players].sort((a, b) => b.rating - a.rating);
-    const teamA = [];
-    const teamB = [];
+function getRatingGapRatio(teamA, teamB) {
+    const avgA = averageRating(teamA);
+    const avgB = averageRating(teamB);
+    const max = Math.max(avgA, avgB);
+    const min = Math.min(avgA, avgB);
+    return max === 0 ? 0 : (max - min) / max;
+}
 
-    // Alternate picks
-    for (let i = 0; i < sorted.length; i++) {
-        if (i % 2 === 0) {
-            teamA.push(sorted[i]);
-        } else {
-            teamB.push(sorted[i]);
+function buildPairKey(a, b) {
+    const first = Number(a);
+    const second = Number(b);
+    return first < second ? `${first}:${second}` : `${second}:${first}`;
+}
+
+function getTeamPairSynergyScore(team, pairSynergyMap) {
+    if (!team || team.length < 2) return 0;
+
+    let total = 0;
+    let pairCount = 0;
+
+    for (let i = 0; i < team.length; i++) {
+        for (let j = i + 1; j < team.length; j++) {
+            const key = buildPairKey(team[i].id, team[j].id);
+            total += Number(pairSynergyMap[key] || 0);
+            pairCount += 1;
         }
     }
 
-    return { teamA, teamB };
+    return pairCount === 0 ? 0 : total / pairCount;
+}
+
+function isBetterCandidate(ratingGap, adjustedScore, bestRatingGap, bestAdjustedScore, ratingGapEpsilon) {
+    if (ratingGap < bestRatingGap - ratingGapEpsilon) return true;
+
+    if (Math.abs(ratingGap - bestRatingGap) <= ratingGapEpsilon && adjustedScore < bestAdjustedScore) {
+        return true;
+    }
+
+    return false;
 }
 
 /**
@@ -97,11 +117,11 @@ function fallbackDraftSplit(players) {
  * Steps:
  *   1) Handle trivial cases (0 or 1 player).
  *   2) Generate all team splits (combinations).
- *   3) Filter or score them by rating balance and position preferences.
- *   4) If no team meets threshold, fall back to simple "draft-style" distribution by rating.
+ *   3) Score by rating closeness first, then position preferences + pair synergy.
+ *   4) Prefer teams within threshold, but always return the best overall split.
  * Returns an object { teamA, teamB } or null if absolutely nothing can be formed.
  */
-async function pickBalancedTeams(players, threshold = 0.1) {
+async function pickBalancedTeams(players, threshold = 0.1, options = {}) {
     // Handle 0 players -> both teams empty
     if (players.length === 0) {
         return { teamA: [], teamB: [] };
@@ -119,43 +139,67 @@ async function pickBalancedTeams(players, threshold = 0.1) {
     // Generate every possible team split
     const combos = generateCombinations(players);
 
-    // Track the best combo that meets the threshold
-    let bestCombo = null;
-    let bestScore = Infinity;
+    const pairSynergyMap = options.pairSynergyMap || {};
+    const pairSynergyWeight = Number.isFinite(options.pairSynergyWeight) ? options.pairSynergyWeight : 0.75;
+    const ratingGapEpsilon = Number.isFinite(options.ratingGapEpsilon) ? options.ratingGapEpsilon : 0.015;
+
+    // Track best split inside threshold and best split overall.
+    let bestWithinThreshold = null;
+    let bestWithinRatingGap = Infinity;
+    let bestWithinAdjustedScore = Infinity;
+
+    let bestOverall = null;
+    let bestOverallRatingGap = Infinity;
+    let bestOverallAdjustedScore = Infinity;
 
     // Adjust threshold if the teams are of unequal size
     const isUneven = (players.length % 2 !== 0);
     const adjustedThreshold = isUneven ? threshold * 1.5 : threshold;
 
     for (const [teamA, teamB] of combos) {
-        const avgA = averageRating(teamA);
-        const avgB = averageRating(teamB);
+        const ratingGap = getRatingGapRatio(teamA, teamB);
 
-        // Check if this combo is within rating threshold
-        if (!isRatingBalanced(avgA, avgB, adjustedThreshold)) {
-            continue;
-        }
-
-        // Calculate position preference score
-        const score =
+        // Calculate position preference score and pair synergy contribution.
+        const positionScore =
             getPositionPreferenceScore(teamA, allPositions) +
             getPositionPreferenceScore(teamB, allPositions);
+        const pairSynergyScore =
+            getTeamPairSynergyScore(teamA, pairSynergyMap) +
+            getTeamPairSynergyScore(teamB, pairSynergyMap);
 
-        // The lower the score, the more balanced in terms of position preferences
-        if (score < bestScore) {
-            bestCombo = { teamA, teamB };
-            bestScore = score;
+        const adjustedScore = positionScore - (pairSynergyWeight * pairSynergyScore);
+
+        const isWithinThreshold = isRatingBalanced(
+            averageRating(teamA),
+            averageRating(teamB),
+            adjustedThreshold
+        );
+
+        // Best overall: prioritize rating gap, then adjusted objective (position + synergy).
+        if (isBetterCandidate(ratingGap, adjustedScore, bestOverallRatingGap, bestOverallAdjustedScore, ratingGapEpsilon)) {
+            bestOverall = { teamA, teamB };
+            bestOverallRatingGap = ratingGap;
+            bestOverallAdjustedScore = adjustedScore;
+        }
+
+        // Best within threshold uses same ranking.
+        if (
+            isWithinThreshold &&
+            isBetterCandidate(ratingGap, adjustedScore, bestWithinRatingGap, bestWithinAdjustedScore, ratingGapEpsilon)
+        ) {
+            bestWithinThreshold = { teamA, teamB };
+            bestWithinRatingGap = ratingGap;
+            bestWithinAdjustedScore = adjustedScore;
         }
     }
 
-    // If we found a valid combo within threshold, return it
-    if (bestCombo) {
-        return bestCombo;
+    // Prefer a threshold-valid split, otherwise return the closest split overall.
+    if (bestWithinThreshold) {
+        return bestWithinThreshold;
     }
 
-    // Otherwise, fall back to a simple draft approach
-    // (This ensures we return *some* distribution instead of null.)
-    return fallbackDraftSplit(players);
+    return bestOverall;
 }
 
 module.exports = { pickBalancedTeams };
+

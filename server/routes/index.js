@@ -15,6 +15,7 @@ const {
   PlayerAchievements
 } = require('../models');
 const { pickBalancedTeams } = require('../services/teamPicker'); // team picking logic
+const { buildPairSynergyMap } = require('../services/pairSynergy');
 const { getAuth0UserProfile } = require('../utils/auth0Utils');
 const router = express.Router();
 const { Op } = require('sequelize');
@@ -24,6 +25,12 @@ const jwksRsa = require('jwks-rsa');
 const achievements = require('../references/achievementConditions');
 const { saveFcmToken, sendRoomNotification } = require('../services/notifications'); // Import only the save function
 const { getUnlinkedPlayers, completeRoomJoin } = require('../services/roomService');
+
+const TEAM_PICKING_OPTIONS = {
+  pairSynergyWeight: 0.75,
+  ratingGapEpsilon: 0.015,
+  synergyLookbackGames: 40,
+};
 
 
 // Load environment variables
@@ -496,7 +503,17 @@ router.get('/pick-teams', protect, async (req, res) => {
 
 
     // Attempt to pick balanced teams using the computed threshold
-    const teamResult = await pickBalancedTeams(enrichedPlayers, threshold);
+    const pairSynergyMap = await buildPairSynergyMap({
+      roomId,
+      playerIds: enrichedPlayers.map((player) => player.id),
+      lookbackGames: TEAM_PICKING_OPTIONS.synergyLookbackGames,
+    });
+
+    const teamResult = await pickBalancedTeams(enrichedPlayers, threshold, {
+      pairSynergyMap,
+      pairSynergyWeight: TEAM_PICKING_OPTIONS.pairSynergyWeight,
+      ratingGapEpsilon: TEAM_PICKING_OPTIONS.ratingGapEpsilon,
+    });
 
     if (!teamResult) {
       return res
@@ -1514,7 +1531,16 @@ router.post('/availability', protect, async (req, res) => {
       if (n <= 12) return 0.25;
       return 0.15;
     })();
-    const picked = await pickBalancedTeams(enriched, threshold);
+    const pairSynergyMap = await buildPairSynergyMap({
+      roomId,
+      playerIds: enriched.map((player) => player.id),
+      lookbackGames: TEAM_PICKING_OPTIONS.synergyLookbackGames,
+    });
+    const picked = await pickBalancedTeams(enriched, threshold, {
+      pairSynergyMap,
+      pairSynergyWeight: TEAM_PICKING_OPTIONS.pairSynergyWeight,
+      ratingGapEpsilon: TEAM_PICKING_OPTIONS.ratingGapEpsilon,
+    });
     if (picked) {
       // Use a transaction to ensure atomicity
       const { sequelize } = require('../models');
