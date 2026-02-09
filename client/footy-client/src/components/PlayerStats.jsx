@@ -639,14 +639,14 @@ const PlayerStats = () => {
                                 style={{ width: '100%' }}
                                 placeholder="Select skill level"
                             >
-                                <Option value="beginner">Beginner - New to the sport</Option>
-                                <Option value="below_average">Below Average - Basic skills</Option>
-                                <Option value="average">Average - Competent player</Option>
-                                <Option value="better_than_average">Better than Average - Good skills</Option>
-                                <Option value="experienced">Experienced - Advanced player</Option>
+                                <Option value="beginner">Beginner - Below group average</Option>
+                                <Option value="below_average">Below Average - Slightly below group level</Option>
+                                <Option value="average">Average - Similar to group level</Option>
+                                <Option value="better_than_average">Above Average - Better than group level</Option>
+                                <Option value="experienced">Experienced - Well above group average</Option>
                             </Select>
                             <Typography.Text style={{ fontSize: 12, color: '#666', marginTop: 8, display: 'block' }}>
-                                This helps assign an appropriate starting rating for better team balance.
+                                This helps assign an appropriate starting rating relative to existing players for better team balance.
                             </Typography.Text>
                         </div>
                     </Space>

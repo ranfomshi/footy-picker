@@ -247,11 +247,11 @@ const CreateOrJoinRoom = ({ onRoomJoined, checkMembership }) => {
                     </Form.Item>
                     <Form.Item label="Your Skill Level">
                         <Select value={creatorSkillLevel} onChange={setCreatorSkillLevel}>
-                            <Option value="beginner">Beginner - New to the sport</Option>
-                            <Option value="below_average">Below Average - Some experience</Option>
-                            <Option value="average">Average - Regular player</Option>
-                            <Option value="better_than_average">Above Average - Experienced</Option>
-                            <Option value="experienced">Experienced - Very skilled</Option>
+                            <Option value="beginner">Beginner - Below group average</Option>
+                            <Option value="below_average">Below Average - Slightly below group level</Option>
+                            <Option value="average">Average - Similar to group level</Option>
+                            <Option value="better_than_average">Above Average - Better than group level</Option>
+                            <Option value="experienced">Experienced - Well above group average</Option>
                         </Select>
                     </Form.Item>
                     <Form.Item>
@@ -292,14 +292,14 @@ const CreateOrJoinRoom = ({ onRoomJoined, checkMembership }) => {
                 {selectedPlayer === null && (
                     <Form.Item label="Your Skill Level" style={{ marginTop: 16 }}>
                         <Select value={newPlayerSkillLevel} onChange={setNewPlayerSkillLevel}>
-                            <Option value="beginner">Beginner - New to the sport</Option>
-                            <Option value="below_average">Below Average - Some experience</Option>
-                            <Option value="average">Average - Regular player</Option>
-                            <Option value="better_than_average">Above Average - Experienced</Option>
-                            <Option value="experienced">Experienced - Very skilled</Option>
+                            <Option value="beginner">Beginner - Below group average</Option>
+                            <Option value="below_average">Below Average - Slightly below group level</Option>
+                            <Option value="average">Average - Similar to group level</Option>
+                            <Option value="better_than_average">Above Average - Better than group level</Option>
+                            <Option value="experienced">Experienced - Well above group average</Option>
                         </Select>
                         <Paragraph style={{ fontSize: 12, color: '#666', marginTop: 8 }}>
-                            This helps us assign you an appropriate starting rating for better team balance.
+                            This helps us assign you an appropriate starting rating relative to existing players for better team balance.
                         </Paragraph>
                     </Form.Item>
                 )}
