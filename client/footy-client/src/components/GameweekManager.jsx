@@ -89,9 +89,10 @@ const GameweekManager = () => {
   };
 
   // — Group assignments
-  const fetchTeams = async (gwId) => {
+  const fetchTeams = async (gwId, options = {}) => {
+    const { force = false } = options;
     // Skip if already fetched and data exists
-    if (fetchedGameweeks.teams.has(gwId) && teams[gwId]) {
+    if (!force && fetchedGameweeks.teams.has(gwId) && teams[gwId]) {
       return;
     }
 
@@ -126,9 +127,10 @@ const GameweekManager = () => {
   };
 
 
-  const fetchAvailability = async (gwId) => {
+  const fetchAvailability = async (gwId, options = {}) => {
+    const { force = false } = options;
     // Skip if already fetched and data exists
-    if (fetchedGameweeks.availability.has(gwId) && availability[gwId]) {
+    if (!force && fetchedGameweeks.availability.has(gwId) && availability[gwId]) {
       return;
     }
 
@@ -256,26 +258,56 @@ const GameweekManager = () => {
     });
   };
 
-  // AFTER
   const setPlayerAvailability = async (playerId, gwId, avail) => {
-    // Invalidate cache for this gameweek since we're modifying data
+    const previousStatus = availability[gwId]?.[playerId];
+
+    // Optimistic update so first click is reflected immediately in the UI.
+    setAvailability((prev) => ({
+      ...prev,
+      [gwId]: {
+        ...(prev[gwId] || {}),
+        [playerId]: avail
+      }
+    }));
+
+    // Invalidate cache for this gameweek since we're modifying data.
     invalidateGameweekCache(gwId, ['availability', 'teams']);
 
-    const token = await getAccessTokenSilently();
-    await axios.post(
-      `${API}/availability`,
-      {
-        gameweekId: gwId,
-        playerIds: [playerId],   // wrap ID in an array
-        status: avail            // rename `available` → `status`
-      },
-      { headers: { Authorization: `Bearer ${token}` } }
-    );
-    // 1) refresh availability
-    await fetchAvailability(gwId);
-    // 2) then refresh the team assignments
-    await fetchTeams(gwId);
+    try {
+      const token = await getAccessTokenSilently();
+      await axios.post(
+        `${API}/availability`,
+        {
+          gameweekId: gwId,
+          playerIds: [playerId],
+          status: avail
+        },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+
+      // Force refresh to bypass stale cache snapshots in the same render cycle.
+      await Promise.all([
+        fetchAvailability(gwId, { force: true }),
+        fetchTeams(gwId, { force: true })
+      ]);
+    } catch (error) {
+      // Revert optimistic update if request fails.
+      setAvailability((prev) => {
+        const nextGameweekAvailability = { ...(prev[gwId] || {}) };
+        if (previousStatus === null || previousStatus === undefined) {
+          delete nextGameweekAvailability[playerId];
+        } else {
+          nextGameweekAvailability[playerId] = previousStatus;
+        }
+        return {
+          ...prev,
+          [gwId]: nextGameweekAvailability
+        };
+      });
+      throw error;
+    }
   };
+
 
   // Record Result Modal handlers
   const showRecordResultModal = (gameweekId) => {
