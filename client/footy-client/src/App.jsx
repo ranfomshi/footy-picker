@@ -53,7 +53,7 @@ const Auth0ProviderWithHistory = ({ children }) => {
 
 // Main app content component that uses routing
 const AppContent = () => {
-  const { isAuthenticated, getAccessTokenSilently, error, loginWithRedirect, user } = useAuth0();
+  const { isAuthenticated, isLoading: isAuthLoading, getAccessTokenSilently, error, loginWithRedirect, logout, user } = useAuth0();
   const [players, setPlayers] = useState([]);
   const [loading, setLoading] = useState(true);
   const location = useLocation();
@@ -84,38 +84,71 @@ const AppContent = () => {
 
   const activeKey = getActiveKeyFromPath(location.pathname);
 
-  const checkRoomMembership = async () => {
-    try {
-      const token = await getAccessTokenSilently();
-      const { data } = await axios.get(`${API_BASE_URL}/check-room-membership`, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-        withCredentials: true,
-      });
-
-      // If we have an activeRoom object, mark joined and pull its code & name
-      if (data.activeRoom) {
-        const { code, name, teamAColor, teamBColor } = data.activeRoom;
-        setRoomMembership(true, code, name, teamAColor, teamBColor);
-      } else {
-        setRoomMembership(false, '', '', null, null);
-      }
-    } catch (error) {
-      console.error("Error checking room membership", error);
-    }
-  };
-
   useEffect(() => {
+    let isMounted = true;
+
     const performInitialChecks = async () => {
-      if (isAuthenticated) {
-        await checkRoomMembership();
+      if (isAuthLoading) return;
+      if (!isMounted) return;
+
+      setLoading(true);
+      let pendingLogoutRedirect = false;
+
+      if (!isAuthenticated) {
+        setRoomMembership(false, '', '', null, null);
+        setLoading(false);
+        return;
       }
-      setLoading(false);
+
+      try {
+        const token = await getAccessTokenSilently();
+        if (!isMounted) return;
+
+        const { data } = await axios.get(`${API_BASE_URL}/check-room-membership`, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+          withCredentials: true,
+        });
+
+        // If we have an activeRoom object, mark joined and pull its code & name
+        if (data.activeRoom) {
+          const { code, name, teamAColor, teamBColor } = data.activeRoom;
+          setRoomMembership(true, code, name, teamAColor, teamBColor);
+        } else {
+          setRoomMembership(false, '', '', null, null);
+        }
+      } catch (authError) {
+        console.error("Error checking auth session", authError);
+
+        const authErrorText = `${authError?.error || ''} ${authError?.message || ''}`.toLowerCase();
+        const invalidSessionCodes = ['login_required', 'consent_required', 'missing_refresh_token', 'invalid_grant'];
+        const shouldLogout = invalidSessionCodes.some(code => authErrorText.includes(code));
+
+        setRoomMembership(false, '', '', null, null);
+
+        if (shouldLogout) {
+          pendingLogoutRedirect = true;
+          localStorage.clear();
+          logout({
+            logoutParams: {
+              returnTo: window.location.origin
+            }
+          });
+        }
+      } finally {
+        if (isMounted && !pendingLogoutRedirect) {
+          setLoading(false);
+        }
+      }
     };
 
     performInitialChecks();
-  }, [isAuthenticated, roomCode]);
+
+    return () => {
+      isMounted = false;
+    };
+  }, [isAuthLoading, isAuthenticated, getAccessTokenSilently, logout, API_BASE_URL, setRoomMembership]);
 
   // Initialize Mixpanel and identify user when authenticated
   useEffect(() => {
