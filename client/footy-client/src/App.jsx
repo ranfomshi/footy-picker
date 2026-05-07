@@ -59,6 +59,7 @@ const AppContent = () => {
   const [deferredInstallPrompt, setDeferredInstallPrompt] = useState(null);
   const [installingApp, setInstallingApp] = useState(false);
   const [isStandaloneApp, setIsStandaloneApp] = useState(false);
+  const [showMovingBanner, setShowMovingBanner] = useState(() => sessionStorage.getItem('moving-banner-dismissed') !== '1');
   const location = useLocation();
   const navigate = useNavigate();
   const {
@@ -288,8 +289,46 @@ const AppContent = () => {
     return <Spin size="large" />;
   }
 
+  const dismissMovingBanner = () => {
+    sessionStorage.setItem('moving-banner-dismissed', '1');
+    setShowMovingBanner(false);
+  };
+
   return (
     <div className="App">
+      {showMovingBanner && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          zIndex: 100,
+          background: '#fff3cd',
+          borderBottom: '1px solid #ffc107',
+          padding: '10px 16px',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          gap: 8,
+          fontSize: 13,
+          color: '#664d03',
+        }}>
+          <span>
+            ⚠️ Teamix is moving! This app will be replaced at the end of May 2026.{' '}
+            <a href="https://teamixnew.netlify.app" target="_blank" rel="noopener noreferrer" style={{ color: '#664d03', fontWeight: 'bold', textDecoration: 'underline' }}>
+              Visit the new app here.
+            </a>
+          </span>
+          <button
+            onClick={dismissMovingBanner}
+            style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 18, lineHeight: 1, color: '#664d03', padding: '0 4px' }}
+            aria-label="Dismiss"
+          >
+            ×
+          </button>
+        </div>
+      )}
+
       {!isStandaloneApp && deferredInstallPrompt && (
         <div style={{
           position: 'fixed',
