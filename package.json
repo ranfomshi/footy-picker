@@ -5,7 +5,7 @@
   "main": "index.js",
   "scripts": {
     "start": "node server/server.js",
-    "heroku-postbuild": "cd client/footy-client && npm install && npm run build",
+    "heroku-postbuild": "mkdir -p client/footy-client/dist && cp client/footy-client/moved.html client/footy-client/dist/index.html",
     "server": "nodemon server/server.js",
     "client": "cd client/footy-client && npm start",
     "dev": "concurrently \"npm run server\" \"npm run client\"",
