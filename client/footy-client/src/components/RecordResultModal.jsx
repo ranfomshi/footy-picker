@@ -201,12 +201,13 @@ const RecordResultModal = ({
                             size="large"
                             allowClear
                             showSearch
+                            optionFilterProp="label"
                             filterOption={(input, option) =>
-                                option.children.toLowerCase().indexOf(input.toLowerCase()) >= 0
+                                String(option?.label ?? '').toLowerCase().includes(input.toLowerCase())
                             }
                         >
                             {eligiblePlayers.map(player => (
-                                <Option key={player.id} value={player.name}>
+                                <Option key={player.id} value={player.name} label={player.name}>
                                     <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                                         <PlayerAvatar player={player} size={24} />
                                         <span>{player.name}</span>
