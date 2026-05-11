@@ -85,7 +85,14 @@
   }
 }
 
+/*
+  Cards can appear inside responsive grids in companion games. Explicitly
+  opt them out of the browser default cross-axis stretch so a tall advert
+  placeholder does not force every card in the same row to match its height.
+*/
 .card {
+  align-self: flex-start;
+  height: fit-content;
   padding: 2em;
 }
 
