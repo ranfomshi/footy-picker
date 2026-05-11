@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import axios from 'axios';
 import {
     Spin,
@@ -70,7 +70,6 @@ const Stat = ({ label, value, percent }) => (
 const PlayerStats = () => {
     const { getAccessTokenSilently } = useAuth0();
     const [players, setPlayers] = useState([]);
-    const [filteredPlayers, setFilteredPlayers] = useState([]);
     const [loading, setLoading] = useState(true);
     const [sortBy, setSortBy] = useState('wins');
     const [sortOrder, setSortOrder] = useState('desc'); // 'asc' or 'desc'
@@ -220,10 +219,6 @@ const PlayerStats = () => {
 
     const handleSearch = (value) => {
         setSearchTerm(value);
-        const filtered = players.filter((player) =>
-            player.name.toLowerCase().includes(value.toLowerCase())
-        );
-        setFilteredPlayers(filtered);
         // Close any expanded cards when searching
         setExpandedPlayerId(null);
 
@@ -376,7 +371,16 @@ const PlayerStats = () => {
         });
     };
 
-    const sortedPlayers = sortPlayers(filteredPlayers, sortBy, sortOrder, showPercentages);
+    const sortedPlayers = useMemo(() => {
+        const normalizedSearchTerm = searchTerm.trim().toLowerCase();
+        const matchingPlayers = normalizedSearchTerm
+            ? players.filter((player) =>
+                player.name.toLowerCase().includes(normalizedSearchTerm)
+            )
+            : players;
+
+        return sortPlayers(matchingPlayers, sortBy, sortOrder, showPercentages);
+    }, [players, searchTerm, sortBy, sortOrder, showPercentages]);
 
     const toggleSortOrder = () => {
         setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc');
@@ -390,7 +394,6 @@ const PlayerStats = () => {
         try {
             await fetchPlayersWithCache(getAccessTokenSilently, (data) => {
                 setPlayers(data);
-                setFilteredPlayers(data);
             }, setLoading);
         } catch (error) {
             console.error('Error fetching player stats', error);
